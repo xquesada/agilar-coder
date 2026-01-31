@@ -201,6 +201,7 @@ read_status_file() {
     fi
 
     # Parse status file safely (handles unquoted values with spaces)
+    # Uses eval instead of declare -g for Bash 3.2 compatibility (macOS default)
     while IFS='=' read -r key value; do
         # Skip empty lines and comments
         [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
@@ -212,8 +213,10 @@ read_status_file() {
         value="${value%\"}"
         value="${value#\'}"
         value="${value%\'}"
-        # Export the variable
-        declare -g "$key=$value"
+        # Set the variable (only if key is a valid variable name)
+        if [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+            eval "$key=\"\$value\""
+        fi
     done < "$STATUS_FILE"
 }
 

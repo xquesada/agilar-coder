@@ -52,7 +52,7 @@ agilar-coder - Run Claude Code unattended on a Product Backlog
 USAGE:
     agilar-coder <backlog-file> [count]
     agilar-coder -h | --help
-    agilar-coder --debug <backlog-file> [count]
+    agilar-coder [--debug] [--verbose] <backlog-file> [count]
 
 ARGUMENTS:
     backlog-file    Path to markdown file containing the Product Backlog
@@ -62,6 +62,7 @@ ARGUMENTS:
 OPTIONS:
     -h, --help      Show this help message
     --debug         Show full command without executing
+    -v, --verbose   Enable verbose output (show Claude's tool calls)
 
 CONFIGURATION:
     ~/.agilar-coder/config.conf
@@ -207,6 +208,41 @@ print_separator() {
     echo "─────────────────────────────"
 }
 
+# Spinner with elapsed time - runs in background
+# Usage: start_spinner; run_claude ...; stop_spinner
+SPINNER_PID=""
+start_spinner() {
+    local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    local start_time=$SECONDS
+    (
+        while true; do
+            local elapsed=$((SECONDS - start_time))
+            local mins=$((elapsed / 60))
+            local secs=$((elapsed % 60))
+            for (( i=0; i<${#chars}; i++ )); do
+                printf "\r  %s Working... %dm %02ds" "${chars:$i:1}" "$mins" "$secs"
+                sleep 0.1
+                elapsed=$((SECONDS - start_time))
+                mins=$((elapsed / 60))
+                secs=$((elapsed % 60))
+            done
+        done
+    ) &
+    SPINNER_PID=$!
+}
+
+stop_spinner() {
+    if [[ -n "$SPINNER_PID" ]]; then
+        kill "$SPINNER_PID" 2>/dev/null || true
+        wait "$SPINNER_PID" 2>/dev/null || true
+        SPINNER_PID=""
+        printf "\r%40s\r" ""  # Clear the spinner line
+    fi
+}
+
+# Ensure spinner is stopped on script exit
+trap stop_spinner EXIT
+
 validate_project_context() {
     # Check for CLAUDE.md (explicit project context)
     if [[ -f "CLAUDE.md" ]]; then
@@ -243,6 +279,7 @@ validate_project_context() {
 
 main() {
     local debug_mode=false
+    local verbose_flag=false
     local backlog_file=""
     local count=""
     local args=()
@@ -256,6 +293,9 @@ main() {
                 ;;
             --debug)
                 debug_mode=true
+                ;;
+            -v|--verbose)
+                verbose_flag=true
                 ;;
             *)
                 args+=("$arg")
@@ -290,6 +330,11 @@ main() {
 
     # Load configuration (creates default if missing)
     load_config
+
+    # Apply command-line verbose flag (overrides config if set)
+    if [[ "$verbose_flag" == true ]]; then
+        VERBOSE="true"
+    fi
 
     # Build the full prompt
     local full_prompt
@@ -346,10 +391,19 @@ main() {
         ((iteration++))
         echo "Starting iteration $iteration..."
 
-        # Run Claude Code
-        if ! run_claude "$full_prompt"; then
+        # Run Claude Code (with spinner if not verbose)
+        if [[ "$VERBOSE" != "true" ]]; then
+            start_spinner
+        fi
+        local claude_exit_code=0
+        run_claude "$full_prompt" || claude_exit_code=$?
+        if [[ "$VERBOSE" != "true" ]]; then
+            stop_spinner
+        fi
+
+        if [[ "$claude_exit_code" -ne 0 ]]; then
             echo ""
-            echo "✗ Error: Claude Code failed (exit code $?)"
+            echo "✗ Error: Claude Code failed (exit code $claude_exit_code)"
             echo "  Check output above for details."
             echo "  Aborting."
             exit 2

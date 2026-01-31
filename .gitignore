@@ -1,0 +1,5 @@
+# agilar-coder runtime files
+.agilar-status
+
+# macOS
+.DS_Store

@@ -402,7 +402,7 @@ main() {
 
     while true; do
         ((iteration++))
-        echo "Starting iteration $iteration..."
+        echo "Building Product Backlog Item #$iteration..."
 
         # Run Claude Code (with spinner if not verbose)
         if [[ "$VERBOSE" != "true" ]]; then

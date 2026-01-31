@@ -26,8 +26,9 @@ FIXED_PROMPT='You are processing a Product Backlog. Your task:
 5. Write a status file ".agilar-status" in the current directory with:
    TOTAL=<total number of PBIs>
    REMAINING=<number of PBIs not yet DONE>
-   LAST_PBI=<identifier or title of the PBI you just completed>
+   LAST_PBI="<identifier or title of the PBI you just completed>"
    STATUS=<success|error>
+   Note: Quote values containing spaces (e.g., LAST_PBI="PBI-001: My Feature")
 
 If there are no PBIs, or all PBIs are already DONE, write:
    TOTAL=<count>
@@ -199,9 +200,21 @@ read_status_file() {
         return 1
     fi
 
-    # Source the status file to get variables
-    # shellcheck source=/dev/null
-    source "$STATUS_FILE"
+    # Parse status file safely (handles unquoted values with spaces)
+    while IFS='=' read -r key value; do
+        # Skip empty lines and comments
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        # Remove leading/trailing whitespace from key
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
+        # Remove surrounding quotes from value if present
+        value="${value#\"}"
+        value="${value%\"}"
+        value="${value#\'}"
+        value="${value%\'}"
+        # Export the variable
+        declare -g "$key=$value"
+    done < "$STATUS_FILE"
 }
 
 print_separator() {

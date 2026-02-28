@@ -110,7 +110,7 @@ For solo mode, the degradation is minor -- you were there, you remember. For mul
 
 Git worktrees let multiple agents work on the same repository simultaneously without conflicts. Each agent gets its own working directory with its own branch, sharing the same `.git` directory. The `skills/git-worktrees/` skill defines the conventions: naming, branch strategy, merge protocol.
 
-This is the enabling mechanism for multi-agent mode (SCRUM.md). The lead session spawns worker agents, each in its own worktree. When a worker finishes, the human merges its branch back to main.
+This is the enabling mechanism for multi-agent mode (SCRUM.md). Each agent works in its own worktree. When an agent finishes, it merges its own branch back to main, runs the test suite, and pushes. Worktrees are about clean git history, not about needing supervision — agents are trusted to merge their own work.
 
 ### How the methodology degrades without it
 

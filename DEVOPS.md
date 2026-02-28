@@ -18,7 +18,7 @@ Why it works: one human, one agent, no merge conflicts. The test gate and verifi
 
 ### Multi-Agent: Worktrees from Main
 
-Each agent works in an isolated git worktree branched from `main`. The human (or lead agent session) merges completed work back to `main`. No PRs — the human is the integration point.
+Each agent works in an isolated git worktree branched from `main`. When an agent finishes, it merges its own work back to `main`. Worktrees keep the git history clean — each agent's commits are on its own branch until merged.
 
 ```
 main ──●──────────●──────●──
@@ -28,7 +28,17 @@ agent-1  ●──●──●    \  /
 agent-2    ●──●──●──●
 ```
 
-Worktrees provide filesystem isolation without the overhead of separate clones. Each agent sees a clean working directory. When an agent finishes its task, the human (or the lead session that spawned it) merges the worktree branch back to `main`, runs the full test suite, and pushes. This is standard `git merge` — no special orchestration tooling required. See `skills/git-worktrees/` for the worktree management process and `skills/parallel-agents/` for patterns.
+Worktrees provide filesystem isolation without the overhead of separate clones. Each agent sees a clean working directory. When done, the agent switches to `main`, merges its branch, runs the full test suite, and pushes. This is standard `git merge` — no special orchestration tooling required.
+
+**Merge strategies** (all valid, pick what fits):
+
+| Strategy | How it works | When to use |
+|----------|-------------|-------------|
+| **Agent self-merges** (default) | Agent merges its own branch to main when done | Independent PBIs, low conflict risk. Simplest. |
+| **Lead session merges** | Session that spawned sub-agents merges after review | Using subagent-driven skill with review between tasks |
+| **Human merges** | Human explicitly triggers merge | Maximum control over what reaches main |
+
+See `skills/git-worktrees/` for the worktree management process and `skills/parallel-agents/` for patterns.
 
 ### Multi-Human: Feature Branches + PRs
 
@@ -48,8 +58,8 @@ PRs are mandatory. CI must pass before merge. Code review is not optional — se
 | Aspect | Solo | Multi-Agent | Multi-Human |
 |--------|------|-------------|-------------|
 | Branch model | Trunk (`main`) | Worktrees from `main` | Feature branches |
-| Merge mechanism | Direct commit | Human merges worktree branches | PR + review |
-| Code review | Self (pre-commit) | Human validates before merge | Peer review via PR |
+| Merge mechanism | Direct commit | Agent self-merges (or lead session / human) | PR + review |
+| Code review | Self (pre-commit) | Automated (TDD + verification) or human review | Peer review via PR |
 | CI trigger | Pre-commit hooks | Post-merge on `main` | PR + post-merge |
 
 ## Environments
@@ -113,7 +123,7 @@ This gate enforces the TDD working agreement at the pipeline level. See `skills/
 | Team Mode | Enforcement |
 |-----------|-------------|
 | Solo | Pre-commit hook or manual discipline |
-| Multi-agent | Human runs full suite before merging worktree to `main` |
+| Multi-agent | Agent runs full suite before merging its worktree to `main` |
 | Multi-human | CI blocks PR merge on test failure |
 
 ### Gate 2: Review Gate
@@ -127,7 +137,7 @@ See `skills/code-review/` for the review process.
 | Team Mode | Reviewer |
 |-----------|----------|
 | Solo | Self-review (human verifies before commit) |
-| Multi-agent | Human reviews agent output before merge |
+| Multi-agent | Automated review (TDD + verification) or human review |
 | Multi-human | Peer review via PR |
 
 ### Gate 3: Verification Gate
@@ -141,7 +151,7 @@ See `skills/verification/` for the verification process.
 | Team Mode | Enforcement |
 |-----------|-------------|
 | Solo | Human confirms before marking PBI done |
-| Multi-agent | Agent provides evidence; human validates |
+| Multi-agent | Agent provides evidence before self-merging |
 | Multi-human | PR includes verification evidence; reviewer confirms |
 
 ### Gate 4: Root Cause Gate
@@ -161,7 +171,7 @@ Applies to any application already running in production. The staging workflow (
 | Team Mode | Enforcement |
 |-----------|-------------|
 | Solo | Manual staging verification before production deploy |
-| Multi-agent | Pipeline requires staging step; human validates |
+| Multi-agent | Pipeline requires staging step before production deploy |
 | Multi-human | CD pipeline enforces staging-before-production |
 
 ### Gate Summary
@@ -195,7 +205,7 @@ Continuous Integration runs on every merge to `main` (and on every PR in multi-h
 | Team Mode | CI Trigger | Blocking? |
 |-----------|-----------|-----------|
 | Solo | Pre-commit hook (or post-push to `main`) | Yes — don't push broken code to `main` |
-| Multi-agent | Post-merge to `main` | Yes — human rejects and rolls back |
+| Multi-agent | Pre-merge (agent runs suite before merging to `main`) | Yes — merge blocked until green |
 | Multi-human | PR creation + update | Yes — PR cannot merge until CI passes |
 
 ## CD Pipeline

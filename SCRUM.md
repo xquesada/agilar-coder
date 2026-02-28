@@ -1,0 +1,299 @@
+# SCRUM.md — Agile Framework for AI-Enabled Development
+
+The Agile framework adapts Scrum to teams where AI agents are first-class participants. Solo developers and multi-agent setups use Kanban. Multi-human teams use full Scrum. The framework is the same — the ceremony overhead scales with coordination complexity.
+
+## Team Modes
+
+| Aspect | Solo | Multi-Agent | Multi-Human |
+|--------|------|-------------|-------------|
+| **Humans** | 1 (PO + Dev) | 1 (PO + Dev) | PO + Developer(s) |
+| **Agents** | 1 agent | Orchestrator + workers | 1 agent per developer |
+| **Process** | Kanban | Kanban | Full Scrum |
+| **Branching** | Trunk (main) | Worktrees + main | Feature branches + main |
+| **Cadence** | Continuous pull | Continuous pull | Sprint (1-2 weeks) |
+| **Ceremonies** | Refinement, Retro | Refinement, Retro | All Scrum events |
+
+---
+
+## Roles
+
+### Product Owner (human)
+
+Decides WHAT to build and in what order. Owns the Product Backlog. Writes or approves acceptance criteria. In solo and multi-agent modes, this is the same person who develops.
+
+Responsibilities:
+- Maintain and prioritize the Product Backlog
+- Write acceptance criteria for PBIs
+- Accept or reject completed work against those criteria
+- Make scope decisions — what's in, what's out, what's next
+
+The PO is always human. An agent can coach the PO (see `skills/po-coach/`) but never replaces them.
+
+### Scrum Master (human or agent-assisted)
+
+Process guardian. Ensures the team follows the methodology and its iron laws. Removes impediments.
+
+| Mode | Who fills the role |
+|------|--------------------|
+| **Solo** | Agent skill (`skills/scrum-master/`) acts as process conscience — nudges the human when iron laws are at risk |
+| **Multi-agent** | Orchestrator agent handles process enforcement as part of task coordination |
+| **Multi-human** | Dedicated human, optionally assisted by `skills/scrum-master/` agent skill |
+
+The Scrum Master does not manage people. It manages process. In solo mode, this means the agent reminds you to write the test before the code, to verify with evidence before claiming done, and to create the PBI before starting the feature.
+
+### Developer (human + AI pair)
+
+Development is a pair activity. The human and agent work as a unit with a clear contract:
+
+| Activity | Human | AI Agent |
+|----------|-------|----------|
+| **Brainstorm** | Drives the conversation | Proposes approaches, asks questions |
+| **Decide** | Makes all decisions | Presents options with trade-offs |
+| **Design** | Approves architecture | Explores codebase, drafts designs |
+| **Implement** | Reviews code | Writes code following TDD |
+| **Verify** | Confirms done | Runs tests, provides evidence |
+
+The human designs. The AI implements. The human reviews. The AI verifies. Decisions always belong to the human. Process discipline always belongs to the agent.
+
+In multi-human teams, each developer has their own agent. Agents do not share context across developers unless explicitly coordinated through the backlog or version control.
+
+---
+
+## Artifacts
+
+### Product Backlog
+
+The single source of truth for all work. An ordered list of PBIs. One backlog per product — not per team, not per sprint, not per epic.
+
+The PO owns the order. Items at the top are refined, small, and ready. Items at the bottom are rough ideas. The backlog is a living document, not a contract.
+
+### Product Backlog Item (PBI)
+
+Every PBI has:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `id` | Yes | Unique identifier (auto-assigned or sequential) |
+| `title` | Yes | What this PBI delivers, in plain language |
+| `status` | Yes | Current lifecycle state (see PBI Lifecycle below) |
+| `epic` | No | Grouping for related PBIs |
+| `notes` | No | Context, background, design decisions — not action steps |
+| `checklist` | No | Discrete action steps (`[{ text, done }]`). Use when a PBI has 2+ concrete steps |
+| `acceptance_criteria` | Yes (for ready) | How we know this PBI is done. Testable, specific, unambiguous |
+
+Checklist vs. notes: Action steps go in the checklist. Context and background go in notes. If you can check it off, it's a checklist item.
+
+### Definition of Ready (DoR)
+
+A PBI is ready to pull into work when ALL of these are true:
+
+- **Small enough** — can be completed in a single working session (solo/multi-agent) or sprint (multi-human)
+- **Acceptance criteria written** — specific, testable, agreed upon by PO
+- **Design approved** — the human has reviewed and approved the approach (architecture, data model, API shape)
+- **No blockers** — no dependencies on incomplete work, missing access, or unanswered questions
+- **Checklist populated** — if the PBI has multiple steps, they are listed
+
+A PBI that does not meet the DoR stays in `backlog` status. Do not pull it. Refine it first.
+
+### Definition of Done (DoD)
+
+A PBI is done when ALL of these are true:
+
+- **Acceptance criteria met** — every criterion verified, not assumed
+- **Tests pass** — all tests green, including new tests written via TDD (iron law: `skills/tdd/`)
+- **Code reviewed** — human has reviewed agent-written code (iron law: `skills/code-review/`)
+- **Verified with evidence** — fresh test runs, screenshots, or logs proving it works. Not "I think it works" — evidence (iron law: `skills/verification/`)
+- **Deployed to staging** — if a staging environment exists, the change runs there before production
+- **Docs updated** — if the change affects APIs, configuration, or user-facing behavior, documentation reflects it
+
+The DoD encodes three iron laws. Violating any one means the PBI is not done:
+
+| Iron Law | DoD Gate | Skill |
+|----------|----------|-------|
+| No production code without a failing test first | Tests pass (TDD) | `skills/tdd/` |
+| No completion claim without fresh verification evidence | Verified with evidence | `skills/verification/` |
+| No merge without code review | Code reviewed | `skills/code-review/` |
+
+### Sprint Backlog (multi-human only)
+
+The subset of the Product Backlog the team commits to for the current sprint. Exists only in multi-human mode — solo and multi-agent teams pull from the Product Backlog directly.
+
+The Sprint Backlog is a plan, not a promise. If scope needs adjustment mid-sprint, the team negotiates with the PO. No one adds work to the Sprint Backlog without the team's agreement.
+
+---
+
+## Events
+
+### All Modes
+
+**Product Backlog Refinement**
+
+Break down large PBIs, write acceptance criteria, estimate effort, reorder priorities. The goal is to keep the top of the backlog ready (meets DoR) at all times.
+
+| Mode | How it works |
+|------|--------------|
+| **Solo** | Inline — refine and build can be a single activity. Review the backlog, pick a PBI, refine it if needed, then build |
+| **Multi-agent** | Inline or scheduled — orchestrator may refine as part of task assignment |
+| **Multi-human** | Scheduled session — PO presents upcoming PBIs, team discusses, refines, estimates |
+
+**Retrospective**
+
+What worked, what didn't, what to change. Even solo developers benefit from periodic reflection on their process.
+
+| Mode | How it works |
+|------|--------------|
+| **Solo** | Periodic self-review, optionally prompted by `skills/scrum-master/`. Weekly or after major milestones |
+| **Multi-agent** | Review agent performance, process adherence, iron law violations |
+| **Multi-human** | Standard Scrum retrospective at sprint end |
+
+### Solo and Multi-Agent (Kanban)
+
+No sprint planning. No sprint review. No daily standup. The overhead is not justified when one human coordinates with agents.
+
+The workflow is:
+
+1. Pull the next ready PBI from the top of the backlog
+2. Refine it inline if it doesn't fully meet DoR (write acceptance criteria, break down steps)
+3. Build it (following skills: TDD, verification, code review)
+4. Verify it meets DoD
+5. Mark it done
+6. Pull the next one
+
+Work-in-progress limit: one PBI at a time per agent. Finish before starting. Context-switching is the enemy of quality.
+
+### Multi-Human (Full Scrum)
+
+When multiple humans coordinate, you need the full ceremony set to stay aligned.
+
+**Sprint Planning**
+
+- PO presents the prioritized backlog
+- Team selects PBIs they can commit to for the sprint
+- Each PBI must meet DoR before entering the Sprint Backlog
+- Team creates a Sprint Goal — one sentence describing the sprint's purpose
+
+**Daily Standup**
+
+- Each developer (human + agent pair): what did we do, what will we do, any blockers
+- 15 minutes max. Not a status report — a coordination event
+- Agents can prepare standup summaries for their human
+
+**Sprint Review**
+
+- Team demonstrates completed PBIs to stakeholders
+- PO accepts or rejects against acceptance criteria
+- Feedback captured as new or updated PBIs
+
+**Sprint Retrospective**
+
+- What went well, what didn't, what to improve
+- Include agent-specific topics: skill effectiveness, iron law adherence, agent coordination issues
+- One actionable improvement per retrospective, minimum
+
+---
+
+## PBI Lifecycle
+
+```
+backlog ──→ ready ──→ in_progress ──→ done
+  │           │            │
+  │           │            └── fails DoD → stays in_progress, fix issues
+  │           │
+  │           └── blocker found → back to backlog
+  │
+  └── refined + meets DoR → ready
+```
+
+### Status Definitions
+
+| Status | Meaning | Gate |
+|--------|---------|------|
+| `backlog` | Identified work, not yet refined | None |
+| `ready` | Refined, meets Definition of Ready | DoR |
+| `in_progress` | Actively being worked on | Pulled by developer |
+| `done` | Complete, meets Definition of Done | DoD |
+
+### Transitions
+
+**backlog to ready**: PBI has been refined. Acceptance criteria are written. Design is approved. It's small enough. No blockers. The PO confirms it meets the DoR.
+
+**ready to in_progress**: A developer (human + agent pair) pulls the PBI. In Kanban modes, this is the next item at the top. In Scrum mode, it was committed during Sprint Planning.
+
+**in_progress to done**: All DoD criteria are met. Tests pass. Code is reviewed. Verification evidence exists. The PO accepts it against the acceptance criteria.
+
+**in_progress stays in_progress**: If the PBI fails any DoD gate, it stays in progress. Fix the issue. Do not move it to done and create a "fix" PBI — that's cheating.
+
+**ready back to backlog**: A blocker was discovered, or priorities changed. The PBI needs more refinement or is no longer relevant for now.
+
+---
+
+## The PBI-First Rule
+
+**Any new work gets a PBI before starting.**
+
+This is not optional. This is not "when convenient." Before you write a line of code, there is a PBI for it.
+
+Specifically:
+- New UI page? PBI first.
+- New API endpoint? PBI first.
+- New cron job, tool, or script? PBI first.
+- Bug fix? PBI first.
+- Refactoring? PBI first.
+- Research spike? PBI first.
+
+If the human forgets to create a PBI, the agent suggests it. This is part of the Scrum Master conscience (see `skills/scrum-master/`).
+
+Why: Without a PBI, there is no acceptance criteria. Without acceptance criteria, there is no Definition of Done. Without DoD, there is no way to know if you're finished. You will gold-plate, scope-creep, or ship something that doesn't match what was needed.
+
+The PBI is the contract between the PO and the developer. No contract, no work.
+
+---
+
+## Iron Laws Integration
+
+The iron laws defined in the skills are not separate from the Agile framework — they are built into it. The DoD is the enforcement mechanism.
+
+### TDD Iron Law
+
+> No production code without a failing test first.
+
+Enforced via DoD: "Tests pass" means tests were written first (red-green-refactor), not bolted on after. The agent follows `skills/tdd/` rigorously. The code review (`skills/code-review/`) confirms TDD discipline was followed.
+
+### Verification Iron Law
+
+> No completion claim without fresh verification evidence.
+
+Enforced via DoD: "Verified with evidence" means the agent ran the tests, captured the output, and presented it. Not "the tests should pass" — actual evidence. Screenshots, test output, log snippets. The agent follows `skills/verification/` to produce this evidence before marking a PBI done.
+
+### Code Review Iron Law
+
+> No merge without code review.
+
+Enforced via DoD: "Code reviewed" means the human reviewed agent-written code before it ships. In solo mode, this is the developer reviewing their agent's output. In multi-human mode, this can include peer review. The process follows `skills/code-review/`.
+
+### Debugging Iron Law
+
+> No fix without root cause investigation.
+
+Not a DoD gate directly, but enforced by `skills/debugging/`. When a bug is found, the agent does not guess-and-patch. It investigates root cause through a structured four-phase process before proposing a fix. This prevents the "fix one bug, create two" cycle.
+
+### Brainstorming Iron Law
+
+> No design without exploring alternatives.
+
+Enforced during refinement. Before committing to a design, the human and agent explore alternatives via `skills/brainstorming/`. The PBI's design (captured in notes or a plan document via `skills/writing-plans/`) reflects that alternatives were considered.
+
+---
+
+## Kanban vs. Scrum: Decision Guide
+
+Use this to pick the right mode for your team:
+
+| Question | If yes → | If no → |
+|----------|----------|---------|
+| More than one human developer? | Multi-human (Scrum) | Solo or Multi-agent |
+| Multiple agents working in parallel on different PBIs? | Multi-agent (Kanban) | Solo (Kanban) |
+| Need sprint commitments for stakeholder alignment? | Multi-human (Scrum) | Kanban |
+| One person doing everything? | Solo (Kanban) | Multi-human or Multi-agent |
+
+You can evolve between modes. A solo developer who adds a second agent moves to multi-agent. A multi-agent setup that brings on a second human moves to multi-human. The backlog, PBI structure, and iron laws stay the same — only the ceremonies change.

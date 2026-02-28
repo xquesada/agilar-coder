@@ -7,9 +7,9 @@ description: Use when implementing any feature or bugfix, before writing impleme
 
 > Canonical skill: `skills/tdd/SKILL.md`
 >
-> This file adds Claude Code-specific tooling and workflow. The iron laws, rationalizations, and red flags in the canonical skill apply without modification. Read that file first.
+> This file adds Claude Code-specific tooling and workflow. The working agreements, rationalizations, and red flags in the canonical skill apply without modification. Read that file first.
 
-## The Iron Law
+## Working Agreement
 
 ```
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST

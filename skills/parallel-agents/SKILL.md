@@ -4,7 +4,7 @@ Dispatch multiple agents to work on independent problems simultaneously. Each ag
 
 This skill is primarily for multi-agent team mode (see `SCRUM.md`), where an orchestrator coordinates multiple workers. It applies to investigation, implementation, and analysis tasks that do not share state.
 
-## Iron Law
+## Working Agreement
 
 **No parallel dispatch without verified independence.** If two tasks share state, modify the same files, or depend on each other's output, they are not independent. Run them sequentially. Parallel execution of dependent tasks creates merge conflicts, race conditions, and wasted effort.
 

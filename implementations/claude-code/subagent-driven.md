@@ -165,7 +165,7 @@ Then re-dispatch the same reviewer to verify the fixes.
 ## What NOT to Do
 
 - Do not write implementation code yourself — dispatch workers via **Agent**. You are the orchestrator.
-- Do not skip spec review, even for "simple" tasks. The **Agent** tool call takes seconds. The iron law is non-negotiable.
+- Do not skip spec review, even for "simple" tasks. The **Agent** tool call takes seconds. The working agreement is non-negotiable.
 - Do not run quality review before spec review passes. Wrong order.
 - Do not give workers vague prompts. Include file paths, patterns, constraints. The worker has no context beyond what you provide.
 - Do not let more than 3 review-fix cycles pass without escalating to the user. Something is structurally wrong if a worker cannot satisfy a reviewer in 3 attempts.

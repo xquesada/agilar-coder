@@ -23,7 +23,7 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 Thinking "skip TDD just this once"? Stop. That's rationalization.
 
-## The Iron Law
+## Working Agreement
 
 ```
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST

@@ -1,6 +1,6 @@
-# DevOps: Pipeline, Environments & Quality Gates
+# Agilar DevOps: Pipeline, Environments & Quality Gates
 
-How code moves from a developer's machine to production. Branching, environments, quality gates, CI/CD, and observability — adapted per team mode.
+How code moves from a developer's machine to production. Agilar's opinionated approach to branching, environments, quality gates, CI/CD, and observability — adapted per team mode.
 
 ## Branching Strategies
 
@@ -18,7 +18,7 @@ Why it works: one human, one agent, no merge conflicts. The test gate and verifi
 
 ### Multi-Agent: Worktrees from Main
 
-Each agent works in an isolated git worktree branched from `main`. The orchestrator merges completed work back to `main`. No PRs — the orchestrator is the integration point.
+Each agent works in an isolated git worktree branched from `main`. The human (or lead agent session) merges completed work back to `main`. No PRs — the human is the integration point.
 
 ```
 main ──●──────────●──────●──
@@ -28,7 +28,7 @@ agent-1  ●──●──●    \  /
 agent-2    ●──●──●──●
 ```
 
-Worktrees provide filesystem isolation without the overhead of separate clones. Each agent sees a clean working directory. The orchestrator pulls completed worktrees, runs the full test suite on `main`, and pushes. See `skills/git-worktrees/` for the worktree management process and `skills/parallel-agents/` for orchestration patterns.
+Worktrees provide filesystem isolation without the overhead of separate clones. Each agent sees a clean working directory. When an agent finishes its task, the human (or the lead session that spawned it) merges the worktree branch back to `main`, runs the full test suite, and pushes. This is standard `git merge` — no special orchestration tooling required. See `skills/git-worktrees/` for the worktree management process and `skills/parallel-agents/` for patterns.
 
 ### Multi-Human: Feature Branches + PRs
 
@@ -48,8 +48,8 @@ PRs are mandatory. CI must pass before merge. Code review is not optional — se
 | Aspect | Solo | Multi-Agent | Multi-Human |
 |--------|------|-------------|-------------|
 | Branch model | Trunk (`main`) | Worktrees from `main` | Feature branches |
-| Merge mechanism | Direct commit | Orchestrator merge | PR + review |
-| Code review | Self (pre-commit) | Orchestrator validates | Peer review via PR |
+| Merge mechanism | Direct commit | Human merges worktree branches | PR + review |
+| Code review | Self (pre-commit) | Human validates before merge | Peer review via PR |
 | CI trigger | Pre-commit hooks | Post-merge on `main` | PR + post-merge |
 
 ## Environments
@@ -100,7 +100,7 @@ Live. Deployments arrive only after passing through staging. No exceptions, no "
 
 ## Quality Gates
 
-The Iron Laws from `README.md` are not philosophical principles — they are pipeline gates. Code that violates them does not advance.
+The working agreements from `README.md` are not philosophical principles — they are pipeline gates. Code that violates them does not advance.
 
 ### Gate 1: Test Gate
 
@@ -108,12 +108,12 @@ The Iron Laws from `README.md` are not philosophical principles — they are pip
 
 Every commit must leave the test suite green. In trunk-based (solo) development, this means running the full suite before every commit. In branch-based workflows, CI enforces this on every push.
 
-This gate enforces the TDD iron law at the pipeline level. See `skills/tdd/` for the test-driven development process.
+This gate enforces the TDD working agreement at the pipeline level. See `skills/tdd/` for the test-driven development process.
 
 | Team Mode | Enforcement |
 |-----------|-------------|
 | Solo | Pre-commit hook or manual discipline |
-| Multi-agent | Orchestrator runs full suite before merging to `main` |
+| Multi-agent | Human runs full suite before merging worktree to `main` |
 | Multi-human | CI blocks PR merge on test failure |
 
 ### Gate 2: Review Gate
@@ -127,7 +127,7 @@ See `skills/code-review/` for the review process.
 | Team Mode | Reviewer |
 |-----------|----------|
 | Solo | Self-review (human verifies before commit) |
-| Multi-agent | Orchestrator reviews agent output |
+| Multi-agent | Human reviews agent output before merge |
 | Multi-human | Peer review via PR |
 
 ### Gate 3: Verification Gate
@@ -141,7 +141,7 @@ See `skills/verification/` for the verification process.
 | Team Mode | Enforcement |
 |-----------|-------------|
 | Solo | Human confirms before marking PBI done |
-| Multi-agent | Agent provides evidence; orchestrator or human validates |
+| Multi-agent | Agent provides evidence; human validates |
 | Multi-human | PR includes verification evidence; reviewer confirms |
 
 ### Gate 4: Root Cause Gate
@@ -161,7 +161,7 @@ Applies to any application already running in production. The staging workflow (
 | Team Mode | Enforcement |
 |-----------|-------------|
 | Solo | Manual staging verification before production deploy |
-| Multi-agent | Pipeline requires staging step; orchestrator validates |
+| Multi-agent | Pipeline requires staging step; human validates |
 | Multi-human | CD pipeline enforces staging-before-production |
 
 ### Gate Summary
@@ -195,7 +195,7 @@ Continuous Integration runs on every merge to `main` (and on every PR in multi-h
 | Team Mode | CI Trigger | Blocking? |
 |-----------|-----------|-----------|
 | Solo | Pre-commit hook (or post-push to `main`) | Yes — don't push broken code to `main` |
-| Multi-agent | Post-merge by orchestrator | Yes — orchestrator rejects and rolls back |
+| Multi-agent | Post-merge to `main` | Yes — human rejects and rolls back |
 | Multi-human | PR creation + update | Yes — PR cannot merge until CI passes |
 
 ## CD Pipeline
@@ -218,7 +218,7 @@ main (CI green) ──→ Build ──→ Deploy to Staging ──→ Verify ─
 | Team Mode | Deploy Mechanism | Who Triggers Production Deploy |
 |-----------|-----------------|-------------------------------|
 | Solo | Script or manual | Human |
-| Multi-agent | Orchestrator or script | Human approves; agent executes |
+| Multi-agent | Script | Human approves; agent executes |
 | Multi-human | Automated pipeline | Pipeline after staging verification passes |
 
 The artifact deployed to production must be the same artifact validated in staging. Rebuilding between staging and production defeats the purpose of staging validation.
@@ -241,6 +241,6 @@ Running software needs monitoring. AI-assisted development adds a new dimension:
 |---------|-------------------|
 | **Audit trails** | Every agent action is logged — what it did, what files it changed, what commands it ran. Reconstructable after the fact. |
 | **Cost monitoring** | Track token usage and cost per agent, per task, per time window. Set budget caps. Alert on anomalies. |
-| **Quality metrics** | Track test pass rate, verification evidence rate, and iron law violations over time. Degradation is a signal. |
+| **Quality metrics** | Track test pass rate, verification evidence rate, and working agreement violations over time. Degradation is a signal. |
 
 Agent observability is not optional. An unsupervised agent without audit trails is a liability. The cost of logging everything is negligible compared to the cost of not knowing what happened.

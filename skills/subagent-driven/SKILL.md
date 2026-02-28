@@ -4,7 +4,7 @@ Execute an implementation plan by dispatching independent tasks to worker agents
 
 This skill is the execution engine for plans produced by `skills/writing-plans/`. It bridges the gap between "we have a plan" and "the plan is done" — with quality gates at every step.
 
-## Iron Law
+## Working Agreement
 
 **No task is complete without passing both spec compliance review and code quality review.** A worker agent's self-assessment is not sufficient. Two independent reviews must pass before advancing to the next task.
 
@@ -216,7 +216,7 @@ REPORT BACK:
 
 ## Red Flags
 
-- **Skipping spec review because "it's obvious"** — the iron law exists precisely for "obvious" tasks. Never skip.
+- **Skipping spec review because "it's obvious"** — the working agreement exists precisely for "obvious" tasks. Never skip.
 - **Running quality review before spec review** — wrong order. Fix what was built before polishing how.
 - **Worker making decisions about scope** — workers implement, they do not decide. Scope decisions go back to the orchestrator and ultimately the human partner.
 - **Reviewer being vague** — "code could be better" is not actionable. Reviewers must cite specific files, lines, and issues.

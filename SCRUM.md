@@ -1,6 +1,6 @@
-# SCRUM.md — Agile Framework for AI-Enabled Development
+# SCRUM.md — Agilar's Agile Framework for AI-Enabled Development
 
-The Agile framework adapts Scrum to teams where AI agents are first-class participants. Solo developers and multi-agent setups use Kanban. Multi-human teams use full Scrum. The framework is the same — the ceremony overhead scales with coordination complexity.
+Agilar's adaptation of Scrum and Kanban for teams where AI agents are first-class participants. Solo developers and multi-agent setups use Kanban. Multi-human teams use full Scrum. The framework is the same — the ceremony overhead scales with coordination complexity.
 
 ## Team Modes
 
@@ -31,11 +31,11 @@ The PO is always human. An agent can coach the PO (see `skills/po-coach/`) but n
 
 ### Scrum Master (human or agent-assisted)
 
-Process guardian. Ensures the team follows the methodology and its iron laws. Removes impediments.
+Process guardian. Ensures the team follows the methodology and its working agreements. Removes impediments.
 
 | Mode | Who fills the role |
 |------|--------------------|
-| **Solo** | Agent skill (`skills/scrum-master/`) acts as process conscience — nudges the human when iron laws are at risk |
+| **Solo** | Agent skill (`skills/scrum-master/`) acts as process conscience — nudges the human when working agreements are at risk |
 | **Multi-agent** | Orchestrator agent handles process enforcement as part of task coordination |
 | **Multi-human** | Dedicated human, optionally assisted by `skills/scrum-master/` agent skill |
 
@@ -100,19 +100,19 @@ A PBI that does not meet the DoR stays in `backlog` status. Do not pull it. Refi
 A PBI is done when ALL of these are true:
 
 - **Acceptance criteria met** — every criterion verified, not assumed
-- **Tests pass** — all tests green, including new tests written via TDD (iron law: `skills/tdd/`)
-- **Code reviewed** — human has reviewed agent-written code (iron law: `skills/code-review/`)
-- **Verified with evidence** — fresh test runs, screenshots, or logs proving it works. Not "I think it works" — evidence (iron law: `skills/verification/`)
+- **Tests pass** — all tests green, including new tests written via TDD (working agreement: `skills/tdd/`)
+- **Code reviewed** — human has reviewed agent-written code (working agreement: `skills/code-review/`). *Optional for non-technical solo users — see scaffold onboarding.*
+- **Verified with evidence** — fresh test runs, screenshots, or logs proving it works. Not "I think it works" — evidence (working agreement: `skills/verification/`)
 - **Deployed to staging** — if a staging environment exists, the change runs there before production
 - **Docs updated** — if the change affects APIs, configuration, or user-facing behavior, documentation reflects it
 
-The DoD encodes three iron laws. Violating any one means the PBI is not done:
+The DoD encodes the team's working agreements. Violating any one means the PBI is not done:
 
-| Iron Law | DoD Gate | Skill |
-|----------|----------|-------|
+| Working Agreement | DoD Gate | Skill |
+|-------------------|----------|-------|
 | No production code without a failing test first | Tests pass (TDD) | `skills/tdd/` |
 | No completion claim without fresh verification evidence | Verified with evidence | `skills/verification/` |
-| No merge without code review | Code reviewed | `skills/code-review/` |
+| No merge without code review | Code reviewed (optional for non-technical solo) | `skills/code-review/` |
 
 ### Sprint Backlog (multi-human only)
 
@@ -143,7 +143,7 @@ What worked, what didn't, what to change. Even solo developers benefit from peri
 | Mode | How it works |
 |------|--------------|
 | **Solo** | Periodic self-review, optionally prompted by `skills/scrum-master/`. Weekly or after major milestones |
-| **Multi-agent** | Review agent performance, process adherence, iron law violations |
+| **Multi-agent** | Review agent performance, process adherence, working agreement violations |
 | **Multi-human** | Standard Scrum retrospective at sprint end |
 
 ### Solo and Multi-Agent (Kanban)
@@ -187,7 +187,7 @@ When multiple humans coordinate, you need the full ceremony set to stay aligned.
 **Sprint Retrospective**
 
 - What went well, what didn't, what to improve
-- Include agent-specific topics: skill effectiveness, iron law adherence, agent coordination issues
+- Include agent-specific topics: skill effectiveness, working agreement adherence, agent coordination issues
 - One actionable improvement per retrospective, minimum
 
 ---
@@ -249,35 +249,37 @@ The PBI is the contract between the PO and the developer. No contract, no work.
 
 ---
 
-## Iron Laws Integration
+## Working Agreements
 
-The iron laws defined in the skills are not separate from the Agile framework — they are built into it. The DoD is the enforcement mechanism.
+The working agreements defined in the skills are not separate from the Agile framework — they are built into it. The DoD is the enforcement mechanism.
 
-### TDD Iron Law
+### TDD
 
 > No production code without a failing test first.
 
-Enforced via DoD: "Tests pass" means tests were written first (red-green-refactor), not bolted on after. The agent follows `skills/tdd/` rigorously. The code review (`skills/code-review/`) confirms TDD discipline was followed.
+Enforced via DoD: "Tests pass" means tests were written first (red-green-refactor), not bolted on after. The agent follows `skills/tdd/` rigorously. Code review (when enabled) confirms TDD discipline was followed.
 
-### Verification Iron Law
+### Verification
 
 > No completion claim without fresh verification evidence.
 
 Enforced via DoD: "Verified with evidence" means the agent ran the tests, captured the output, and presented it. Not "the tests should pass" — actual evidence. Screenshots, test output, log snippets. The agent follows `skills/verification/` to produce this evidence before marking a PBI done.
 
-### Code Review Iron Law
+### Code Review (optional for non-technical solo users)
 
 > No merge without code review.
 
-Enforced via DoD: "Code reviewed" means the human reviewed agent-written code before it ships. In solo mode, this is the developer reviewing their agent's output. In multi-human mode, this can include peer review. The process follows `skills/code-review/`.
+Enforced via DoD when enabled: "Code reviewed" means the human reviewed agent-written code before it ships. In solo mode, this is the developer reviewing their agent's output. In multi-human mode, this includes peer review. The process follows `skills/code-review/`.
 
-### Debugging Iron Law
+**When to skip:** If you're a non-technical PO working in solo mode, you may not be able to review code meaningfully. The scaffold wizard asks about this during onboarding. When code review is disabled, the agent relies on TDD + verification + automated quality checks (linting, type checking) as the quality safety net.
+
+### Debugging
 
 > No fix without root cause investigation.
 
 Not a DoD gate directly, but enforced by `skills/debugging/`. When a bug is found, the agent does not guess-and-patch. It investigates root cause through a structured four-phase process before proposing a fix. This prevents the "fix one bug, create two" cycle.
 
-### Brainstorming Iron Law
+### Brainstorming
 
 > No design without exploring alternatives.
 
@@ -296,4 +298,4 @@ Use this to pick the right mode for your team:
 | Need sprint commitments for stakeholder alignment? | Multi-human (Scrum) | Kanban |
 | One person doing everything? | Solo (Kanban) | Multi-human or Multi-agent |
 
-You can evolve between modes. A solo developer who adds a second agent moves to multi-agent. A multi-agent setup that brings on a second human moves to multi-human. The backlog, PBI structure, and iron laws stay the same — only the ceremonies change.
+You can evolve between modes. A solo developer who adds a second agent moves to multi-agent. A multi-agent setup that brings on a second human moves to multi-human. The backlog, PBI structure, and working agreements stay the same — only the ceremonies change.

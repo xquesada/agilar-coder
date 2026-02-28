@@ -1,14 +1,14 @@
-# Toolchain
+# Agilar Toolchain
 
-Recommended tools, what they do for the methodology, and what degrades without them.
+Recommended tools, what they do for the Agilar AI SDLC methodology, and what degrades without them.
 
 ## Two Layers
 
 This methodology separates **principles** from **tools** deliberately.
 
-**Layer 1 -- Principles (tool-agnostic).** SCRUM.md, DEVOPS.md, skill intents, iron laws, team modes. These work with any AI coding assistant, any CI/CD system, any hosting platform. A team using Cursor instead of Claude Code, GitLab instead of GitHub, Jenkins instead of GitHub Actions still follows the same methodology. The skills define *what* to do and *why*. The toolchain defines *how* to automate it.
+**Layer 1 -- Principles (tool-agnostic).** SCRUM.md, DEVOPS.md, skill intents, working agreements, team modes. These work with any AI coding assistant, any CI/CD system, any hosting platform. A team using Cursor instead of Claude Code, GitLab instead of GitHub, Jenkins instead of GitHub Actions still follows the same methodology. The skills define *what* to do and *why*. The toolchain defines *how* to automate it.
 
-**Layer 2 -- Toolchain (recommended, not required).** Specific tool implementations that make the methodology easier to follow. Claude Code skills make process steps executable. Entire captures the audit trail automatically. GitHub Actions enforces iron laws in CI. These tools reduce friction and catch mistakes -- but the methodology works without any of them. You just do more manually.
+**Layer 2 -- Toolchain (recommended, not required).** Specific tool implementations that make the methodology easier to follow. Claude Code skills make process steps executable. Entire captures the audit trail automatically. GitHub Actions enforces working agreements in CI. These tools reduce friction and catch mistakes -- but the methodology works without any of them. You just do more manually.
 
 The line between layers is simple: if removing a tool changes *what* you do, it's in the wrong layer. Removing a tool should only change *how much effort* it takes.
 
@@ -21,8 +21,9 @@ The line between layers is simple: if removing a tool changes *what* you do, it'
 | **Git** | Version control, branching, worktrees | Required | Methodology assumes git. |
 | **Git worktrees** | Agent isolation in multi-agent mode | Optional | Only needed for multi-agent. Alternative: feature branches. |
 | **GitHub / GitLab** | Code hosting, PR workflow, CI/CD | Recommended | Any git hosting works. Multi-human mode needs PR workflow. |
-| **GitHub Actions / GitLab CI** | Automated quality gates | Recommended | Manual gate enforcement. CI automates iron laws. |
+| **GitHub Actions / GitLab CI** | Automated quality gates | Recommended | Manual gate enforcement. CI automates working agreements. |
 | **Testing frameworks** | TDD and verification evidence | Required (any) | TDD skill cannot function without a test runner. |
+| **ATDD/BDD frameworks** | Acceptance test automation (Gherkin) | Strongly recommended | Acceptance criteria remain manual. Lose executable specifications. |
 | **Linters / formatters** | Automated code quality | Recommended | Manual code style enforcement. One less CI gate. |
 | **Docker / containers** | Environment reproducibility | Recommended | Manual environment parity. Staging drift becomes likely. |
 | **Infrastructure as Code** | Staging/production parity | Optional | Manual infrastructure management. Acceptable for small deployments. |
@@ -61,7 +62,7 @@ Claude Code is the reference AI coding agent. Three capabilities matter:
 
 ### How the methodology degrades without it
 
-Skills become documents instead of executables. A developer using a different AI assistant reads the `skills/` directory and follows the process manually -- or instructs their assistant to follow it. The iron laws still apply, but enforcement shifts from automatic to human.
+Skills become documents instead of executables. A developer using a different AI assistant reads the `skills/` directory and follows the process manually -- or instructs their assistant to follow it. The working agreements still apply, but enforcement shifts from automatic to human.
 
 Sub-agent orchestration disappears. Multi-agent mode still works (multiple terminal sessions, each with its own AI assistant and worktree) but without programmatic coordination.
 
@@ -71,7 +72,8 @@ The methodology still works. It's just more manual.
 
 - **Cursor** -- Rules files (`.cursorrules`) can encode skill processes. Less structured than Claude Code skills but functional. The `implementations/cursor/` directory will provide these translations.
 - **GitHub Copilot** -- Chat mode can follow process instructions from context files. No skills system, so everything is prompt-based.
-- **Aider, Continue, Cline** -- Various levels of process enforcement. All can read skill files as context. None have a native skills system.
+- **Codex (OpenAI)** -- Task-based agent with sandbox execution. Can follow process instructions. No native skills system.
+- **Antigravity** -- AI coding agent. Can read skill files as context. Different automation model from Claude Code.
 - **Any AI assistant** -- The `implementations/generic/` directory provides plain markdown that any tool can use as instructions.
 
 ---
@@ -108,7 +110,7 @@ For solo mode, the degradation is minor -- you were there, you remember. For mul
 
 Git worktrees let multiple agents work on the same repository simultaneously without conflicts. Each agent gets its own working directory with its own branch, sharing the same `.git` directory. The `skills/git-worktrees/` skill defines the conventions: naming, branch strategy, merge protocol.
 
-This is the enabling mechanism for multi-agent mode (SCRUM.md). One orchestrator agent assigns PBIs to worker agents. Each worker operates in its own worktree. When a worker finishes, its branch is merged back to main.
+This is the enabling mechanism for multi-agent mode (SCRUM.md). The lead session spawns worker agents, each in its own worktree. When a worker finishes, the human merges its branch back to main.
 
 ### How the methodology degrades without it
 
@@ -139,7 +141,7 @@ Code hosting and the PR workflow. Three things matter:
 
 Without a PR workflow, code review becomes informal -- reviewing diffs locally, pair programming, or reviewing commits after merge. The code-review skill still defines what to check, but there's no structured place to do it.
 
-Without CI integration, quality gates are manual. Someone has to remember to run tests before merging. The iron laws still apply, but enforcement is human discipline only.
+Without CI integration, quality gates are manual. Someone has to remember to run tests before merging. The working agreements still apply, but enforcement is human discipline only.
 
 Solo mode is barely affected. You're reviewing your own agent's work anyway. Multi-human mode takes the biggest hit because PR review is a core coordination mechanism.
 
@@ -156,17 +158,18 @@ Solo mode is barely affected. You're reviewing your own agent's work anyway. Mul
 
 ### What it does for the methodology
 
-CI automates the iron laws from DEVOPS.md:
+CI automates the working agreements from DEVOPS.md:
 
 - **Tests must pass before merge.** CI runs the test suite on every push. If tests fail, the branch can't merge. This enforces "no production code without a failing test first" -- if you skip TDD, CI catches missing coverage.
 - **Linter must be clean.** Formatting and style checks run automatically. No debates about code style in review.
+- **Warnings as errors.** Compiler and linter warnings treated as build failures. Prevents warning accumulation that hides real issues.
 - **Build must succeed.** Catches compilation errors, missing dependencies, broken imports before they reach main.
 
 The pipeline defined in DEVOPS.md maps directly to CI stages: lint, test, build, deploy. CI makes the pipeline real instead of aspirational.
 
 ### How the methodology degrades without it
 
-Iron laws become trust-based. The developer (or agent) says "tests pass" and the reviewer believes them. The verification skill (`skills/verification/`) still requires evidence, but no system blocks a bad merge.
+Working agreements become trust-based. The developer (or agent) says "tests pass" and the reviewer believes them. The verification skill (`skills/verification/`) still requires evidence, but no system blocks a bad merge.
 
 For disciplined solo developers, this is fine. For teams, it's a risk. Someone will eventually merge with failing tests, not out of malice but because they forgot to run them.
 
@@ -184,17 +187,44 @@ For disciplined solo developers, this is fine. For teams, it's a risk. Someone w
 
 The TDD skill (`skills/tdd/`) is the backbone of the methodology's quality model. It requires a test runner -- some way to write a test, run it, see it fail, write code, see it pass. The specific framework matters less than having one.
 
-The iron law "no production code without a failing test first" is framework-agnostic. It works the same whether the test is written in Jest, pytest, ExUnit, Go's `testing` package, or plain shell scripts with assertions.
+The working agreement "no production code without a failing test first" is framework-agnostic. It works the same whether the test is written in Jest, pytest, ExUnit, Go's `testing` package, or plain shell scripts with assertions.
 
 The TDD skill defines the process: red-green-refactor, test granularity, when to commit. The framework provides the execution environment.
 
 ### How the methodology degrades without it
 
-The TDD skill cannot function. This is a hard dependency -- not on a specific framework, but on the *existence* of a test runner. Without tests, the iron law is unenforceable and the verification skill has nothing to verify.
+The TDD skill cannot function. This is a hard dependency -- not on a specific framework, but on the *existence* of a test runner. Without tests, the working agreement is unenforceable and the verification skill has nothing to verify.
 
 ### Alternatives
 
 Any test runner for your language. The methodology cares that tests exist and run, not how.
+
+---
+
+## ATDD/BDD Frameworks
+
+### What it does for the methodology
+
+Acceptance Test-Driven Development (ATDD) and Behavior-Driven Development (BDD) turn acceptance criteria into executable specifications. Feature files written in Gherkin (Given/When/Then) serve as both documentation and automated tests. The BDD skill (`skills/bdd/`) defines the process: write feature files before implementation, use them as the outer test loop while TDD drives the inner loop.
+
+For AI-assisted development, BDD is especially valuable because:
+
+1. **Business language in, code out.** A non-technical PO writes acceptance criteria in Gherkin. The agent translates them into step definitions and implements the code. The feature file is a contract both human and agent can read.
+2. **Verification is built-in.** When all scenarios pass, the acceptance criteria are met — by definition. The verification skill has concrete evidence to point at.
+3. **Living documentation.** Feature files stay up to date because they're executed on every build. Stale docs don't pass CI.
+
+Common frameworks: Cucumber (Ruby, JS, Java), Behave (Python), Godog (Go), Wallaby/ExUnit (Elixir), SpecFlow (.NET).
+
+### How the methodology degrades without it
+
+Acceptance criteria remain prose that someone must verify manually. The gap between "what was asked" and "what was built" is bridged by human judgment instead of automated tests. The BDD skill still works as a conceptual approach (think in scenarios), but loses the automation that makes it powerful.
+
+For non-technical solo users, this is the biggest loss — BDD frameworks are the primary way a non-technical PO can define and verify behavior without reading code.
+
+### Alternatives
+
+- **Integration tests written directly in the test framework** — Same coverage, less readable by non-developers.
+- **Manual acceptance testing** — Works for small projects. Doesn't scale. Doesn't catch regressions.
 
 ---
 
@@ -207,6 +237,8 @@ Automated code quality. Linters catch bugs (unused variables, unreachable code, 
 In the CI pipeline (DEVOPS.md), linting is a gate: code that doesn't pass the linter doesn't merge. This eliminates an entire category of code review comments ("fix the formatting") and lets reviews focus on logic and design.
 
 For AI agents specifically, linters catch a common failure mode: the agent generates syntactically valid but subtly wrong code (unused imports, shadowed variables, unchecked errors). The linter flags these before a human has to spot them.
+
+**Agilar recommendation: warnings as errors.** Configure your linter and compiler to treat warnings as errors in CI. Agents tend to generate code that compiles but produces warnings. When warnings accumulate unchecked, they hide real issues. `--warnings-as-errors`, `-Werror`, `warnings_as_errors: true` — the flag name varies by language, the principle is universal.
 
 ### How the methodology degrades without it
 
@@ -270,7 +302,7 @@ Start minimal. Add tools when the pain of not having them exceeds the cost of ad
 
 **Bare minimum:** Git + a test runner + any AI assistant + the `skills/` directory as reference documentation. This gives you the methodology's principles with manual enforcement.
 
-**Solo developer sweet spot:** Git + Claude Code + testing framework + linter + CI on push. Skills are executable, iron laws are automated, and one person can move fast with confidence.
+**Solo developer sweet spot:** Git + Claude Code + testing framework + BDD framework + linter (warnings as errors) + CI on push. Skills are executable, working agreements are automated, and one person can move fast with confidence.
 
 **Team setup:** Everything above + PR workflow + Entire for audit trail. Multi-human mode needs the coordination mechanisms that PRs and CI provide.
 

@@ -4,7 +4,7 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 
 The human partner drives the conversation and makes all decisions. The AI agent proposes approaches, asks questions, explores the codebase, and drafts designs. This is the first step in the development lifecycle — nothing gets built until a design is approved.
 
-## Iron Law
+## Working Agreement
 
 **No implementation without an approved design.** Every project gets a design phase. No exceptions. No shortcuts. The human partner must explicitly approve the design before any code is written.
 

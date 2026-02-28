@@ -8,13 +8,15 @@ Code review has two jobs: verify the implementation matches the spec, and verify
 
 **Violating the letter of this process is violating the spirit of code review.**
 
-## Iron Law
+**Optional for non-technical solo users:** If you're a non-technical PO working in solo mode and cannot review code meaningfully, this working agreement can be disabled during scaffold onboarding. When disabled, the agent relies on TDD, verification, automated quality checks (linting, warnings-as-errors, type checking), and BDD acceptance tests as the quality safety net. For multi-human teams, code review is always mandatory.
+
+## Working Agreement
 
 ```
 NO MERGE WITHOUT CODE REVIEW
 ```
 
-This is the review gate defined in DEVOPS.md. Code that skips review does not advance to `main`.
+This is the review gate defined in DEVOPS.md. Code that skips review does not advance to `main`. When this working agreement is disabled (non-technical solo mode), the other quality gates remain in effect.
 
 ## Two-Stage Review Process
 
@@ -156,9 +158,9 @@ After receiving a review:
 
 ## Connection to Definition of Done
 
-Code review is one of three iron law gates in the DoD (see SCRUM.md):
+Code review is one of three working agreement gates in the DoD (see SCRUM.md):
 
-| Iron Law | DoD Gate | Skill |
+| Working Agreement | DoD Gate | Skill |
 |----------|----------|-------|
 | No production code without a failing test first | Tests pass (TDD) | `skills/tdd/` |
 | No completion claim without fresh verification evidence | Verified with evidence | `skills/verification/` |

@@ -7,9 +7,9 @@ description: Use when about to claim work is complete, fixed, or passing, before
 
 > Canonical skill: `skills/verification/SKILL.md`
 >
-> This file adds Claude Code-specific tooling and workflow. The iron law, gate function, rationalizations, and red flags in the canonical skill apply without modification. Read that file first.
+> This file adds Claude Code-specific tooling and workflow. The working agreement, gate function, rationalizations, and red flags in the canonical skill apply without modification. Read that file first.
 
-## The Iron Law
+## Working Agreement
 
 ```
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE

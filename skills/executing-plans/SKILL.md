@@ -82,7 +82,7 @@ Commits: [list commit hashes or messages]
 Ready for next batch, or would you like to review first?
 ```
 
-The report includes ACTUAL verification output — not "tests should pass" but the real output from running them. This satisfies the verification iron law (see `skills/verification/`).
+The report includes ACTUAL verification output — not "tests should pass" but the real output from running them. This satisfies the verification working agreement (see `skills/verification/`).
 
 ## Step 4: Continue Based on Feedback
 

@@ -1,20 +1,14 @@
 # Agilar AI SDLC
 
-A methodology for AI-enabled Agile Software Development.
+Agilar's methodology for AI-enabled Agile Software Development.
 
 Humans design. AI executes. Quality is non-negotiable.
 
 ## Three Pillars
 
-### 1. Skills as Executable Process
+### 1. Human Designs, AI Executes
 
-Development practices are skill files that AI agents load and follow. TDD isn't a guideline — it's a skill file the agent enforces. Debugging isn't advice — it's a four-phase process the agent executes step by step.
-
-Skills live in `skills/`. Each one defines a process with iron laws, checklists, and red flags. Agents don't interpret them — they follow them.
-
-### 2. Human Designs, AI Executes
-
-Clear role contract:
+Clear role contract between humans and AI agents:
 
 | Role | Human | AI Agent |
 |------|-------|----------|
@@ -24,19 +18,31 @@ Clear role contract:
 | **Implement** | Reviews code | Writes code following TDD |
 | **Verify** | Confirms done | Runs tests, provides evidence |
 
-The human is always the Product Owner. The AI is a skilled developer who follows process rigorously.
+The human is always the Product Owner. The AI is a skilled developer who follows process rigorously. Decisions always belong to the human. Process discipline always belongs to the agent.
 
-### 3. Iron Laws
+### 2. Working Agreements
 
-Non-negotiable quality gates baked into skills:
+Quality gates the team commits to:
 
 - **No production code without a failing test first** (TDD)
 - **No fix without root cause investigation** (Debugging)
 - **No completion claim without fresh verification evidence** (Verification)
 - **No design without exploring alternatives** (Brainstorming)
-- **No merge without code review** (Code Review)
+- **No merge without code review** (Code Review — optional for non-technical solo users)
 
-Iron laws are not guidelines. Violating the letter is violating the spirit.
+Working agreements are not guidelines. The team agrees to follow them, and the agent enforces them. Violating the letter is violating the spirit.
+
+### 3. Opinionated by Default
+
+This methodology makes choices for you. It doesn't say "pick an Agile framework" — it says use Scrum or Kanban, depending on your team mode, and here are the exact events, artifacts, and roles. It doesn't say "have some tests" — it says TDD with red-green-refactor, and here's the exact process with verification at every step.
+
+The opinions come from Agilar's experience building real products with AI agents. They're encoded in three places:
+
+- **[SCRUM.md](SCRUM.md)** — How you manage work: Scrum for multi-human teams, Kanban for solo and multi-agent
+- **[DEVOPS.md](DEVOPS.md)** — How code moves to production: environments, quality gates, branching, CI/CD
+- **Skills** (`skills/`) — How you develop: TDD, debugging, brainstorming, code review, verification — each one a concrete, executable process
+
+You can adapt the opinions to your context. But the defaults work. Start with them and change only what you need to.
 
 ## Team Modes
 
@@ -114,9 +120,9 @@ agilar-ai-sdlc/
 
 ## Philosophy
 
-This methodology is extracted from practice — building real products with AI agents — not invented at a desk. Every skill, every iron law, every process step exists because we learned the hard way what happens without it.
+This methodology is extracted from practice — building real products with AI agents — not invented at a desk. Every skill, every working agreement, every process step exists because we learned the hard way what happens without it.
 
-It's opinionated. It's rigid where it needs to be (iron laws) and flexible where it can be (team modes, toolchain). The goal is not to prescribe every detail but to encode the discipline that makes AI-assisted development reliable.
+It's opinionated. It's rigid where it needs to be (working agreements) and flexible where it can be (team modes, toolchain). The goal is not to prescribe every detail but to encode the discipline that makes AI-assisted development reliable.
 
 The methodology IS the repo. You learn by reading the skills and using the tools. There is no separate guide.
 

@@ -1,0 +1,99 @@
+# CLAUDE.md — {{PROJECT_NAME}}
+
+## Project
+
+{{PROJECT_DESCRIPTION}}
+
+## Team Mode
+
+**{{TEAM_MODE}}** — {{TEAM_MODE_DESCRIPTION}}
+
+## Working Agreements
+
+These are non-negotiable. The agent enforces them.
+
+- **No production code without a failing test first** (TDD)
+- **No fix without root cause investigation** (Debugging)
+- **No completion claim without fresh verification evidence** (Verification)
+- **No design without exploring alternatives** (Brainstorming)
+{{#if CODE_REVIEW_ENABLED}}- **No merge without code review** (Code Review){{/if}}
+{{#unless CODE_REVIEW_ENABLED}}- Code review: **disabled** (relying on TDD + verification + automated quality checks){{/unless}}
+
+## Definition of Ready
+
+A PBI is ready when:
+- Small enough for a single {{#if MULTI_HUMAN}}sprint{{/if}}{{#unless MULTI_HUMAN}}working session{{/unless}}
+- Acceptance criteria written (specific, testable)
+- Design approved
+- No blockers
+- Checklist populated (if multi-step)
+
+## Definition of Done
+
+A PBI is done when:
+- Acceptance criteria met (verified, not assumed)
+- Tests pass (TDD — written before implementation)
+- Verified with evidence (fresh test output after final change)
+{{#if CODE_REVIEW_ENABLED}}- Code reviewed{{/if}}
+- Docs updated (if user-facing changes)
+
+## Tech Stack
+
+{{STACK_SECTION}}
+
+## Test Commands
+
+```bash
+{{TEST_COMMAND}}
+```
+
+## Lint Commands
+
+```bash
+{{LINT_COMMAND}}
+```
+
+## Build Commands
+
+```bash
+{{BUILD_COMMAND}}
+```
+
+## Branching
+
+{{#if SOLO}}Trunk-based. All commits on `main`. Run full test suite before every commit.{{/if}}
+{{#if MULTI_AGENT}}Worktrees from `main`. Each agent works in isolation. Self-merge after tests pass.{{/if}}
+{{#if MULTI_HUMAN}}Feature branches. PRs required. CI must pass before merge. Code review mandatory.{{/if}}
+
+## PBI-First Rule
+
+Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
+
+## Skills
+
+The following skills are active. The agent follows them as executable processes, not guidelines.
+
+### Engineering Skills
+- `brainstorming` — explore alternatives before designing
+- `tdd` — red-green-refactor, every time
+- `writing-plans` — plan before building
+- `executing-plans` — execute plans with checkpoints
+- `debugging` — root cause before fix
+- `code-review` — two-stage review (spec compliance + quality)
+- `verification` — evidence before claims
+- `bdd` — acceptance tests as executable specifications
+
+### Coordination Skills
+{{#if MULTI_AGENT}}- `subagent-driven` — orchestrate sub-agents for independent tasks
+- `parallel-agents` — dispatch parallel work
+- `git-worktrees` — agent isolation via worktrees{{/if}}
+{{#if MULTI_HUMAN}}- `git-worktrees` — optional, for developer isolation{{/if}}
+
+### Coaching Skills
+- `scrum-master` — process conscience (always active)
+- `po-coach` — product ownership guidance (during refinement)
+- `facilitator` — Scrum event facilitation
+
+## Project-Specific Notes
+
+{{PROJECT_NOTES}}

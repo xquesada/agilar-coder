@@ -1,0 +1,342 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Agilar AI SDLC — Project Scaffold Wizard
+# Sets up a new project with the methodology's skills, templates, and configuration.
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Colors
+BOLD='\033[1m'
+DIM='\033[2m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+echo -e "${BOLD}Agilar AI SDLC — Project Scaffold${NC}"
+echo -e "${DIM}Sets up your project with skills, working agreements, and configuration.${NC}"
+echo ""
+
+# --- Step 1: Project basics ---
+
+read -rp "Project name: " PROJECT_NAME
+if [[ -z "$PROJECT_NAME" ]]; then
+  echo "Project name is required." >&2
+  exit 1
+fi
+
+read -rp "Project description (one line): " PROJECT_DESCRIPTION
+if [[ -z "$PROJECT_DESCRIPTION" ]]; then
+  PROJECT_DESCRIPTION="$PROJECT_NAME"
+fi
+
+# --- Step 2: Target directory ---
+
+read -rp "Project directory [.]: " PROJECT_DIR
+PROJECT_DIR="${PROJECT_DIR:-.}"
+PROJECT_DIR="$(cd "$PROJECT_DIR" 2>/dev/null && pwd || echo "$PROJECT_DIR")"
+
+if [[ ! -d "$PROJECT_DIR" ]]; then
+  echo "Directory $PROJECT_DIR does not exist." >&2
+  exit 1
+fi
+
+# --- Step 3: Team mode ---
+
+echo ""
+echo -e "${BOLD}Team mode:${NC}"
+echo "  1) Solo      — 1 human + 1 agent, Kanban, trunk-based"
+echo "  2) Multi-agent — 1 human + agent team, Kanban, worktrees"
+echo "  3) Multi-human — PO + developers, Scrum, feature branches"
+read -rp "Choose [1]: " TEAM_MODE_CHOICE
+TEAM_MODE_CHOICE="${TEAM_MODE_CHOICE:-1}"
+
+case "$TEAM_MODE_CHOICE" in
+  1) TEAM_MODE="Solo"; TEAM_MODE_DESC="1 human + 1 agent. Kanban. Trunk-based development." ;;
+  2) TEAM_MODE="Multi-agent"; TEAM_MODE_DESC="1 human + agent team. Kanban. Worktrees from main." ;;
+  3) TEAM_MODE="Multi-human"; TEAM_MODE_DESC="PO + developers. Full Scrum. Feature branches + PRs." ;;
+  *) echo "Invalid choice." >&2; exit 1 ;;
+esac
+
+# --- Step 4: Tech stack ---
+
+echo ""
+echo -e "${BOLD}Tech stack:${NC}"
+echo "  1) Node.js / TypeScript"
+echo "  2) Go"
+echo "  3) Python"
+echo "  4) Elixir"
+echo "  5) Other (manual configuration)"
+read -rp "Choose [1]: " STACK_CHOICE
+STACK_CHOICE="${STACK_CHOICE:-1}"
+
+case "$STACK_CHOICE" in
+  1)
+    STACK_NAME="node"
+    TEST_CMD="npm test"
+    LINT_CMD="npx eslint . && npx tsc --noEmit"
+    BUILD_CMD="npm run build"
+    STACK_SECTION="Node.js / TypeScript. See \`templates/stacks/node.md\` for detailed configuration."
+    ;;
+  2)
+    STACK_NAME="go"
+    TEST_CMD="go test ./..."
+    LINT_CMD="go vet ./... && golangci-lint run ./..."
+    BUILD_CMD="go build ./cmd/..."
+    STACK_SECTION="Go. See \`templates/stacks/go.md\` for detailed configuration."
+    ;;
+  3)
+    STACK_NAME="python"
+    TEST_CMD="pytest"
+    LINT_CMD="ruff check . && mypy src/"
+    BUILD_CMD="python -m build"
+    STACK_SECTION="Python. See \`templates/stacks/python.md\` for detailed configuration."
+    ;;
+  4)
+    STACK_NAME="elixir"
+    TEST_CMD="mix test"
+    LINT_CMD="mix format --check-formatted && mix credo --strict"
+    BUILD_CMD="MIX_ENV=prod mix release"
+    STACK_SECTION="Elixir. See \`templates/stacks/elixir.md\` for detailed configuration."
+    ;;
+  5)
+    STACK_NAME="other"
+    read -rp "Test command: " TEST_CMD
+    read -rp "Lint command: " LINT_CMD
+    read -rp "Build command: " BUILD_CMD
+    STACK_SECTION="Custom stack. Update this section with your tools and conventions."
+    ;;
+  *) echo "Invalid choice." >&2; exit 1 ;;
+esac
+
+# --- Step 5: Toolchain ---
+
+echo ""
+echo -e "${BOLD}AI coding tool:${NC}"
+echo "  1) Claude Code"
+echo "  2) Cursor"
+echo "  3) Generic (any tool)"
+read -rp "Choose [1]: " TOOL_CHOICE
+TOOL_CHOICE="${TOOL_CHOICE:-1}"
+
+case "$TOOL_CHOICE" in
+  1) TOOL_NAME="claude-code" ;;
+  2) TOOL_NAME="cursor" ;;
+  3) TOOL_NAME="generic" ;;
+  *) echo "Invalid choice." >&2; exit 1 ;;
+esac
+
+# --- Step 6: Code review ---
+
+echo ""
+if [[ "$TEAM_MODE_CHOICE" == "3" ]]; then
+  echo -e "${DIM}Code review is mandatory for multi-human teams.${NC}"
+  CODE_REVIEW="yes"
+else
+  echo -e "${BOLD}Code review:${NC}"
+  echo "  If you can read and review code, enable code review."
+  echo "  If you're a non-technical PO, disable it (TDD + verification still active)."
+  read -rp "Enable code review? [Y/n]: " CODE_REVIEW_CHOICE
+  CODE_REVIEW_CHOICE="${CODE_REVIEW_CHOICE:-Y}"
+  case "$CODE_REVIEW_CHOICE" in
+    [Yy]*) CODE_REVIEW="yes" ;;
+    [Nn]*) CODE_REVIEW="no" ;;
+    *) CODE_REVIEW="yes" ;;
+  esac
+fi
+
+# --- Generate files ---
+
+echo ""
+echo -e "${CYAN}Generating project files...${NC}"
+
+# Create .claude/skills/ directory for Claude Code
+if [[ "$TOOL_NAME" == "claude-code" ]]; then
+  SKILLS_DIR="$PROJECT_DIR/.claude/skills"
+  mkdir -p "$SKILLS_DIR"
+
+  # Copy all skill implementations
+  IMPL_DIR="$SCRIPT_DIR/implementations/claude-code"
+  if [[ -d "$IMPL_DIR" ]]; then
+    for skill_file in "$IMPL_DIR"/*.md; do
+      if [[ -f "$skill_file" ]]; then
+        cp "$skill_file" "$SKILLS_DIR/$(basename "$skill_file")"
+        echo -e "  ${GREEN}+${NC} .claude/skills/$(basename "$skill_file")"
+      fi
+    done
+  fi
+fi
+
+# Generate CLAUDE.md from template
+CLAUDEMD="$PROJECT_DIR/CLAUDE.md"
+
+# Build the branching section
+if [[ "$TEAM_MODE_CHOICE" == "1" ]]; then
+  BRANCH_SECTION="Trunk-based. All commits on \`main\`. Run full test suite before every commit."
+elif [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
+  BRANCH_SECTION="Worktrees from \`main\`. Each agent works in isolation. Self-merge after tests pass."
+else
+  BRANCH_SECTION="Feature branches. PRs required. CI must pass before merge. Code review mandatory."
+fi
+
+# Build the coordination skills section
+COORD_SKILLS=""
+if [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
+  COORD_SKILLS="- \`subagent-driven\` — orchestrate sub-agents for independent tasks
+- \`parallel-agents\` — dispatch parallel work
+- \`git-worktrees\` — agent isolation via worktrees"
+elif [[ "$TEAM_MODE_CHOICE" == "3" ]]; then
+  COORD_SKILLS="- \`git-worktrees\` — optional, for developer isolation"
+fi
+
+# Build code review line
+if [[ "$CODE_REVIEW" == "yes" ]]; then
+  CR_AGREEMENT="- **No merge without code review** (Code Review)"
+  CR_DOD="- Code reviewed"
+else
+  CR_AGREEMENT="- Code review: **disabled** (relying on TDD + verification + automated quality checks)"
+  CR_DOD=""
+fi
+
+# Session size
+if [[ "$TEAM_MODE_CHOICE" == "3" ]]; then
+  SIZE_UNIT="sprint"
+else
+  SIZE_UNIT="working session"
+fi
+
+cat > "$CLAUDEMD" << CLAUDEMD_EOF
+# CLAUDE.md — $PROJECT_NAME
+
+## Project
+
+$PROJECT_DESCRIPTION
+
+## Team Mode
+
+**$TEAM_MODE** — $TEAM_MODE_DESC
+
+## Working Agreements
+
+These are non-negotiable. The agent enforces them.
+
+- **No production code without a failing test first** (TDD)
+- **No fix without root cause investigation** (Debugging)
+- **No completion claim without fresh verification evidence** (Verification)
+- **No design without exploring alternatives** (Brainstorming)
+$CR_AGREEMENT
+
+## Definition of Ready
+
+A PBI is ready when:
+- Small enough for a single $SIZE_UNIT
+- Acceptance criteria written (specific, testable)
+- Design approved
+- No blockers
+- Checklist populated (if multi-step)
+
+## Definition of Done
+
+A PBI is done when:
+- Acceptance criteria met (verified, not assumed)
+- Tests pass (TDD — written before implementation)
+- Verified with evidence (fresh test output after final change)
+$CR_DOD
+- Docs updated (if user-facing changes)
+
+## Tech Stack
+
+$STACK_SECTION
+
+## Test Commands
+
+\`\`\`bash
+$TEST_CMD
+\`\`\`
+
+## Lint Commands
+
+\`\`\`bash
+$LINT_CMD
+\`\`\`
+
+## Build Commands
+
+\`\`\`bash
+$BUILD_CMD
+\`\`\`
+
+## Branching
+
+$BRANCH_SECTION
+
+## PBI-First Rule
+
+Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
+
+## Skills
+
+The following skills are active. The agent follows them as executable processes, not guidelines.
+
+### Engineering Skills
+- \`brainstorming\` — explore alternatives before designing
+- \`tdd\` — red-green-refactor, every time
+- \`writing-plans\` — plan before building
+- \`executing-plans\` — execute plans with checkpoints
+- \`debugging\` — root cause before fix
+- \`code-review\` — two-stage review (spec compliance + quality)
+- \`verification\` — evidence before claims
+- \`bdd\` — acceptance tests as executable specifications
+
+### Coordination Skills
+$COORD_SKILLS
+
+### Coaching Skills
+- \`scrum-master\` — process conscience (always active)
+- \`po-coach\` — product ownership guidance (during refinement)
+- \`facilitator\` — Scrum event facilitation
+CLAUDEMD_EOF
+
+echo -e "  ${GREEN}+${NC} CLAUDE.md"
+
+# Copy stack reference if not "other"
+if [[ "$STACK_NAME" != "other" ]]; then
+  STACK_REF="$SCRIPT_DIR/templates/stacks/$STACK_NAME.md"
+  if [[ -f "$STACK_REF" ]]; then
+    mkdir -p "$PROJECT_DIR/docs"
+    cp "$STACK_REF" "$PROJECT_DIR/docs/stack-reference.md"
+    echo -e "  ${GREEN}+${NC} docs/stack-reference.md"
+  fi
+fi
+
+# Copy canonical skill definitions as reference
+SKILLS_REF_DIR="$PROJECT_DIR/docs/skills"
+mkdir -p "$SKILLS_REF_DIR"
+for skill_dir in "$SCRIPT_DIR"/skills/*/; do
+  skill_name="$(basename "$skill_dir")"
+  if [[ -f "$skill_dir/SKILL.md" ]]; then
+    cp "$skill_dir/SKILL.md" "$SKILLS_REF_DIR/$skill_name.md"
+  fi
+done
+echo -e "  ${GREEN}+${NC} docs/skills/ (canonical skill definitions)"
+
+# Summary
+echo ""
+echo -e "${BOLD}Done.${NC} Project scaffolded at ${CYAN}$PROJECT_DIR${NC}"
+echo ""
+echo -e "${BOLD}What was created:${NC}"
+echo "  CLAUDE.md                  — Working agreements, DoR, DoD, skills"
+if [[ "$TOOL_NAME" == "claude-code" ]]; then
+  echo "  .claude/skills/*.md        — Claude Code skill implementations"
+fi
+if [[ "$STACK_NAME" != "other" ]]; then
+  echo "  docs/stack-reference.md    — Stack-specific configuration guide"
+fi
+echo "  docs/skills/               — Canonical skill definitions (reference)"
+echo ""
+echo -e "${BOLD}Next steps:${NC}"
+echo "  1. Review and customize CLAUDE.md for your project"
+echo "  2. Set up your test runner and linter"
+echo "  3. Create your first PBI"
+echo "  4. Start building — the skills will guide the process"

@@ -613,6 +613,9 @@ for skill_dir in "$SCRIPT_DIR"/skills/*/; do
   fi
 done
 echo -e "  ${GREEN}+${NC} docs/skills/ (canonical skill definitions)"
+if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
+  echo "  Entire                     — Git-native audit trail (install separately)"
+fi
 
 # Summary
 echo ""
@@ -645,5 +648,11 @@ echo ""
 echo -e "${BOLD}Next steps:${NC}"
 echo "  1. Review and customize CLAUDE.md for your project"
 echo "  2. Set up your test runner and linter"
-echo "  3. Create your first PBI"
-echo "  4. Start building — the skills will guide the process"
+if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
+  echo "  3. Install Entire for automatic session capture (see CLAUDE.md)"
+  echo "  4. Create your first PBI"
+  echo "  5. Start building — the skills will guide the process"
+else
+  echo "  3. Create your first PBI"
+  echo "  4. Start building — the skills will guide the process"
+fi

@@ -364,6 +364,19 @@ This mirrors how a developer opens Jira to read the ticket before writing code �
 
 ### Implication for the framework
 
-The Agilar AI SDLC scaffold wizard currently generates the development environment (CLAUDE.md, skills, CI). It does not ask where requirements live or how the agent accesses them. This is a gap. The framework should include a "requirements management" step in the scaffold that configures the CLAUDE.md with the backlog source — whether that's a YAML file, a REST API, Jira, or a dedicated PO tool.
+The Agilar AI SDLC scaffold wizard originally generated only the development environment (CLAUDE.md, skills, CI). It did not ask where requirements live or how the agent accesses them. This gap was identified during Sprint Zero and addressed in two passes:
 
-This separation is not unique to AI-assisted development. It's the same PO/developer boundary that exists in any Scrum team. But in AI-assisted development, it has a concrete technical expression: the CLAUDE.md that governs agent behavior must include a link to the backlog system, or the agent works blind.
+**Pass 1 (same day):** The scaffold was updated with a Step 6 that asks "Where do you manage requirements?" and generates the CLAUDE.md `## Product Backlog` section with the right configuration. This tells the agent WHERE the backlog is.
+
+**Pass 2 (PBI #156):** The po-coach skill was updated with a **backlog adapter pattern** — concrete instructions that tell the agent HOW to interact with the configured backlog tool. Six logical operations (list ready PBIs, read details, mark in_progress, mark done, read acceptance criteria, update checklist) are mapped to tool-specific commands for each backlog option:
+
+| Backlog tool | Access mechanism |
+|---|---|
+| REST API (PO Companion / Chepibe) | `curl` commands via Bash |
+| YAML file in repo | Read/Edit tools directly |
+| GitHub Issues | `gh` CLI |
+| MCP-based tools (Jira, Miro, Linear) | MCP server tools |
+
+The adapter is instructions, not code. It lives in the po-coach skill because that skill bridges the PO and dev layers. The scrum-master and verification skills cross-reference it as the single source of truth for backlog access.
+
+This separation is not unique to AI-assisted development. It's the same PO/developer boundary that exists in any Scrum team. But in AI-assisted development, it has a concrete technical expression: the CLAUDE.md that governs agent behavior must include a link to the backlog system, and the skills must know how to use it — or the agent works blind.

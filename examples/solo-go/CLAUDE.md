@@ -94,9 +94,28 @@ The following skills are active. The agent follows them as executable processes,
 - `po-coach` — product ownership guidance (during refinement)
 - `facilitator` — Scrum event facilitation
 
-## Project-Specific Notes
+## Architecture: Source and Instance
 
-- Service conventions: see `docs/plans/2026-02-28-service-conventions-design.md` in the chepibe repo
-- Deployment: systemd unit on M3 (macOS launchd), auto-restart on failure
-- WhatsApp session stored in `data/whatsapp.db` (SQLite, gitignored)
-- Environment variables: `WHATSAPP_DB_PATH`, `RESPONSE_CONFIG_PATH`
+This repo is the **source** — it contains the code you build. It does not contain
+runtime configuration or data.
+
+The **instance** (where the software actually runs) lives at: /Users/4vq/projects/chepibe on M3
+
+| What | Where |
+|------|-------|
+| Source code and tests | This repo |
+| Configuration and settings | /Users/4vq/projects/chepibe on M3 |
+| Data created at runtime | /Users/4vq/projects/chepibe on M3 |
+
+When building, never add instance-specific configuration (secrets, server addresses,
+user data) to this repo. When deploying, copy the built software to the instance
+and let it read its configuration from there.
+
+## Deploy
+
+| Environment | Where |
+|-------------|-------|
+| Development | This computer (build and test here) |
+| Production | M3 (4vq@100.91.174.29) |
+
+Build the software here, then deploy the result to the production machine.

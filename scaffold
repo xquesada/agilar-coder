@@ -520,8 +520,7 @@ $BUILD_CMD
 ## Branching
 
 $BRANCH_SECTION
-
-$ENTIRE_SECTION
+$(if [[ -n "$ENTIRE_SECTION" ]]; then printf '\n%s' "$ENTIRE_SECTION"; fi)
 
 $ARCH_SECTION
 
@@ -613,9 +612,6 @@ for skill_dir in "$SCRIPT_DIR"/skills/*/; do
   fi
 done
 echo -e "  ${GREEN}+${NC} docs/skills/ (canonical skill definitions)"
-if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
-  echo "  Entire                     — Git-native audit trail (install separately)"
-fi
 
 # Summary
 echo ""
@@ -630,6 +626,9 @@ if [[ "$STACK_NAME" != "other" ]]; then
   echo "  docs/stack-reference.md    — Stack-specific configuration guide"
 fi
 echo "  docs/skills/               — Canonical skill definitions (reference)"
+if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
+  echo "  Entire                     — Git-native audit trail (install separately)"
+fi
 if [[ "$ARCH_TYPE" == "separated" ]]; then
   echo "  Architecture: Source and Instance — instance at $INSTANCE_LOCATION"
 fi

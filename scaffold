@@ -519,18 +519,13 @@ $BUILD_CMD
 
 ## Branching
 
-$BRANCH_SECTION
-$(if [[ -n "$ENTIRE_SECTION" ]]; then printf '\n%s' "$ENTIRE_SECTION"; fi)
-
-$ARCH_SECTION
+$BRANCH_SECTION$(if [[ -n "$ENTIRE_SECTION" ]]; then printf '\n\n%s' "$ENTIRE_SECTION"; fi)$(if [[ -n "$ARCH_SECTION" ]]; then printf '\n\n%s' "$ARCH_SECTION"; fi)
 
 ## PBI-First Rule
 
 Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
 
-$BACKLOG_SECTION
-
-$DEPLOY_SECTION
+$BACKLOG_SECTION$(if [[ -n "$DEPLOY_SECTION" ]]; then printf '\n\n%s' "$DEPLOY_SECTION"; fi)
 
 ## Skills
 

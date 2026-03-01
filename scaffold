@@ -453,7 +453,7 @@ what was asked, what the agent did, what files changed, what tests ran.
 - The verification skill captures evidence automatically when Entire is active
 - For retrospectives, use session transcripts to review what went well
 
-Install: see [Entire documentation](https://github.com/entirejs/entire) for setup instructions."
+Install: \`brew tap entireio/tap && brew install entireio/tap/entire\`, then \`entire enable\` in the repo."
 fi
 
 cat > "$CLAUDEMD" << CLAUDEMD_EOF

@@ -48,6 +48,29 @@ None within this methodology. If you use Mercurial, SVN, or Perforce, the princi
 
 ---
 
+## Multi-Platform Agent Support
+
+The methodology is tool-agnostic (Layer 1), but project configuration files are tool-specific. Different AI coding agents look for different filenames:
+
+| Agent | Config file |
+|-------|------------|
+| Claude Code | `CLAUDE.md` |
+| Google Gemini CLI | `GEMINI.md` |
+| Generic / other agents | `AGENTS.md` |
+
+To support multiple agents without duplicating content, create **symbolic links** pointing to the canonical `CLAUDE.md`:
+
+```bash
+ln -s CLAUDE.md AGENTS.md
+ln -s CLAUDE.md GEMINI.md
+```
+
+The scaffold generates these symlinks automatically. They cost nothing, add no maintenance burden, and let any team member use their preferred AI coding agent with the same working agreements, skills, and configuration.
+
+**Important:** Always edit `CLAUDE.md` — the symlinks follow automatically. Do not replace symlinks with separate files; divergent configs defeat the purpose.
+
+---
+
 ## Claude Code
 
 ### What it does for the methodology

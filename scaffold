@@ -369,6 +369,11 @@ CLAUDEMD_EOF
 
 echo -e "  ${GREEN}+${NC} CLAUDE.md"
 
+# Create symlinks for multi-platform agent support
+(cd "$PROJECT_DIR" && ln -sf CLAUDE.md AGENTS.md && ln -sf CLAUDE.md GEMINI.md)
+echo -e "  ${GREEN}+${NC} AGENTS.md → CLAUDE.md (symlink)"
+echo -e "  ${GREEN}+${NC} GEMINI.md → CLAUDE.md (symlink)"
+
 # Copy stack reference if not "other"
 if [[ "$STACK_NAME" != "other" ]]; then
   STACK_REF="$SCRIPT_DIR/templates/stacks/$STACK_NAME.md"

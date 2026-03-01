@@ -50,7 +50,10 @@ Each task is a self-contained unit of work. Target 2-5 minutes of execution time
 [Exact code to write, or a clear enough specification that the executor can write it without ambiguity.]
 
 **Test:**
-[Test command to run and expected output. Every task must have a verification step.]
+[Package-level test command and expected output. Every task must have a verification step.]
+
+**Pre-commit:**
+[Full suite: the project's test + lint commands (e.g., `make test && make lint`). Must pass before committing.]
 
 **Commit:** [Commit message for this task]
 ```
@@ -62,6 +65,7 @@ Each task is a self-contained unit of work. Target 2-5 minutes of execution time
 3. **Exact code or unambiguous spec.** If the executor needs to make a judgment call, the plan is too vague.
 4. **Every task has a verification step.** A test to run, a command to execute, or an expected output to observe.
 5. **Every task has a commit message.** Frequent commits. Small, atomic, green.
+6. **Every commit runs the full suite.** The pre-commit step runs the project's full test + lint commands — not just the tests for the current package. This catches cross-package breakages before they land on `main`.
 
 ### TDD Integration
 
@@ -69,7 +73,8 @@ Every task that produces application code follows the red-green-refactor cycle f
 
 1. **Write the failing test.** The task specifies the test first. The executor writes it and runs it. It fails. This is expected.
 2. **Write the minimal code.** The task specifies the production code. The executor writes it and runs the test. It passes.
-3. **Commit.** Green tests, small commit.
+3. **Full suite before commit.** Run the project's full test and lint commands (e.g., `make test && make lint`), not just the package-level tests. Trunk-based development means every commit lands on `main` — a package-level green is not enough; cross-package breakages must be caught before commit.
+4. **Commit.** Green full suite, small commit.
 
 A plan task might look like:
 
@@ -88,6 +93,10 @@ A plan task might look like:
 **Test:**
   Run: python -m pytest tests/test_user_validation.py -v
   Expected: 2 passed
+
+**Pre-commit:**
+  Run: make test && make lint
+  Expected: all green
 
 **Commit:** "add email validation with tests"
 ```

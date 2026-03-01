@@ -40,6 +40,18 @@ Use TodoWrite to maintain a task checklist as you write the plan. This helps you
 
 The TodoWrite checklist is your working memory during planning. The saved plan file is the deliverable.
 
+## Full Suite Before Every Commit
+
+Every task's commit step must run the project's **full** test and lint commands — not just the package-level tests. Read the project's CLAUDE.md for the exact commands (typically `make test && make lint` or equivalent).
+
+In trunk-based development, every commit lands on `main`. A package-level green is not enough — cross-package breakages must be caught before commit. The task template should include a **Pre-commit** step:
+
+```
+**Pre-commit:**
+  Run: make test && make lint
+  Expected: all green
+```
+
 ## Worktree Consideration
 
 If the plan will be executed in a separate session or by a parallel agent, note at the top of the plan whether it should run in a worktree:

@@ -111,8 +111,11 @@ The following skills are active. The agent follows them as executable processes,
 - Sprint Review: Friday afternoon (second week)
 - Retrospective: immediately after review
 
-## Environments
+## Deploy
 
-- **Dev**: local (`npm run dev`)
-- **Staging**: staging.acme-dashboard.internal (auto-deploy from `main`)
-- **Production**: dashboard.acme.com (manual promote from staging)
+| Environment | Where |
+|-------------|-------|
+| Development | This computer |
+| Production | Acme internal servers (staging.acme-dashboard.internal → dashboard.acme.com) |
+
+To deploy, connect to the production machine and pull the latest code, build, and restart.

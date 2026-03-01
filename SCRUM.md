@@ -67,6 +67,36 @@ The single source of truth for all work. An ordered list of PBIs. One backlog pe
 
 The PO owns the order. Items at the top are refined, small, and ready. Items at the bottom are rough ideas. The backlog is a living document, not a contract.
 
+#### Where the backlog lives
+
+The backlog is managed in the **product ownership layer**, which is separate from the development workspace. The PO refines requirements in the backlog tool; the developer (human + agent) queries the backlog from the project repo to find work.
+
+| Backlog Tool | How the agent accesses PBIs |
+|---|---|
+| **Agilar PO Companion** | API — agent queries for ready PBIs at session start (recommended) |
+| **Jira** | Jira REST API or CLI — agent reads ticket details by ID |
+| **YAML file in repo** | Direct file read — simplest, works offline, no external dependency |
+| **GitHub Issues** | `gh` CLI — agent reads issue body and labels |
+| **Other** | Agent needs a documented way to fetch PBI details — URL, API, or file path |
+
+The scaffold wizard asks which tool you use and configures the project's CLAUDE.md with the access pattern. The agent must be able to:
+1. **List** available PBIs (status `ready`, filtered by project/epic)
+2. **Read** a PBI's full details (notes, acceptance criteria, checklist)
+3. **Update** status (mark `in_progress` when starting, `done` when complete)
+
+If the agent cannot access the backlog, it works blind — no acceptance criteria, no Definition of Done, no way to know if the work matches what was asked for.
+
+#### PO layer vs development layer
+
+This separation mirrors how real teams work. The PO doesn't sit inside the IDE. The developer doesn't manage the backlog from the build system.
+
+| Layer | What happens here | Who works here |
+|---|---|---|
+| **Product ownership** | Define, refine, prioritize PBIs. Write acceptance criteria. Approve designs. Track progress. | PO (human) |
+| **Development** | Build, test, verify. Skills active. Working agreements enforced. CI runs. | Developer (human + agent) |
+
+In AI-assisted development, this boundary has a technical expression: the CLAUDE.md in the development repo must include a link to the backlog system. Without it, the agent has skills and working agreements but no requirements to build against.
+
 ### Product Backlog Item (PBI)
 
 Every PBI has:

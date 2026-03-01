@@ -330,3 +330,40 @@ It does not make architecture decisions. The Go choice, the microservices patter
 It does not write code. Sprint Zero produced zero production code. The methodology is explicit about this: the PBI-first rule says work gets a PBI before starting. The Definition of Ready says acceptance criteria must be written before a PBI is pulled. Sprint Zero created the conditions for production code to be written correctly — in the next session, following TDD, with CI catching regressions, and a clear backlog of what to build.
 
 It does not guarantee success. What it guarantees is discipline. Every PBI will go through TDD. Every completion claim will have evidence. Every bug fix will investigate root cause. These practices reduce the probability of certain failure modes (untested code, unverified claims, symptom-chasing). They don't eliminate the possibility of building the wrong thing — that's the Product Owner's responsibility.
+
+---
+
+## Post-Sprint Zero: The PO/Dev Boundary
+
+An important process learning emerged during PBI refinement, after Sprint Zero was complete.
+
+### The problem
+
+PBI #148 (the first real service to build) was refined in the `chepibe` repo — the instance repo where the backlog, business rules, and design documents live. The natural next step was to start building it. But building it from the `chepibe` repo would mean the agent never loads the `chepibe-core` CLAUDE.md, never activates the 14 skills, never enforces the working agreements. The entire Sprint Zero scaffold would be inert.
+
+### The insight
+
+The methodology has a natural boundary between product ownership and development that maps to separate workspaces:
+
+| Layer | Repo | Role | Analogy |
+|-------|------|------|---------|
+| Product ownership | `chepibe` (instance) | Define, refine, prioritize PBIs. Write acceptance criteria. Approve designs. | Jira, PO Companion |
+| Development | `chepibe-core` (engine) | Build, test, verify. Skills active. Working agreements enforced. | The IDE + dev environment |
+
+The PO refines the PBI in the backlog system. The developer opens a new session in the project repo, queries the backlog for the current PBI, and builds it — with TDD, brainstorming, verification, all the skills loaded and active.
+
+### What was added
+
+The `chepibe-core` CLAUDE.md was updated with a "Product Backlog" section that tells the agent:
+- Where PBIs live (the backlog API in the instance repo)
+- How to query them at session start
+- To read acceptance criteria and checklist before starting work
+- To mark the PBI `in_progress` when beginning
+
+This mirrors how a developer opens Jira to read the ticket before writing code — except the agent does it programmatically via API.
+
+### Implication for the framework
+
+The Agilar AI SDLC scaffold wizard currently generates the development environment (CLAUDE.md, skills, CI). It does not ask where requirements live or how the agent accesses them. This is a gap. The framework should include a "requirements management" step in the scaffold that configures the CLAUDE.md with the backlog source — whether that's a YAML file, a REST API, Jira, or a dedicated PO tool.
+
+This separation is not unique to AI-assisted development. It's the same PO/developer boundary that exists in any Scrum team. But in AI-assisted development, it has a concrete technical expression: the CLAUDE.md that governs agent behavior must include a link to the backlog system, or the agent works blind.

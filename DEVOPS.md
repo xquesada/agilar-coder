@@ -62,6 +62,42 @@ PRs are mandatory. CI must pass before merge. Code review is not optional — se
 | Code review | Self (pre-commit) | Automated (TDD + verification) or human review | Peer review via PR |
 | CI trigger | Pre-commit hooks | Post-merge on `main` | PR + post-merge |
 
+## Source and Instance
+
+Some software is self-contained — the code, configuration, and data all live together
+in one project. A WordPress site with its wp-config.php is an example.
+
+Other software separates **where you build it** from **where you run it**:
+
+- The **source** is where developers work. It contains code, tests, and build
+  instructions. It produces something you can run (a compiled program, a packaged
+  app, a bundle).
+- The **instance** is where the software actually runs. It contains configuration,
+  secrets (passwords, API keys), and data created by users. It consumes what the
+  source produced.
+
+Think of it like a phone app: the developers write the code and publish it to the
+App Store (source). You download it to your phone, log in with your account, and
+your photos and messages live on your phone (instance). The developers never see
+your data. Your phone never sees their source code.
+
+### When to separate
+
+| Situation | Recommendation |
+|-----------|---------------|
+| Simple website or prototype | All-in-one. Don't over-engineer. |
+| App that runs on a server you manage | Consider separating. Config and secrets shouldn't be in the source repo. |
+| Tool or service that runs on a different machine than where you develop | Separate. The source repo builds it, the target machine configures and runs it. |
+| Software that multiple people or organizations will install | Always separate. Each installation is its own instance. |
+
+### Rules when separated
+
+1. The source repo never contains instance-specific configuration (server addresses,
+   passwords, API keys, user data)
+2. The instance never contains source code — only the built result and its configuration
+3. The interface between them is explicit: an environment variable, a config file path,
+   or a well-known directory structure
+
 ## Environments
 
 Four environments, each with a specific purpose. Not every project needs all four from day one — the table below shows when each becomes mandatory.

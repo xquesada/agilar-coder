@@ -20,6 +20,82 @@ The PO Coach activates during product-level conversations:
 - User asks "is this PBI done?" → acceptance coaching
 - User says "while we're at it..." mid-implementation → scope creep flag
 
+## Backlog Access — Session Start Protocol
+
+At session start, the PO Coach connects the agent to the backlog. This is the bridge between the PO layer (where requirements live) and the dev layer (where code is written).
+
+### Step 1: Detect the backlog tool
+
+Read the project's CLAUDE.md and find the `## Product Backlog` section. The section tells you which tool is used and how to access it. If no section exists, ask: "Where do you manage your Product Backlog?"
+
+### Step 2: Execute the adapter
+
+Based on what's configured in CLAUDE.md, follow the appropriate adapter below.
+
+### Adapter: REST API (PO Companion / Chepibe)
+
+The CLAUDE.md section contains the API base URL and filter criteria.
+
+| Operation | Command |
+|-----------|---------|
+| **List ready PBIs** | `curl -s {base_url}` → parse JSON, filter items where `status == "ready"` and matching epic/project |
+| **Read PBI details** | `curl -s {base_url}` → find item by `id` in response, read `notes`, `acceptance_criteria`, `checklist` |
+| **Mark in_progress** | `curl -s -X PATCH {base_url}/{id} -H 'Content-Type: application/json' -d '{"status":"in_progress"}'` |
+| **Mark done** | `curl -s -X PATCH {base_url}/{id} -H 'Content-Type: application/json' -d '{"status":"done"}'` |
+| **Read acceptance criteria** | Same as Read PBI details — look for `acceptance_criteria` field or AC written in `notes` |
+| **Update checklist** | `curl -s -X PATCH {base_url}/{id} -H 'Content-Type: application/json' -d '{"checklist":[...]}'` |
+
+### Adapter: YAML File
+
+The CLAUDE.md section contains the file path (e.g., `backlog.yaml`).
+
+| Operation | How |
+|-----------|-----|
+| **List ready PBIs** | Read the file with the Read tool. Find items where `status: ready`. |
+| **Read PBI details** | Find the item by `id` in the YAML. Read `notes`, `acceptance_criteria`, `checklist` fields. |
+| **Mark in_progress** | Use the Edit tool to change `status: ready` to `status: in_progress` for the item. |
+| **Mark done** | Use the Edit tool to change `status: in_progress` to `status: done` for the item. |
+| **Read acceptance criteria** | Same as Read PBI details — look for `acceptance_criteria` field. |
+| **Update checklist** | Use the Edit tool to update `done: false` to `done: true` for completed checklist items. |
+
+### Adapter: GitHub Issues
+
+The CLAUDE.md section identifies the repo (or it's the current repo).
+
+| Operation | Command |
+|-----------|---------|
+| **List ready PBIs** | `gh issue list --label ready --json number,title,labels` |
+| **Read PBI details** | `gh issue view {number}` — body contains acceptance criteria and checklist |
+| **Mark in_progress** | `gh issue edit {number} --add-label in_progress --remove-label ready` |
+| **Mark done** | `gh issue close {number}` |
+| **Read acceptance criteria** | `gh issue view {number} --json body` — parse Given/When/Then blocks |
+| **Update checklist** | `gh issue edit {number} --body "..."` — update task list checkboxes (`- [x]`) |
+
+### Adapter: MCP-Based Tools (Jira, Miro, Linear)
+
+The CLAUDE.md section identifies the project/board. The `.claude/settings.json` configures the MCP server connection. The MCP server exposes tool functions that map to the logical operations.
+
+**Generic pattern:**
+
+1. Read CLAUDE.md for project key / board ID / team identifier
+2. Use the MCP tools available in your environment (they appear as regular tools)
+3. Map the MCP tool functions to the 6 logical operations:
+   - Search/list → List ready PBIs (filter by status and project)
+   - Get/read → Read PBI details
+   - Update/transition → Mark in_progress / Mark done
+   - Get fields → Read acceptance criteria
+   - Update fields → Update checklist
+
+The exact tool names depend on the MCP server. For example, Jira MCP might expose `jira_search`, `jira_get_issue`, `jira_transition_issue`. Discover available tools and map them.
+
+### What to Do at Session Start
+
+1. Read `## Product Backlog` from CLAUDE.md
+2. Use the appropriate adapter to list ready PBIs
+3. Present the top ready PBI (or top 3 if multiple) with title and acceptance criteria
+4. Ask: "Ready to start on this?" or let the user pick
+5. When confirmed, mark it `in_progress`
+
 ## Acceptance Criteria Coaching
 
 ### Technique: Given/When/Then

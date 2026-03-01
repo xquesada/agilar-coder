@@ -380,3 +380,31 @@ The Agilar AI SDLC scaffold wizard originally generated only the development env
 The adapter is instructions, not code. It lives in the po-coach skill because that skill bridges the PO and dev layers. The scrum-master and verification skills cross-reference it as the single source of truth for backlog access.
 
 This separation is not unique to AI-assisted development. It's the same PO/developer boundary that exists in any Scrum team. But in AI-assisted development, it has a concrete technical expression: the CLAUDE.md that governs agent behavior must include a link to the backlog system, and the skills must know how to use it — or the agent works blind.
+
+### First launch from the dev layer
+
+After completing the backlog adapter (PBI #156) and syncing the updated skills to chepibe-core, we launched Claude Code from `~/projects/chepibe-core` for the first time — with no prior context, no warm-up, just the scaffold and a prompt: "Do a full sanity check. Are your working agreements clear? Is everything coherent?"
+
+The agent self-oriented in under a minute:
+
+| Check | Result |
+|-------|--------|
+| Go toolchain | 1.26.0, golangci-lint 2.10.1 |
+| Build / Test / Lint | All green |
+| Git + CI | Clean, GitHub Actions configured |
+| Backlog API | Reachable, 17 chepibe-core PBIs loaded |
+| Working agreements | Understood and listed all 6 |
+| Next PBI | #148 identified as ready, offered to start brainstorming |
+
+The agent found the `## Product Backlog` section in CLAUDE.md, queried the REST API, filtered by `epic == "chepibe-core"`, and presented the backlog state — without being told how. The po-coach adapter did its job.
+
+One issue surfaced: a `wake-up` skill (designed for the chepibe instance repo) was installed globally and fired in chepibe-core where it didn't belong. It tried to SSH to the home server and check agent coordination files that don't exist in chepibe-core. The fix took 30 seconds — move the skill from global scope (`~/.claude/skills/`) to project scope (`~/.claude/projects/.../skills/`). This is a general lesson: **skills that reference project-specific infrastructure must be scoped to that project, not installed globally.**
+
+The framework's end-to-end flow is now validated:
+
+```
+scaffold → skills installed → CLAUDE.md configured → backlog adapter active
+    → agent self-orients → queries backlog → finds next PBI → ready to build
+```
+
+No manual explanation needed. No "here's how to find your work." The agent reads its own configuration and follows its own skills. This is what "opinionated by default" means in practice — the methodology made the decisions during setup so the agent doesn't need the human to repeat them every session.

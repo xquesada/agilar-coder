@@ -441,6 +441,21 @@ else
   SIZE_UNIT="working session"
 fi
 
+# Build audit trail section
+ENTIRE_SECTION=""
+if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
+  ENTIRE_SECTION="## Audit Trail
+
+**Entire** is enabled. Every AI agent session is captured as a git-native transcript:
+what was asked, what the agent did, what files changed, what tests ran.
+
+- Transcripts are stored in git history alongside the code changes
+- The verification skill captures evidence automatically when Entire is active
+- For retrospectives, use session transcripts to review what went well
+
+Install: see [Entire documentation](https://github.com/entirejs/entire) for setup instructions."
+fi
+
 cat > "$CLAUDEMD" << CLAUDEMD_EOF
 # CLAUDE.md — $PROJECT_NAME
 
@@ -505,6 +520,8 @@ $BUILD_CMD
 ## Branching
 
 $BRANCH_SECTION
+
+$ENTIRE_SECTION
 
 $ARCH_SECTION
 

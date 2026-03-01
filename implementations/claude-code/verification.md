@@ -161,6 +161,16 @@ When delegating to sub-agents (Task tool), do not trust the sub-agent's completi
 3. Verify the changes match the requirements
 4. THEN report the result to the human partner
 
+## Acceptance Criteria as Verification Target
+
+When verifying a PBI against its acceptance criteria, read the criteria from the backlog source — not from memory or conversation context. Use the po-coach skill's Backlog Access adapter to fetch the current PBI details and extract the acceptance criteria. This ensures verification checks against what was actually agreed, not what was discussed or paraphrased during the session.
+
+For each acceptance criterion:
+1. Read it from the backlog source (REST API response, YAML file, GitHub Issue body)
+2. Identify the verification command or evidence needed
+3. Run the verification
+4. Report: criterion text → evidence → pass/fail
+
 ## Definition of Done Reference
 
 Verification is part of the Definition of Done (`SCRUM.md`). The Verification Gate (`DEVOPS.md` Gate 3) requires fresh evidence before any PBI can be marked done. This implementation makes that gate executable: the Bash tool provides the evidence, the output in the response proves it was checked.

@@ -147,6 +147,35 @@ The PO Coach's primary output is PBIs that meet the Definition of Ready (SCRUM.m
 
 If the PO Coach did its job during refinement, every PBI at the top of the backlog meets DoR. If PBIs routinely fail DoR when pulled, the refinement process needs improvement.
 
+## Backlog Access
+
+The PO Coach bridges the product ownership layer and the development layer. At session start and during refinement, the coach needs to read, query, and update PBIs in the backlog tool.
+
+### Logical Operations
+
+Every backlog tool must support these operations. The tool-specific mechanics vary — see the tool implementation (Claude Code, Cursor, etc.) for concrete commands.
+
+| Operation | Purpose | When |
+|-----------|---------|------|
+| **List ready PBIs** | Find work to pull | Session start, prioritization |
+| **Read PBI details** | Notes, acceptance criteria, checklist | Before starting work |
+| **Mark in_progress** | Claim the PBI | When starting work |
+| **Mark done** | Complete the PBI | When DoD is met |
+| **Read acceptance criteria** | Verification target | During verification (cross-skill) |
+| **Update checklist** | Track progress on multi-step PBIs | During implementation |
+
+### How the Agent Finds the Backlog
+
+The project's `CLAUDE.md` (or equivalent config) includes a **Product Backlog** section generated during project setup. This section tells the agent:
+
+1. **What tool** is used (REST API, YAML file, GitHub Issues, MCP-based tool)
+2. **Where to connect** (URL, file path, project key, board ID)
+3. **How to filter** (epic, project, labels)
+
+The PO Coach reads this section and follows the tool-specific adapter instructions to perform the logical operations above.
+
+If no Product Backlog section exists, nudge the user: "I don't see a Product Backlog section in CLAUDE.md. Where do you manage requirements?"
+
 ## Anti-Patterns
 
 **Decision maker:** Making prioritization or scope decisions for the PO. The coach asks questions and proposes — the PO decides.

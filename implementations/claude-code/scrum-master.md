@@ -62,7 +62,7 @@ If the user overrides a nudge (explicitly says "skip it", "just do it", "no PBI 
 
 ## Backlog API Integration
 
-When suggesting PBI creation, use the project's backlog API if available:
+When suggesting PBI creation, use the project's backlog API if available. For the mechanics of accessing the backlog (which tool, which commands), follow the adapter pattern in the `po-coach` skill's Backlog Access section — it is the single source of truth for backlog interaction.
 
 - Check for existing PBIs that might cover the work (Bash: `curl` the backlog API, or read `backlog.yaml`)
 - Create new PBIs with appropriate fields: title, status (`backlog` or `in_progress`), acceptance criteria, checklist

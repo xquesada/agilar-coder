@@ -379,6 +379,36 @@ if [[ "$STACK_NAME" != "other" ]]; then
   fi
 fi
 
+# Generate MCP config for backlog tools that need it
+if [[ "$TOOL_NAME" == "claude-code" ]]; then
+  case "$BACKLOG_CHOICE" in
+    3) # Jira
+      SETTINGS_DIR="$PROJECT_DIR/.claude"
+      mkdir -p "$SETTINGS_DIR"
+      if [[ ! -f "$SETTINGS_DIR/settings.json" ]]; then
+        cat > "$SETTINGS_DIR/settings.json" << 'SETTINGS_EOF'
+{
+  "mcpServers": {
+    "jira": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-jira"],
+      "env": {
+        "JIRA_URL": "https://YOUR_ORG.atlassian.net",
+        "JIRA_API_TOKEN": "YOUR_API_TOKEN",
+        "JIRA_EMAIL": "YOUR_EMAIL"
+      }
+    }
+  }
+}
+SETTINGS_EOF
+        echo -e "  ${GREEN}+${NC} .claude/settings.json (Jira MCP — update credentials before use)"
+      else
+        echo -e "  ${YELLOW}!${NC} .claude/settings.json already exists — add Jira MCP config manually"
+      fi
+      ;;
+  esac
+fi
+
 # Copy canonical skill definitions as reference
 SKILLS_REF_DIR="$PROJECT_DIR/docs/skills"
 mkdir -p "$SKILLS_REF_DIR"

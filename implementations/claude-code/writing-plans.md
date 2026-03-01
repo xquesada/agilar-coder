@@ -82,12 +82,24 @@ Use Grep and Glob to answer these. Do not guess.
 
 ## Handoff to Execution
 
-Once the plan is written and the human approves it:
+Once the plan is written and the human approves it, the execution approach depends on team mode. **You decide — do not ask the user to choose between execution strategies.**
 
-1. **Same session:** The human says "execute the plan" or similar. Switch to the executing-plans skill.
-2. **New session:** The human starts a fresh Claude Code session, provides the plan file path, and invokes the executing-plans skill.
-3. **Subagent:** Use TaskCreate to spawn a subagent with the plan file path and instruction to follow the executing-plans skill.
-4. **Parallel agents:** For plans with independent task groups, spawn multiple subagents via TaskCreate, each with their assigned tasks and a worktree.
+### Solo Mode (default)
+
+Count the tasks in the plan and recommend accordingly:
+
+- **Up to ~8 tasks:** Execute in the current session. Just say: "Plan ready. Want me to start?" and switch to the executing-plans skill.
+- **9+ tasks:** Recommend a fresh session. Say: "This plan has N tasks. I recommend starting a fresh session to execute it — that way I won't lose context midway. The plan is saved at `docs/plans/...`. Open a new session and point me at it."
+
+Do not mention sub-agents, context windows, or compaction to the user. Just make the recommendation.
+
+### Multi-Agent Mode
+
+Dispatch independent task groups to parallel agents in worktrees. See `skills/parallel-agents/` and `skills/git-worktrees/`.
+
+### Multi-Human Mode
+
+Assign task groups to developers. Each works in a feature branch and opens a PR when complete.
 
 ## Example Interaction
 

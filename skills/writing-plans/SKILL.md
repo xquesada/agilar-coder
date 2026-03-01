@@ -133,13 +133,32 @@ Before handing off the plan, verify:
 
 ## Execution Handoff
 
-Once the plan is written, execution follows one of these paths:
+The execution approach depends on team mode. The agent decides — the user should not need to choose between execution strategies.
 
-1. **Same session.** The human says "go" and the agent executes in the current session. Good for small plans.
-2. **Separate session.** The plan is saved to a file. A new session (or a different agent) loads it and executes. Good for longer plans where you want a clean context window.
-3. **Parallel execution.** Independent task groups are assigned to separate agents working in isolated worktrees. An orchestrator merges results. Good for multi-agent mode.
+### Solo Mode
 
-For all paths, the executor follows `skills/executing-plans/`.
+The agent picks based on plan size:
+
+| Plan size | Approach | What the agent says |
+|-----------|----------|---------------------|
+| **Small (up to ~8 tasks)** | Same session, sequential | "Plan ready. Want me to start?" |
+| **Large (9+ tasks)** | Fresh session with executing-plans skill | "This plan has N tasks. I recommend starting a fresh session to execute it — that way I won't lose context midway. The plan is saved at `docs/plans/...`. Open a new session and point me at it." |
+
+**Why 8 tasks:** Each task involves reading files, writing code, running tests, and producing output. Beyond ~8 tasks, context pressure causes compaction (earlier task details are summarized and compressed), which degrades quality. A fresh session gives the executor a clean context window dedicated to execution.
+
+The agent may use sub-agents internally for isolated subtasks (e.g., writing a test file in parallel with a config file), but that is an implementation detail — not something the user decides.
+
+### Multi-Agent Mode
+
+Independent task groups are assigned to separate agents working in isolated worktrees. Each agent gets its assigned tasks from the plan. The lead agent coordinates via the task list and merges results. See `skills/parallel-agents/` and `skills/git-worktrees/`.
+
+### Multi-Human Mode
+
+Task groups are assigned to developers. Each developer works in a feature branch, executes their tasks following `skills/executing-plans/`, and opens a PR when complete.
+
+### For all paths
+
+The executor follows `skills/executing-plans/`.
 
 ## Principles
 

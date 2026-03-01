@@ -213,7 +213,20 @@ else
   esac
 fi
 
-# --- Step 8: Project type ---
+# --- Step 8: Audit trail ---
+
+echo ""
+echo -e "${BOLD}Audit trail:${NC}"
+echo -e "  Entire captures a git-native log of every AI agent session (what was asked,"
+echo -e "  what changed, what tests ran). Recommended for teams; optional for solo."
+read -rp "Enable Entire? [y/N]: " ENTIRE_CHOICE
+ENTIRE_CHOICE="${ENTIRE_CHOICE:-N}"
+case "$ENTIRE_CHOICE" in
+  [Yy]*) ENTIRE_ENABLED="yes" ;;
+  *) ENTIRE_ENABLED="no" ;;
+esac
+
+# --- Step 9: Project type ---
 
 echo ""
 echo -e "${BOLD}What are you building?${NC}"
@@ -240,7 +253,7 @@ case "$PROJECT_TYPE_CHOICE" in
   *) echo "Invalid choice." >&2; exit 1 ;;
 esac
 
-# --- Step 9: Architecture (types 1-3 only) ---
+# --- Step 10: Architecture (types 1-3 only) ---
 
 ARCH_TYPE="allinone"
 INSTANCE_LOCATION=""
@@ -267,7 +280,7 @@ if [[ "$PROJECT_TYPE" != "custom" ]]; then
   esac
 fi
 
-# --- Step 10: Deployment (types 1-3 only) ---
+# --- Step 11: Deployment (types 1-3 only) ---
 
 DEPLOY_TARGET="local"
 DEPLOY_TARGET_DESC=""

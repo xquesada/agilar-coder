@@ -66,6 +66,12 @@ Trunk-based. All commits on `main`. Run full test suite before every commit.
 
 Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
 
+## Product Backlog
+
+PBIs are tracked in `backlog.yaml` in this repo.
+
+**At session start:** read the backlog file, find PBIs with status `ready`. Read notes, acceptance criteria, and checklist before starting work. Update status to `in_progress` when you begin.
+
 ## Skills
 
 The following skills are active. The agent follows them as executable processes, not guidelines.

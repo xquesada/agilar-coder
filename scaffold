@@ -186,11 +186,11 @@ esac
 
 echo ""
 echo -e "${BOLD}Where do you manage requirements (Product Backlog)?${NC}"
-echo -e "${DIM}A filesystem backlog (backlog/ directory) is always created as a parallel record.${NC}"
 echo "  1) Agilar PO Companion (recommended for enterprise product management)"
 echo "  2) Agilar Chepibe (recommended for solo development & small projects)"
 echo "  3) Jira"
-echo "  4) Other system"
+echo "  4) Filesystem backlog only (built-in, no external tool needed)"
+echo "  5) Other system"
 read -rp "Choose [1]: " BACKLOG_CHOICE
 BACKLOG_CHOICE="${BACKLOG_CHOICE:-1}"
 
@@ -238,6 +238,13 @@ PBIs are managed in Jira. This repo is the development layer.
 **At session start:** use the Jira MCP or API to find tickets in the Ready column. Read description, acceptance criteria, and subtasks before starting work."
     ;;
   4)
+    BACKLOG_SECTION="## Product Backlog
+
+PBIs are managed as files in the \`backlog/\` directory. No external tool required.
+
+**At session start:** check \`backlog/ready/\` for PBIs to work on. Read the PBI file for acceptance criteria and checklist. Move to \`backlog/in_progress/\` when you begin."
+    ;;
+  5)
     echo ""
     echo -e "${DIM}Your system needs either a REST API or an MCP server so AI agents can read and update PBIs.${NC}"
     read -rp "System name (e.g. Linear, Shortcut, Azure DevOps): " OTHER_SYSTEM_NAME
@@ -779,7 +786,7 @@ if [[ "$TOOL_NAME" == "claude-code" ]]; then
 }'
       MCP_LABEL="Jira MCP — update credentials before use"
       ;;
-    4) # Other system with MCP
+    5) # Other system with MCP
       if [[ -n "${OTHER_MCP_SERVER_NAME:-}" ]]; then
         MCP_CONFIG="{
   \"mcpServers\": {

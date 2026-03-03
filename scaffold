@@ -163,16 +163,22 @@ esac
 
 echo ""
 echo -e "${BOLD}AI coding tool:${NC}"
-echo "  1) Claude Code"
-echo "  2) Cursor"
-echo "  3) Generic (any tool)"
+echo "  1) Claude Code (recommended)"
+echo "  2) Codex CLI"
+echo "  3) Cursor CLI"
+echo "  4) Google CLI"
+echo "  5) GitHub Copilot CLI"
+echo "  6) Opencode / Generic / Other CLI"
 read -rp "Choose [1]: " TOOL_CHOICE
 TOOL_CHOICE="${TOOL_CHOICE:-1}"
 
 case "$TOOL_CHOICE" in
   1) TOOL_NAME="claude-code" ;;
-  2) TOOL_NAME="cursor" ;;
-  3) TOOL_NAME="generic" ;;
+  2) TOOL_NAME="codex" ;;
+  3) TOOL_NAME="cursor" ;;
+  4) TOOL_NAME="google" ;;
+  5) TOOL_NAME="copilot" ;;
+  6) TOOL_NAME="generic" ;;
   *) echo "Invalid choice." >&2; exit 1 ;;
 esac
 

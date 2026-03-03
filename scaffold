@@ -59,15 +59,50 @@ esac
 
 # --- Step 4: Tech stack ---
 
+# Auto-detect stack from project files
+DETECTED_STACK=""
+DETECTED_STACK_LABEL=""
+if [[ -f "$PROJECT_DIR/package.json" ]]; then
+  DETECTED_STACK="1"
+  DETECTED_STACK_LABEL="Node.js / TypeScript"
+elif [[ -f "$PROJECT_DIR/go.mod" ]]; then
+  DETECTED_STACK="2"
+  DETECTED_STACK_LABEL="Go"
+elif [[ -f "$PROJECT_DIR/pyproject.toml" || -f "$PROJECT_DIR/setup.py" || -f "$PROJECT_DIR/requirements.txt" ]]; then
+  DETECTED_STACK="3"
+  DETECTED_STACK_LABEL="Python"
+elif [[ -f "$PROJECT_DIR/mix.exs" ]]; then
+  DETECTED_STACK="4"
+  DETECTED_STACK_LABEL="Elixir"
+fi
+
 echo ""
-echo -e "${BOLD}Tech stack:${NC}"
-echo "  1) Node.js / TypeScript"
-echo "  2) Go"
-echo "  3) Python"
-echo "  4) Elixir"
-echo "  5) Other (manual configuration)"
-read -rp "Choose [1]: " STACK_CHOICE
-STACK_CHOICE="${STACK_CHOICE:-1}"
+if [[ -n "$DETECTED_STACK" ]]; then
+  echo -e "${BOLD}Tech stack:${NC} ${GREEN}$DETECTED_STACK_LABEL${NC} detected"
+  read -rp "Correct? [Y/n]: " STACK_CONFIRM
+  STACK_CONFIRM="${STACK_CONFIRM:-Y}"
+  if [[ "$STACK_CONFIRM" =~ ^[Yy] ]]; then
+    STACK_CHOICE="$DETECTED_STACK"
+  else
+    echo ""
+    echo -e "${BOLD}Tech stack:${NC}"
+    echo "  1) Node.js / TypeScript"
+    echo "  2) Go"
+    echo "  3) Python"
+    echo "  4) Elixir"
+    echo "  5) Other (manual configuration)"
+    read -rp "Choose: " STACK_CHOICE
+  fi
+else
+  echo -e "${BOLD}Tech stack:${NC}"
+  echo "  1) Node.js / TypeScript"
+  echo "  2) Go"
+  echo "  3) Python"
+  echo "  4) Elixir"
+  echo "  5) Other (manual configuration)"
+  read -rp "Choose [1]: " STACK_CHOICE
+  STACK_CHOICE="${STACK_CHOICE:-1}"
+fi
 
 case "$STACK_CHOICE" in
   1)

@@ -1,0 +1,142 @@
+# CLAUDE.md — {{PROJECT_NAME}}
+
+## Project
+
+{{PROJECT_DESCRIPTION}}
+
+## Team Mode
+
+**{{TEAM_MODE}}** — {{TEAM_MODE_DESCRIPTION}}
+
+## Working Agreements
+
+These are non-negotiable. The agent enforces them.
+
+- **No production code without a failing test first** (TDD)
+- **No fix without root cause investigation** (Debugging)
+- **No completion claim without fresh verification evidence** (Verification)
+- **No design without exploring alternatives** (Brainstorming)
+{{#if CODE_REVIEW_ENABLED}}- **No merge without code review** (Code Review){{/if}}
+{{#unless CODE_REVIEW_ENABLED}}- Code review: **disabled** (relying on TDD + verification + automated quality checks){{/unless}}
+
+## Definition of Ready
+
+A PBI is ready when:
+- Small enough for a single {{#if MULTI_HUMAN}}sprint{{/if}}{{#unless MULTI_HUMAN}}working session{{/unless}}
+- Acceptance criteria written (specific, testable)
+- Design approved
+- No blockers
+- Checklist populated (if multi-step)
+
+## Definition of Done
+
+A PBI is done when:
+- Acceptance criteria met (verified, not assumed)
+- Tests pass (TDD — written before implementation)
+- Verified with evidence (fresh test output after final change)
+{{#if CODE_REVIEW_ENABLED}}- Code reviewed{{/if}}
+- Docs updated (if user-facing changes)
+
+## Tech Stack
+
+{{STACK_SECTION}}
+
+## Test Commands
+
+```bash
+{{TEST_COMMAND}}
+```
+
+## Lint Commands
+
+```bash
+{{LINT_COMMAND}}
+```
+
+## Build Commands
+
+```bash
+{{BUILD_COMMAND}}
+```
+
+## Branching
+
+{{#if SOLO}}Trunk-based. All commits on `main`. Run full test suite before every commit.{{/if}}
+{{#if MULTI_AGENT}}Worktrees from `main`. Each agent works in isolation. Self-merge after tests pass.
+
+### Multi-Agent Worktree Workflow
+
+**Orchestrator** (main session) coordinates. **Workers** (sub-agents) implement in isolated worktrees.
+
+1. Orchestrator creates a branch per worker before dispatch
+2. Worker implements in its worktree following TDD
+3. Code reviewer agent verifies (spec compliance + quality)
+4. Orchestrator merges to main, runs full test suite
+5. Push to remote after all tests pass
+
+**Port Assignments** (if running dev servers):
+
+| Agent | Dev Server | Test | Debug |
+|-------|-----------|------|-------|
+| Orchestrator | {{PORT_BASE}}0 | {{PORT_BASE}}00 | {{PORT_BASE}}00 |
+| Worker 1 | {{PORT_BASE}}1 | {{PORT_BASE}}01 | {{PORT_BASE}}01 |
+| Worker 2 | {{PORT_BASE}}2 | {{PORT_BASE}}02 | {{PORT_BASE}}02 |
+| Worker 3 | {{PORT_BASE}}3 | {{PORT_BASE}}03 | {{PORT_BASE}}03 |
+
+**Worker instructions:** Workers receive a focused prompt with task, context, constraints, and TDD requirement. They have no conversation history — include everything they need.{{/if}}
+{{#if MULTI_HUMAN}}Feature branches. PRs required. CI must pass before merge. Code review mandatory.{{/if}}
+
+## PBI-First Rule
+
+Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
+
+## Filesystem Backlog
+
+PBI files live in `backlog/` and move through folders as they progress:
+
+| Folder | Status | Contains |
+|--------|--------|----------|
+| `backlog/` | Backlog | Unrefined PBI files |
+| `backlog/ready/` | Ready | Refined + planned PBIs, queued for execution |
+| `backlog/in_progress/` | In Progress | PBIs currently being worked on |
+| `backlog/done/` | Done | Completed PBIs (archive) |
+
+**Execute ready PBIs:**
+- "Build the next ready PBI" — picks oldest from ready/, executes, archives to done/
+- "Build all ready PBIs" — processes the queue
+
+{{#if EXTERNAL_BACKLOG}}**Sync:** {{BACKLOG_TOOL}} is the primary source of truth. The filesystem is a parallel record. Agent edits files first, then syncs. Inconsistencies trigger a warning.{{/if}}
+
+{{BACKLOG_SECTION}}
+
+## Skills
+
+The following skills are active. The agent follows them as executable processes, not guidelines.
+
+### Engineering Skills
+- `brainstorming` — explore alternatives before designing
+- `tdd` — red-green-refactor, every time
+- `sprint-planning` — break PBIs into executable tasks
+- `executing-plans` — execute plans with checkpoints
+- `debugging` — root cause before fix
+- `code-review` — two-stage review (spec compliance + quality)
+- `requesting-code-review` — when and how to request review
+- `receiving-code-review` — responding to review feedback
+- `verification` — evidence before claims
+- `bdd` — acceptance tests as executable specifications
+
+### Coordination Skills
+{{#if MULTI_AGENT}}- `subagent-driven` — orchestrate sub-agents for independent tasks
+- `parallel-agents` — dispatch parallel work
+- `git-worktrees` — agent isolation via worktrees
+- `finishing-a-development-branch` — clean branch completion{{/if}}
+{{#if MULTI_HUMAN}}- `git-worktrees` — optional, for developer isolation{{/if}}
+
+### Coaching Skills
+- `scrum-master` — process conscience (always active)
+- `po-coach` — product ownership guidance (during refinement)
+- `facilitator` — Scrum event facilitation
+
+## Project-Specific Notes
+
+{{PROJECT_NOTES}}

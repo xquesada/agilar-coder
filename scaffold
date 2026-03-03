@@ -1,0 +1,748 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Agilar AI SDLC — Project Scaffold Wizard
+# Sets up a new project with the methodology's skills, templates, and configuration.
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Colors
+BOLD='\033[1m'
+DIM='\033[2m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+echo -e "${BOLD}Agilar AI SDLC — Project Scaffold${NC}"
+echo -e "${DIM}Sets up your project with skills, working agreements, and configuration.${NC}"
+echo ""
+
+# --- Step 1: Project basics ---
+
+read -rp "Project name: " PROJECT_NAME
+if [[ -z "$PROJECT_NAME" ]]; then
+  echo "Project name is required." >&2
+  exit 1
+fi
+
+read -rp "Project description (one line): " PROJECT_DESCRIPTION
+if [[ -z "$PROJECT_DESCRIPTION" ]]; then
+  PROJECT_DESCRIPTION="$PROJECT_NAME"
+fi
+
+# --- Step 2: Target directory ---
+
+read -rp "Project directory [.]: " PROJECT_DIR
+PROJECT_DIR="${PROJECT_DIR:-.}"
+PROJECT_DIR="$(cd "$PROJECT_DIR" 2>/dev/null && pwd || echo "$PROJECT_DIR")"
+
+if [[ ! -d "$PROJECT_DIR" ]]; then
+  echo "Directory $PROJECT_DIR does not exist." >&2
+  exit 1
+fi
+
+# --- Step 3: Team mode ---
+
+echo ""
+echo -e "${BOLD}Team mode:${NC}"
+echo "  1) Solo      — 1 human + 1 agent, Kanban, trunk-based"
+echo "  2) Multi-agent — 1 human + agent team, Kanban, worktrees"
+echo "  3) Multi-human — PO + developers, Scrum, feature branches"
+read -rp "Choose [1]: " TEAM_MODE_CHOICE
+TEAM_MODE_CHOICE="${TEAM_MODE_CHOICE:-1}"
+
+case "$TEAM_MODE_CHOICE" in
+  1) TEAM_MODE="Solo"; TEAM_MODE_DESC="1 human + 1 agent. Kanban. Trunk-based development." ;;
+  2) TEAM_MODE="Multi-agent"; TEAM_MODE_DESC="1 human + agent team. Kanban. Worktrees from main." ;;
+  3) TEAM_MODE="Multi-human"; TEAM_MODE_DESC="PO + developers. Full Scrum. Feature branches + PRs." ;;
+  *) echo "Invalid choice." >&2; exit 1 ;;
+esac
+
+# --- Step 4: Tech stack ---
+
+echo ""
+echo -e "${BOLD}Tech stack:${NC}"
+echo "  1) Node.js / TypeScript"
+echo "  2) Go"
+echo "  3) Python"
+echo "  4) Elixir"
+echo "  5) Other (manual configuration)"
+read -rp "Choose [1]: " STACK_CHOICE
+STACK_CHOICE="${STACK_CHOICE:-1}"
+
+case "$STACK_CHOICE" in
+  1)
+    STACK_NAME="node"
+    TEST_CMD="npm test"
+    LINT_CMD="npx eslint . && npx tsc --noEmit"
+    BUILD_CMD="npm run build"
+    STACK_SECTION="Node.js / TypeScript. See \`templates/stacks/node.md\` for detailed configuration."
+    ;;
+  2)
+    STACK_NAME="go"
+    TEST_CMD="go test ./..."
+    LINT_CMD="go vet ./... && golangci-lint run ./..."
+    BUILD_CMD="go build ./cmd/..."
+    STACK_SECTION="Go. See \`templates/stacks/go.md\` for detailed configuration."
+    ;;
+  3)
+    STACK_NAME="python"
+    TEST_CMD="pytest"
+    LINT_CMD="ruff check . && mypy src/"
+    BUILD_CMD="python -m build"
+    STACK_SECTION="Python. See \`templates/stacks/python.md\` for detailed configuration."
+    ;;
+  4)
+    STACK_NAME="elixir"
+    TEST_CMD="mix test"
+    LINT_CMD="mix format --check-formatted && mix credo --strict"
+    BUILD_CMD="MIX_ENV=prod mix release"
+    STACK_SECTION="Elixir. See \`templates/stacks/elixir.md\` for detailed configuration."
+    ;;
+  5)
+    STACK_NAME="other"
+    read -rp "Test command: " TEST_CMD
+    read -rp "Lint command: " LINT_CMD
+    read -rp "Build command: " BUILD_CMD
+    STACK_SECTION="Custom stack. Update this section with your tools and conventions."
+    ;;
+  *) echo "Invalid choice." >&2; exit 1 ;;
+esac
+
+# --- Step 5: Toolchain ---
+
+echo ""
+echo -e "${BOLD}AI coding tool:${NC}"
+echo "  1) Claude Code"
+echo "  2) Cursor"
+echo "  3) Generic (any tool)"
+read -rp "Choose [1]: " TOOL_CHOICE
+TOOL_CHOICE="${TOOL_CHOICE:-1}"
+
+case "$TOOL_CHOICE" in
+  1) TOOL_NAME="claude-code" ;;
+  2) TOOL_NAME="cursor" ;;
+  3) TOOL_NAME="generic" ;;
+  *) echo "Invalid choice." >&2; exit 1 ;;
+esac
+
+# --- Step 6: Requirements management ---
+
+echo ""
+echo -e "${BOLD}Where do you manage requirements (Product Backlog)?${NC}"
+echo -e "${DIM}Note: A filesystem backlog (backlog/ directory) is always created regardless of your choice.${NC}"
+echo -e "${DIM}It serves as a parallel record maintained by agents alongside your primary tool.${NC}"
+echo "  1) Agilar PO Companion (API-based)        — recommended"
+echo "  2) YAML file in this repo                  — simplest, works offline"
+echo "  3) Jira"
+echo "  4) GitHub Issues"
+echo "  5) Other system"
+read -rp "Choose [1]: " BACKLOG_CHOICE
+BACKLOG_CHOICE="${BACKLOG_CHOICE:-1}"
+
+BACKLOG_SECTION=""
+case "$BACKLOG_CHOICE" in
+  1)
+    read -rp "PO Companion API URL (e.g. https://po.example.com/api/backlog): " BACKLOG_URL
+    BACKLOG_SECTION="## Product Backlog
+
+PBIs are managed in an external backlog tool (PO layer). This repo is the development layer.
+
+**Backlog API:** \`$BACKLOG_URL\`
+
+- List PBIs: \`GET $BACKLOG_URL\`
+- Update status: \`PATCH $BACKLOG_URL/:id\`
+
+**At session start:** query the API for PBIs with status \`ready\`. Read notes, acceptance criteria, and checklist before starting work. Mark \`in_progress\` when you begin."
+    ;;
+  2)
+    read -rp "Backlog file path [backlog.yaml]: " BACKLOG_FILE
+    BACKLOG_FILE="${BACKLOG_FILE:-backlog.yaml}"
+    BACKLOG_SECTION="## Product Backlog
+
+PBIs are tracked in \`$BACKLOG_FILE\` in this repo.
+
+**At session start:** read the backlog file, find PBIs with status \`ready\`. Read notes, acceptance criteria, and checklist before starting work. Update status to \`in_progress\` when you begin."
+    ;;
+  3)
+    read -rp "Jira project URL (e.g. https://myorg.atlassian.net/browse/PROJ): " JIRA_URL
+    BACKLOG_SECTION="## Product Backlog
+
+PBIs are managed in Jira. This repo is the development layer.
+
+**Jira project:** \`$JIRA_URL\`
+
+**At session start:** use the Jira CLI or API to find tickets in the Ready column. Read description, acceptance criteria, and subtasks before starting work."
+    ;;
+  4)
+    BACKLOG_SECTION="## Product Backlog
+
+PBIs are tracked as GitHub Issues in this repo.
+
+**At session start:** run \`gh issue list --label ready\` to find PBIs to work on. Read the issue body for acceptance criteria and checklist. Assign yourself when you begin."
+    ;;
+  5)
+    read -rp "Describe your backlog system (one line): " BACKLOG_DESC
+    BACKLOG_SECTION="## Product Backlog
+
+$BACKLOG_DESC
+
+**At session start:** check the backlog for PBIs with status \`ready\`. Read acceptance criteria and checklist before starting work."
+    ;;
+  *)
+    echo "Invalid choice." >&2
+    exit 1
+    ;;
+esac
+
+# --- Step 7: Code review ---
+
+echo ""
+if [[ "$TEAM_MODE_CHOICE" == "3" ]]; then
+  echo -e "${DIM}Code review is mandatory for multi-human teams.${NC}"
+  CODE_REVIEW="yes"
+else
+  echo -e "${BOLD}Code review:${NC}"
+  echo "  If you can read and review code, enable code review."
+  echo "  If you're a non-technical PO, disable it (TDD + verification still active)."
+  read -rp "Enable code review? [Y/n]: " CODE_REVIEW_CHOICE
+  CODE_REVIEW_CHOICE="${CODE_REVIEW_CHOICE:-Y}"
+  case "$CODE_REVIEW_CHOICE" in
+    [Yy]*) CODE_REVIEW="yes" ;;
+    [Nn]*) CODE_REVIEW="no" ;;
+    *) CODE_REVIEW="yes" ;;
+  esac
+fi
+
+# --- Step 8: Audit trail ---
+
+echo ""
+echo -e "${BOLD}Audit trail:${NC}"
+echo -e "  Entire captures a git-native log of every AI agent session (what was asked,"
+echo -e "  what changed, what tests ran). Recommended for teams; optional for solo."
+read -rp "Enable Entire? [y/N]: " ENTIRE_CHOICE
+ENTIRE_CHOICE="${ENTIRE_CHOICE:-N}"
+case "$ENTIRE_CHOICE" in
+  [Yy]*) ENTIRE_ENABLED="yes" ;;
+  *) ENTIRE_ENABLED="no" ;;
+esac
+
+# --- Step 8b: CI provider (multi-agent only) ---
+
+CI_PROVIDER="none"
+if [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
+  echo ""
+  echo -e "${BOLD}CI provider (for automated CI checking):${NC}"
+  echo "  1) GitHub Actions"
+  echo "  2) GitLab CI"
+  echo "  3) None (manual CI)"
+  read -rp "Choose [3]: " CI_CHOICE
+  CI_CHOICE="${CI_CHOICE:-3}"
+
+  case "$CI_CHOICE" in
+    1) CI_PROVIDER="github-actions" ;;
+    2) CI_PROVIDER="gitlab-ci" ;;
+    3) CI_PROVIDER="none" ;;
+    *) CI_PROVIDER="none" ;;
+  esac
+fi
+
+# --- Step 9: Project type ---
+
+echo ""
+echo -e "${BOLD}What are you building?${NC}"
+echo "  1) A website or web page"
+echo -e "     ${DIM}Examples: a company website like wikipedia.com, a blog, a landing page${NC}"
+echo "  2) An app that people use in their browser"
+echo -e "     ${DIM}Examples: something like Google Sheets, a dashboard, an online store${NC}"
+echo "  3) A tool that runs in the background or from the command line"
+echo -e "     ${DIM}Examples: a chatbot, a scheduled report, a file organizer${NC}"
+echo "  4) I'll describe it myself (for experienced developers)"
+read -rp "Choose [1]: " PROJECT_TYPE_CHOICE
+PROJECT_TYPE_CHOICE="${PROJECT_TYPE_CHOICE:-1}"
+
+PROJECT_TYPE_DESC=""
+case "$PROJECT_TYPE_CHOICE" in
+  1) PROJECT_TYPE="website" ;;
+  2) PROJECT_TYPE="webapp" ;;
+  3) PROJECT_TYPE="tool" ;;
+  4)
+    PROJECT_TYPE="custom"
+    echo ""
+    read -rp "Describe your software and how it should be deployed: " PROJECT_TYPE_DESC
+    ;;
+  *) echo "Invalid choice." >&2; exit 1 ;;
+esac
+
+# --- Step 10: Architecture (types 1-3 only) ---
+
+ARCH_TYPE="allinone"
+INSTANCE_LOCATION=""
+if [[ "$PROJECT_TYPE" != "custom" ]]; then
+  echo ""
+  echo -e "${BOLD}Where will the settings and data for this software live?${NC}"
+  echo "  1) Together with the code"
+  echo -e "     ${DIM}Like a Word document — everything in one place. Most projects start here.${NC}"
+  echo "  2) In a separate location"
+  echo -e "     ${DIM}Like an app you install on your phone — the app comes from the App Store,${NC}"
+  echo -e "     ${DIM}but your data and settings live on your phone.${NC}"
+  echo "  3) Not sure yet — I'll figure it out later"
+  read -rp "Choose [1]: " ARCH_CHOICE
+  ARCH_CHOICE="${ARCH_CHOICE:-1}"
+
+  case "$ARCH_CHOICE" in
+    1) ARCH_TYPE="allinone" ;;
+    2)
+      ARCH_TYPE="separated"
+      read -rp "Describe where (a folder path, a server name, anything that helps): " INSTANCE_LOCATION
+      ;;
+    3) ARCH_TYPE="undecided" ;;
+    *) echo "Invalid choice." >&2; exit 1 ;;
+  esac
+fi
+
+# --- Step 11: Deployment (types 1-3 only) ---
+
+DEPLOY_TARGET="local"
+DEPLOY_TARGET_DESC=""
+if [[ "$PROJECT_TYPE" != "custom" ]]; then
+  echo ""
+  echo -e "${BOLD}Where will this software run when it's ready for real use?${NC}"
+  echo "  1) On my own computer"
+  echo "  2) On another computer I manage (a server, a Raspberry Pi, etc.)"
+  echo "  3) On a hosting service (like Wix, Squarespace, Vercel, or similar)"
+  echo "  4) I don't know yet"
+  read -rp "Choose [1]: " DEPLOY_CHOICE
+  DEPLOY_CHOICE="${DEPLOY_CHOICE:-1}"
+
+  case "$DEPLOY_CHOICE" in
+    1) DEPLOY_TARGET="local" ;;
+    2)
+      DEPLOY_TARGET="remote"
+      read -rp "How do you connect to that computer? (a name, address, or anything you know): " DEPLOY_TARGET_DESC
+      ;;
+    3)
+      DEPLOY_TARGET="hosted"
+      read -rp "Which service?: " DEPLOY_TARGET_DESC
+      ;;
+    4) DEPLOY_TARGET="undecided" ;;
+    *) echo "Invalid choice." >&2; exit 1 ;;
+  esac
+fi
+
+# --- Generate files ---
+
+echo ""
+echo -e "${CYAN}Generating project files...${NC}"
+
+# Create backlog directories (always, regardless of external tool)
+mkdir -p "$PROJECT_DIR/backlog/ready" "$PROJECT_DIR/backlog/in_progress" "$PROJECT_DIR/backlog/done"
+touch "$PROJECT_DIR/backlog/.gitkeep" "$PROJECT_DIR/backlog/ready/.gitkeep" "$PROJECT_DIR/backlog/in_progress/.gitkeep" "$PROJECT_DIR/backlog/done/.gitkeep"
+echo -e "  ${GREEN}+${NC} backlog/ (filesystem backlog: ready/, in_progress/, done/)"
+
+# Create .claude/skills/ directory for Claude Code
+if [[ "$TOOL_NAME" == "claude-code" ]]; then
+  SKILLS_DIR="$PROJECT_DIR/.claude/skills"
+  mkdir -p "$SKILLS_DIR"
+
+  # Copy all skill implementations
+  IMPL_DIR="$SCRIPT_DIR/implementations/claude-code"
+  if [[ -d "$IMPL_DIR" ]]; then
+    for skill_file in "$IMPL_DIR"/*.md; do
+      if [[ -f "$skill_file" ]]; then
+        cp "$skill_file" "$SKILLS_DIR/$(basename "$skill_file")"
+        echo -e "  ${GREEN}+${NC} .claude/skills/$(basename "$skill_file")"
+      fi
+    done
+  fi
+fi
+
+# Create .claude/agents/ for multi-agent mode (Claude Code only)
+if [[ "$TOOL_NAME" == "claude-code" && "$TEAM_MODE_CHOICE" == "2" ]]; then
+  AGENTS_DIR="$PROJECT_DIR/.claude/agents"
+  mkdir -p "$AGENTS_DIR"
+
+  # Copy stack-specific agent templates if available, otherwise use generic
+  if [[ "$STACK_NAME" != "other" ]]; then
+    REVIEWER_SRC="$SCRIPT_DIR/templates/stacks/${STACK_NAME}-code-reviewer.md"
+    CHECKER_SRC="$SCRIPT_DIR/templates/stacks/${STACK_NAME}-ci-checker.md"
+  fi
+
+  if [[ -n "${REVIEWER_SRC:-}" && -f "$REVIEWER_SRC" ]]; then
+    cp "$REVIEWER_SRC" "$AGENTS_DIR/code-reviewer.md"
+  else
+    cp "$SCRIPT_DIR/templates/agents/code-reviewer.md" "$AGENTS_DIR/code-reviewer.md"
+  fi
+  echo -e "  ${GREEN}+${NC} .claude/agents/code-reviewer.md"
+
+  if [[ -n "${CHECKER_SRC:-}" && -f "$CHECKER_SRC" ]]; then
+    cp "$CHECKER_SRC" "$AGENTS_DIR/ci-checker.md"
+  else
+    cp "$SCRIPT_DIR/templates/agents/ci-checker.md" "$AGENTS_DIR/ci-checker.md"
+  fi
+  echo -e "  ${GREEN}+${NC} .claude/agents/ci-checker.md"
+fi
+
+# Generate CLAUDE.md from template
+CLAUDEMD="$PROJECT_DIR/CLAUDE.md"
+
+# Build the branching section
+if [[ "$TEAM_MODE_CHOICE" == "1" ]]; then
+  BRANCH_SECTION="Trunk-based. All commits on \`main\`. Run full test suite before every commit."
+elif [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
+  BRANCH_SECTION="Worktrees from \`main\`. Each agent works in isolation. Self-merge after tests pass.
+
+### Multi-Agent Worktree Workflow
+
+**Orchestrator** (main session) coordinates. **Workers** (sub-agents) implement in isolated worktrees.
+
+1. Orchestrator creates a branch per worker before dispatch
+2. Worker implements in its worktree following TDD
+3. Code reviewer agent verifies (spec compliance + quality)
+4. Orchestrator merges to main, runs full test suite
+5. Push to remote after all tests pass
+
+**Port Assignments** (if running dev servers):
+
+| Agent | Dev Server | Test | Debug |
+|-------|-----------|------|-------|
+| Orchestrator | 3000 | 3100 | 3200 |
+| Worker 1 | 3001 | 3101 | 3201 |
+| Worker 2 | 3002 | 3102 | 3202 |
+| Worker 3 | 3003 | 3103 | 3203 |
+
+**Worker instructions:** Workers receive a focused prompt with task, context, constraints, and TDD requirement. They have no conversation history — include everything they need."
+else
+  BRANCH_SECTION="Feature branches. PRs required. CI must pass before merge. Code review mandatory."
+fi
+
+# Build the coordination skills section
+COORD_SKILLS=""
+if [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
+  COORD_SKILLS="- \`subagent-driven\` — orchestrate sub-agents for independent tasks
+- \`parallel-agents\` — dispatch parallel work
+- \`git-worktrees\` — agent isolation via worktrees
+- \`finishing-a-development-branch\` — clean branch completion"
+elif [[ "$TEAM_MODE_CHOICE" == "3" ]]; then
+  COORD_SKILLS="- \`git-worktrees\` — optional, for developer isolation"
+fi
+
+# Build architecture section (only for separated installs)
+ARCH_SECTION=""
+if [[ "$ARCH_TYPE" == "separated" ]]; then
+  ARCH_SECTION="## Architecture: Source and Instance
+
+This repo is the **source** — it contains the code you build. It does not contain
+runtime configuration or data.
+
+The **instance** (where the software actually runs) lives at: $INSTANCE_LOCATION
+
+| What | Where |
+|------|-------|
+| Source code and tests | This repo |
+| Configuration and settings | $INSTANCE_LOCATION |
+| Data created at runtime | $INSTANCE_LOCATION |
+
+When building, never add instance-specific configuration (secrets, server addresses,
+user data) to this repo. When deploying, copy the built software to the instance
+and let it read its configuration from there."
+fi
+
+# Build deploy section
+DEPLOY_SECTION=""
+if [[ "$PROJECT_TYPE" == "custom" ]]; then
+  DEPLOY_SECTION="## Deploy
+
+$PROJECT_TYPE_DESC
+
+The agent should use this description to understand the deployment setup. Ask
+clarifying questions at session start if anything is unclear."
+elif [[ "$DEPLOY_TARGET" == "undecided" ]]; then
+  DEPLOY_SECTION="## Deploy
+
+Not configured yet. When you're ready to deploy, describe where the software should
+run and the agent will help you set it up."
+elif [[ "$DEPLOY_TARGET" == "local" ]]; then
+  DEPLOY_SECTION="## Deploy
+
+This runs locally on this computer. Start it with:
+
+\`\`\`bash
+$BUILD_CMD
+\`\`\`"
+elif [[ "$DEPLOY_TARGET" == "remote" && "$PROJECT_TYPE" == "tool" ]]; then
+  DEPLOY_SECTION="## Deploy
+
+| Environment | Where |
+|-------------|-------|
+| Development | This computer (build and test here) |
+| Production | $DEPLOY_TARGET_DESC |
+
+Build the software here, then deploy the result to the production machine."
+elif [[ "$DEPLOY_TARGET" == "remote" ]]; then
+  DEPLOY_SECTION="## Deploy
+
+| Environment | Where |
+|-------------|-------|
+| Development | This computer |
+| Production | $DEPLOY_TARGET_DESC |
+
+To deploy, connect to the production machine and pull the latest code, build, and restart."
+elif [[ "$DEPLOY_TARGET" == "hosted" ]]; then
+  DEPLOY_SECTION="## Deploy
+
+| Environment | Where |
+|-------------|-------|
+| Development | This computer |
+| Production | $DEPLOY_TARGET_DESC |
+
+Follow the hosting service's deployment process to publish updates."
+fi
+
+# Build code review line
+if [[ "$CODE_REVIEW" == "yes" ]]; then
+  CR_AGREEMENT="- **No merge without code review** (Code Review)"
+  CR_DOD="- Code reviewed"
+else
+  CR_AGREEMENT="- Code review: **disabled** (relying on TDD + verification + automated quality checks)"
+  CR_DOD=""
+fi
+
+# Session size
+if [[ "$TEAM_MODE_CHOICE" == "3" ]]; then
+  SIZE_UNIT="sprint"
+else
+  SIZE_UNIT="working session"
+fi
+
+# Build audit trail section
+ENTIRE_SECTION=""
+if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
+  ENTIRE_SECTION="## Audit Trail
+
+**Entire** is enabled. Every AI agent session is captured as a git-native transcript:
+what was asked, what the agent did, what files changed, what tests ran.
+
+- Transcripts are stored in git history alongside the code changes
+- The verification skill captures evidence automatically when Entire is active
+- For retrospectives, use session transcripts to review what went well
+
+Install: \`brew tap entireio/tap && brew install entireio/tap/entire\`, then \`entire enable\` in the repo."
+fi
+
+cat > "$CLAUDEMD" << CLAUDEMD_EOF
+# CLAUDE.md — $PROJECT_NAME
+
+## Project
+
+$PROJECT_DESCRIPTION
+
+## Team Mode
+
+**$TEAM_MODE** — $TEAM_MODE_DESC
+
+## Working Agreements
+
+These are non-negotiable. The agent enforces them.
+
+- **No production code without a failing test first** (TDD)
+- **No fix without root cause investigation** (Debugging)
+- **No completion claim without fresh verification evidence** (Verification)
+- **No design without exploring alternatives** (Brainstorming)
+$CR_AGREEMENT
+
+## Definition of Ready
+
+A PBI is ready when:
+- Small enough for a single $SIZE_UNIT
+- Acceptance criteria written (specific, testable)
+- Design approved
+- No blockers
+- Checklist populated (if multi-step)
+
+## Definition of Done
+
+A PBI is done when:
+- Acceptance criteria met (verified, not assumed)
+- Tests pass (TDD — written before implementation)
+- Verified with evidence (fresh test output after final change)
+$CR_DOD
+- Docs updated (if user-facing changes)
+
+## Tech Stack
+
+$STACK_SECTION
+
+## Test Commands
+
+\`\`\`bash
+$TEST_CMD
+\`\`\`
+
+## Lint Commands
+
+\`\`\`bash
+$LINT_CMD
+\`\`\`
+
+## Build Commands
+
+\`\`\`bash
+$BUILD_CMD
+\`\`\`
+
+## Branching
+
+$BRANCH_SECTION$(if [[ -n "$ENTIRE_SECTION" ]]; then printf '\n\n%s' "$ENTIRE_SECTION"; fi)$(if [[ -n "$ARCH_SECTION" ]]; then printf '\n\n%s' "$ARCH_SECTION"; fi)
+
+## PBI-First Rule
+
+Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
+
+## Filesystem Backlog
+
+PBI files live in \`backlog/\` and move through folders as they progress:
+
+| Folder | Status | Contains |
+|--------|--------|----------|
+| \`backlog/\` | Backlog | Unrefined PBI files |
+| \`backlog/ready/\` | Ready | Refined + planned PBIs, queued for execution |
+| \`backlog/in_progress/\` | In Progress | PBIs currently being worked on |
+| \`backlog/done/\` | Done | Completed PBIs (archive) |
+
+**Execute ready PBIs:**
+- "Build the next ready PBI" — picks oldest from ready/, executes, archives to done/
+- "Build all ready PBIs" — processes the queue
+
+$BACKLOG_SECTION$(if [[ -n "$DEPLOY_SECTION" ]]; then printf '\n\n%s' "$DEPLOY_SECTION"; fi)
+
+## Skills
+
+The following skills are active. The agent follows them as executable processes, not guidelines.
+
+### Engineering Skills
+- \`brainstorming\` — explore alternatives before designing
+- \`tdd\` — red-green-refactor, every time
+- \`sprint-planning\` — break PBIs into executable tasks
+- \`executing-plans\` — execute plans with checkpoints
+- \`debugging\` — root cause before fix
+- \`code-review\` — two-stage review (spec compliance + quality)
+- \`requesting-code-review\` — when and how to request review
+- \`receiving-code-review\` — responding to review feedback
+- \`verification\` — evidence before claims
+- \`bdd\` — acceptance tests as executable specifications
+
+### Coordination Skills
+$COORD_SKILLS
+
+### Coaching Skills
+- \`scrum-master\` — process conscience (always active)
+- \`po-coach\` — product ownership guidance (during refinement)
+- \`facilitator\` — Scrum event facilitation
+CLAUDEMD_EOF
+
+echo -e "  ${GREEN}+${NC} CLAUDE.md"
+
+# Create symlinks for multi-platform agent support
+(cd "$PROJECT_DIR" && ln -sf CLAUDE.md AGENTS.md && ln -sf CLAUDE.md GEMINI.md)
+echo -e "  ${GREEN}+${NC} AGENTS.md → CLAUDE.md (symlink)"
+echo -e "  ${GREEN}+${NC} GEMINI.md → CLAUDE.md (symlink)"
+
+# Copy stack reference if not "other"
+if [[ "$STACK_NAME" != "other" ]]; then
+  STACK_REF="$SCRIPT_DIR/templates/stacks/$STACK_NAME.md"
+  if [[ -f "$STACK_REF" ]]; then
+    mkdir -p "$PROJECT_DIR/docs"
+    cp "$STACK_REF" "$PROJECT_DIR/docs/stack-reference.md"
+    echo -e "  ${GREEN}+${NC} docs/stack-reference.md"
+  fi
+fi
+
+# Generate MCP config for backlog tools that need it
+if [[ "$TOOL_NAME" == "claude-code" ]]; then
+  case "$BACKLOG_CHOICE" in
+    3) # Jira
+      SETTINGS_DIR="$PROJECT_DIR/.claude"
+      mkdir -p "$SETTINGS_DIR"
+      if [[ ! -f "$SETTINGS_DIR/settings.json" ]]; then
+        cat > "$SETTINGS_DIR/settings.json" << 'SETTINGS_EOF'
+{
+  "mcpServers": {
+    "jira": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-jira"],
+      "env": {
+        "JIRA_URL": "https://YOUR_ORG.atlassian.net",
+        "JIRA_API_TOKEN": "YOUR_API_TOKEN",
+        "JIRA_EMAIL": "YOUR_EMAIL"
+      }
+    }
+  }
+}
+SETTINGS_EOF
+        echo -e "  ${GREEN}+${NC} .claude/settings.json (Jira MCP — update credentials before use)"
+      else
+        echo -e "  ${YELLOW}!${NC} .claude/settings.json already exists — add Jira MCP config manually"
+      fi
+      ;;
+  esac
+fi
+
+# Copy canonical skill definitions as reference
+SKILLS_REF_DIR="$PROJECT_DIR/docs/skills"
+mkdir -p "$SKILLS_REF_DIR"
+for skill_dir in "$SCRIPT_DIR"/skills/*/; do
+  skill_name="$(basename "$skill_dir")"
+  if [[ -f "$skill_dir/SKILL.md" ]]; then
+    cp "$skill_dir/SKILL.md" "$SKILLS_REF_DIR/$skill_name.md"
+  fi
+done
+echo -e "  ${GREEN}+${NC} docs/skills/ (canonical skill definitions)"
+
+# Summary
+echo ""
+echo -e "${BOLD}Done.${NC} Project scaffolded at ${CYAN}$PROJECT_DIR${NC}"
+echo ""
+echo -e "${BOLD}What was created:${NC}"
+echo "  CLAUDE.md                  — Working agreements, DoR, DoD, skills"
+echo "  backlog/                   — Filesystem backlog (ready/, in_progress/, done/)"
+if [[ "$TOOL_NAME" == "claude-code" ]]; then
+  echo "  .claude/skills/*.md        — Claude Code skill implementations"
+fi
+if [[ "$TOOL_NAME" == "claude-code" && "$TEAM_MODE_CHOICE" == "2" ]]; then
+  echo "  .claude/agents/*.md        — Agent definitions (code reviewer, CI checker)"
+fi
+if [[ "$STACK_NAME" != "other" ]]; then
+  echo "  docs/stack-reference.md    — Stack-specific configuration guide"
+fi
+echo "  docs/skills/               — Canonical skill definitions (reference)"
+if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
+  echo "  Entire                     — Git-native audit trail (install separately)"
+fi
+if [[ "$ARCH_TYPE" == "separated" ]]; then
+  echo "  Architecture: Source and Instance — instance at $INSTANCE_LOCATION"
+fi
+if [[ "$PROJECT_TYPE" == "custom" ]]; then
+  echo "  Deploy: custom (described in CLAUDE.md)"
+elif [[ "$DEPLOY_TARGET" == "local" ]]; then
+  echo "  Deploy: local (this computer)"
+elif [[ "$DEPLOY_TARGET" == "remote" ]]; then
+  echo "  Deploy: $DEPLOY_TARGET_DESC"
+elif [[ "$DEPLOY_TARGET" == "hosted" ]]; then
+  echo "  Deploy: $DEPLOY_TARGET_DESC"
+elif [[ "$DEPLOY_TARGET" == "undecided" ]]; then
+  echo "  Deploy: not configured yet"
+fi
+echo ""
+echo -e "${BOLD}Next steps:${NC}"
+echo "  1. Review and customize CLAUDE.md for your project"
+echo "  2. Set up your test runner and linter"
+if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
+  echo "  3. Install Entire for automatic session capture (see CLAUDE.md)"
+  echo "  4. Create your first PBI"
+  echo "  5. Start building — the skills will guide the process"
+else
+  echo "  3. Create your first PBI"
+  echo "  4. Start building — the skills will guide the process"
+fi

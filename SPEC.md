@@ -7,9 +7,10 @@ Agilar's opinionated way of doing AI-augmented Agile Software Development — pr
 ## Usage
 
 ```bash
-agilar-coder install [git repository]              # Set up a new project (scaffold wizard)
+agilar-coder install [git repository]           # Set up a new project (scaffold wizard or fill-gaps)
 agilar-coder upgrade [git repository]           # Update the framework to the latest version
 agilar-coder status [git repository]            # Show installed version of the framework
+agilar-coder assess [git repository]            # Assess methodology compliance
 agilar-coder run <backlog-file> [count]         # Build PBI's from a Product Backlog in unattended mode
 agilar-coder -h | --help                        # Show help
 agilar-coder --version                          # Show version
@@ -35,18 +36,23 @@ This allows the script to be symlinked into `$PATH` (e.g., `ln -s ~/projects/agi
 
 ### `install [git repository]`
 
-Set up a new project with the Agilar AI SDLC methodology.
+Set up a new project with the Agilar AI SDLC methodology. Detects existing methodology artifacts and offers consulting mode.
 
 **Arguments:**
 - `git repository` — (Optional) Target git repository directory. Defaults to `.`
 
 **Behavior:**
 1. Changes to the target directory
-2. Runs the scaffold wizard (`scaffold` script from repo root)
-3. Scaffold handles all interactive prompts (project name, stack, team mode, etc.)
-4. After scaffold completes, writes `VERSION` to `.agilar-coder.version`
+2. Checks for existing methodology signals (CLAUDE.md, .claude/skills/, Makefile, docs/, etc.)
+3. If no signals found → **greenfield mode**: runs scaffold wizard directly
+4. If signals found → **consulting mode**:
+   a. Runs `assess` to show current compliance
+   b. Offers three choices: fill gaps only, full install, or abort
+   c. Fill-gaps mode: installs missing skills, creates AGENTS.md/GEMINI.md symlinks, backlog structure, docs/skills/, and .agilar-coder.version — without touching existing files
+   d. Full install: runs scaffold wizard as before (may overwrite)
+5. Writes `VERSION` to `.agilar-coder.version`
 
-**Output:** Scaffold output + version confirmation
+**Output:** Assessment report (consulting mode) or scaffold output (greenfield) + version confirmation
 
 **Exit code:** `0` on success, `1` if scaffold not found or directory not found
 
@@ -109,6 +115,54 @@ Update the framework to the latest version.
 **Output:** List of added/updated/removed skills + version change summary
 
 **Exit code:** `0` on success, `1` if not initialized
+
+### `assess [git repository]`
+
+Assess project methodology compliance against Agilar AI SDLC standards.
+
+**Arguments:**
+- `git repository` — (Optional) Target git repository directory. Defaults to `.`
+
+**Behavior:**
+1. Changes to the target directory
+2. Evaluates 8 methodology dimensions via file-existence checks and content grep
+3. Prints color-coded compliance report with progress bars
+4. Lists actionable recommendations for gaps
+
+**Assessment Dimensions:**
+
+| # | Dimension | What is checked | Scoring |
+|---|-----------|----------------|---------|
+| 1 | Agent Guidance | CLAUDE.md, AGENTS.md, GEMINI.md | 0-3 points |
+| 2 | Working Agreements | TDD, code review, verification, debugging, brainstorming (grep in CLAUDE.md, docs/, skills/) | 0-5 points |
+| 3 | Quality Gates | Test command, lint config, CI config, pre-commit hook | 0-4 points |
+| 4 | Skills Library | Count of `.claude/skills/*.md` vs 17 available | ratio (0-17) |
+| 5 | Documentation | README, DEVOPS.md/equivalent, stack reference | 0-3 points |
+| 6 | CI/CD Pipeline | GitHub Actions, GitLab CI, Jenkins, CircleCI, Bitbucket | 0-1 (present/absent) |
+| 7 | Backlog Management | backlog/ dir, backlog.yaml/md, GitHub Issues template | 0-1 (present/absent) |
+| 8 | Framework Tracking | .agilar-coder.version exists and is current | 0-2 points |
+
+**Color coding:** Green (80-100%), Yellow (40-79%), Red (0-39%)
+
+**Output:**
+
+```
+agilar-coder assess
+═══════════════════
+Project: my-project
+
+  Agent Guidance       ██████░░░░ 67%   CLAUDE.md ✓  AGENTS.md ✓  GEMINI.md ✗
+  Working Agreements   ██████████100%   TDD ✓  Review ✓  Verification ✓  Debug ✓  Brainstorm ✓
+  ...
+
+  Overall: 52% Agilar-compliant
+
+Recommendations:
+  1. Install 15 missing skills               agilar-coder install
+  ...
+```
+
+**Exit code:** `0` (informational command, always succeeds)
 
 ### `run <backlog-file> [count]`
 
@@ -475,9 +529,18 @@ Before running, the script validates that the working directory has sufficient c
 
 If no context is found, the script exits with code 5.
 
+## Claude Code Prerequisite
+
+Before running any operational subcommand (`install`, `upgrade`, `status`, `assess`, `run`), the script checks that:
+
+1. `claude` is in PATH (`command -v claude`)
+2. `claude --version` succeeds (proves it's executable)
+
+If either check fails, the script prints install instructions and exits with code 1. This check is skipped for `--help` and `--version`.
+
 ## Assumptions
 
 - The Product Backlog format is defined by the user (Claude interprets it)
-- Claude Code is installed and available in PATH as `claude`
+- Claude Code is installed and available in PATH as `claude` (enforced by prerequisite check)
 - User has appropriate permissions in the working directory
 - The backlog file uses some consistent convention for marking PBIs as DONE (Claude will follow whatever pattern exists or establish one)

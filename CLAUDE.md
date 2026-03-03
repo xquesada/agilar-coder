@@ -37,9 +37,10 @@ agilar-coder/
 Single entry point for the Agilar AI SDLC: project setup, skill management, and unattended PBI processing.
 
 ```bash
-./agilar-coder install [git repository]       # Set up a new project (scaffold wizard)
+./agilar-coder install [git repository]       # Set up a new project (smart install)
 ./agilar-coder upgrade [git repository]      # Update the framework to the latest version
 ./agilar-coder status [git repository]       # Show installed version of the framework
+./agilar-coder assess [git repository]       # Assess methodology compliance (8 dimensions)
 ./agilar-coder run backlog.md                # Build all PBIs until done
 ./agilar-coder run backlog.md 3              # Build exactly 3 PBIs
 ./agilar-coder run --debug backlog.md        # Show command without executing
@@ -57,12 +58,19 @@ The script resolves its repo root from `$0` (follows symlinks), verifying `skill
 
 ### Architecture
 
-Single bash script, 14 functions:
+Single bash script, ~26 functions:
 
 - `resolve_repo_root()` — self-locate the agilar-coder repo via `$0` or env var
-- `cmd_install()` — run scaffold wizard, write `.agilar-coder.version`
+- `check_claude_cli()` — verify Claude Code CLI is installed and functional
+- `cmd_install()` — smart install: detect existing methodology, offer fill-gaps or full scaffold
 - `cmd_status()` — show installed/available version, compare skill inventories
 - `cmd_upgrade()` — update skills, detect removals, bump version marker
+- `cmd_assess()` — assess methodology compliance across 8 dimensions
+- `assess_*()` — 8 dimension-specific assessment functions (agent guidance, working agreements, quality gates, skills library, documentation, CI/CD, backlog, framework tracking)
+- `progress_bar()` / `score_color()` / `print_dimension()` — assessment output formatting
+- `fill_gaps()` — install missing methodology artifacts without touching existing files
+- `has_methodology_signals()` — detect existing methodology for smart install
+- `run_full_scaffold()` — run the scaffold wizard (extracted from old cmd_install)
 - `load_config()` / `create_default_config()` — manage `~/.agilar-coder/config.conf`
 - `validate_project_context()` — ensure working directory has code/CLAUDE.md
 - `build_prompt()` — assemble fixed prompt + user prompt + backlog path

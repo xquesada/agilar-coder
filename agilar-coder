@@ -89,13 +89,523 @@ resolve_repo_root() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Prerequisite check
+# ─────────────────────────────────────────────────────────────────────────────
+
+check_claude_cli() {
+    if ! command -v claude &>/dev/null; then
+        echo -e "${RED}Error: Claude Code CLI not found in PATH${NC}"
+        echo ""
+        echo "  agilar-coder requires Claude Code to be installed and configured."
+        echo "  Install: https://docs.anthropic.com/en/docs/claude-code"
+        exit 1
+    fi
+
+    if ! claude --version &>/dev/null; then
+        echo -e "${RED}Error: Claude Code CLI found but not responding${NC}"
+        echo "  'claude --version' failed. Check your installation."
+        exit 1
+    fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Assessment helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Print a 10-char progress bar
+progress_bar() {
+    local pct="$1"
+    local filled=$(( pct / 10 ))
+    local empty=$(( 10 - filled ))
+    local bar=""
+    for ((i=0; i<filled; i++)); do bar+="█"; done
+    for ((i=0; i<empty; i++)); do bar+="░"; done
+    echo "$bar"
+}
+
+# Return color code based on percentage
+score_color() {
+    local pct="$1"
+    if [[ $pct -ge 80 ]]; then echo -n "$GREEN"
+    elif [[ $pct -ge 40 ]]; then echo -n "$YELLOW"
+    else echo -n "$RED"
+    fi
+}
+
+# Global arrays used by assess functions (set in cmd_assess)
+# ASSESS_TOTAL_SCORE, ASSESS_TOTAL_MAX, ASSESS_RECOMMENDATIONS
+
+# Print a dimension line: "  Name           ████░░░░░░  67%   details"
+print_dimension() {
+    local name="$1"
+    local pct="$2"
+    local details="$3"
+    local bar
+    bar="$(progress_bar "$pct")"
+    local color
+    color="$(score_color "$pct")"
+    printf "  %-20s %s${color}%3d%%${NC}   %s\n" "$name" "$bar" "$pct" "$details"
+}
+
+assess_agent_guidance() {
+    local score=0
+    local max=3
+    local details=""
+
+    if [[ -f CLAUDE.md ]]; then
+        details+="CLAUDE.md ✓  "
+        ((score++))
+    else
+        details+="CLAUDE.md ✗  "
+    fi
+
+    if [[ -f AGENTS.md || -L AGENTS.md ]]; then
+        details+="AGENTS.md ✓  "
+        ((score++))
+    else
+        details+="AGENTS.md ✗  "
+    fi
+
+    if [[ -f GEMINI.md || -L GEMINI.md ]]; then
+        details+="GEMINI.md ✓"
+        ((score++))
+    else
+        details+="GEMINI.md ✗"
+    fi
+
+    local pct=$(( score * 100 / max ))
+    print_dimension "Agent Guidance" "$pct" "$details"
+
+    ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + score ))
+    ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + max ))
+
+    if [[ ! -f CLAUDE.md ]]; then
+        ASSESS_RECOMMENDATIONS+=("Create CLAUDE.md                      project context for AI agents")
+    fi
+    if [[ ! -f AGENTS.md && ! -L AGENTS.md && -f CLAUDE.md ]]; then
+        ASSESS_RECOMMENDATIONS+=("Add AGENTS.md                         symlink to CLAUDE.md for multi-platform agents")
+    fi
+    if [[ ! -f GEMINI.md && ! -L GEMINI.md && -f CLAUDE.md ]]; then
+        ASSESS_RECOMMENDATIONS+=("Add GEMINI.md                         symlink to CLAUDE.md for multi-platform agents")
+    fi
+}
+
+assess_working_agreements() {
+    local score=0
+    local max=5
+    local details=""
+
+    # Build a search corpus from CLAUDE.md + docs/
+    local corpus=""
+    [[ -f CLAUDE.md ]] && corpus="$(cat CLAUDE.md)"
+    if [[ -d docs ]]; then
+        # Append text from docs/ md files (limit to avoid huge corpora)
+        local doc_text
+        doc_text="$(find docs -name '*.md' -maxdepth 3 -print0 2>/dev/null | xargs -0 head -q -n 200 2>/dev/null || true)"
+        corpus="$corpus $doc_text"
+    fi
+    # Also check .claude/skills/ for skill names
+    local skills_list=""
+    if [[ -d .claude/skills ]]; then
+        skills_list="$(ls .claude/skills/ 2>/dev/null)"
+    fi
+
+    # TDD
+    if grep -qiE 'tdd|test.driven|write tests first' <<< "$corpus" 2>/dev/null || grep -q 'tdd' <<< "$skills_list" 2>/dev/null; then
+        details+="TDD ✓  "
+        ((score++))
+    else
+        details+="TDD ✗  "
+    fi
+
+    # Code review
+    if grep -qiE 'code.review|review' <<< "$corpus" 2>/dev/null || grep -q 'code-review' <<< "$skills_list" 2>/dev/null; then
+        details+="Review ✓  "
+        ((score++))
+    else
+        details+="Review ✗  "
+    fi
+
+    # Verification
+    if grep -qiE 'verification|verify|evidence' <<< "$corpus" 2>/dev/null || grep -q 'verification' <<< "$skills_list" 2>/dev/null; then
+        details+="Verification ✓  "
+        ((score++))
+    else
+        details+="Verification ✗  "
+    fi
+
+    # Debugging
+    if grep -qiE 'debugging|root.cause' <<< "$corpus" 2>/dev/null || grep -q 'debugging' <<< "$skills_list" 2>/dev/null; then
+        details+="Debug ✓  "
+        ((score++))
+    else
+        details+="Debug ✗  "
+    fi
+
+    # Brainstorming
+    if grep -qiE 'brainstorm|alternatives' <<< "$corpus" 2>/dev/null || grep -q 'brainstorming' <<< "$skills_list" 2>/dev/null; then
+        details+="Brainstorm ✓"
+        ((score++))
+    else
+        details+="Brainstorm ✗"
+    fi
+
+    local pct=$(( score * 100 / max ))
+    print_dimension "Working Agreements" "$pct" "$details"
+
+    ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + score ))
+    ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + max ))
+
+    if [[ $score -lt $max ]]; then
+        ASSESS_RECOMMENDATIONS+=("Strengthen working agreements          document TDD, review, verification, debugging, brainstorming in CLAUDE.md")
+    fi
+}
+
+assess_quality_gates() {
+    local score=0
+    local max=4
+    local details=""
+
+    # Test command
+    if [[ -f Makefile ]] && grep -q 'test' Makefile 2>/dev/null; then
+        details+="Tests ✓  "
+        ((score++))
+    elif [[ -f package.json ]] && grep -q '"test"' package.json 2>/dev/null; then
+        details+="Tests ✓  "
+        ((score++))
+    elif [[ -f CLAUDE.md ]] && grep -qiE 'test command|run tests|npm test|go test|pytest|cargo test' CLAUDE.md 2>/dev/null; then
+        details+="Tests ✓  "
+        ((score++))
+    else
+        details+="Tests ✗  "
+    fi
+
+    # Lint command
+    if compgen -G ".eslintrc*" > /dev/null 2>&1 || \
+       compgen -G "eslint.config*" > /dev/null 2>&1 || \
+       [[ -f .golangci.yml || -f .golangci.yaml ]] || \
+       [[ -f .pylintrc || -f pyproject.toml ]] && grep -q 'ruff\|pylint\|flake8' pyproject.toml 2>/dev/null || \
+       [[ -f .rubocop.yml ]]; then
+        details+="Lint ✓  "
+        ((score++))
+    else
+        details+="Lint ✗  "
+    fi
+
+    # CI config
+    if compgen -G ".github/workflows/*.yml" > /dev/null 2>&1 || \
+       compgen -G ".github/workflows/*.yaml" > /dev/null 2>&1 || \
+       [[ -f .gitlab-ci.yml ]] || \
+       [[ -f Jenkinsfile ]] || \
+       [[ -d .circleci ]] || \
+       [[ -f bitbucket-pipelines.yml ]]; then
+        details+="CI ✓  "
+        ((score++))
+    else
+        details+="CI ✗  "
+    fi
+
+    # Pre-commit hook
+    if [[ -d .husky ]] || \
+       [[ -f .pre-commit-config.yaml ]] || \
+       [[ -f .git/hooks/pre-commit && -x .git/hooks/pre-commit ]]; then
+        details+="Pre-commit ✓"
+        ((score++))
+    else
+        details+="Pre-commit ✗"
+    fi
+
+    local pct=$(( score * 100 / max ))
+    print_dimension "Quality Gates" "$pct" "$details"
+
+    ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + score ))
+    ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + max ))
+
+    if [[ $score -lt $max ]]; then
+        ASSESS_RECOMMENDATIONS+=("Add missing quality gates              tests, linting, CI, pre-commit hooks")
+    fi
+}
+
+assess_skills_library() {
+    local repo_root="$1"
+    local installed=0
+    local available=0
+
+    # Count available skills from agilar-coder repo
+    for skill_file in "$repo_root"/implementations/claude-code/*.md; do
+        [[ -f "$skill_file" ]] || continue
+        ((available++))
+    done
+
+    # Count installed skills
+    if [[ -d .claude/skills ]]; then
+        for skill_file in .claude/skills/*.md; do
+            [[ -f "$skill_file" ]] || continue
+            ((installed++))
+        done
+    fi
+
+    local pct=0
+    if [[ $available -gt 0 ]]; then
+        pct=$(( installed * 100 / available ))
+    fi
+
+    print_dimension "Skills Library" "$pct" "$installed of $available skills"
+
+    # For scoring: use the ratio as a proportion of 10 points
+    # This gives skills appropriate weight in the overall score
+    ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + installed ))
+    ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + available ))
+
+    local missing=$(( available - installed ))
+    if [[ $missing -gt 0 ]]; then
+        ASSESS_RECOMMENDATIONS+=("Install $missing missing skills               agilar-coder install")
+    fi
+}
+
+assess_documentation() {
+    local score=0
+    local max=3
+    local details=""
+
+    # README
+    if [[ -f README.md || -f readme.md || -f README ]]; then
+        details+="README ✓  "
+        ((score++))
+    else
+        details+="README ✗  "
+    fi
+
+    # DEVOPS.md or equivalent
+    if [[ -f DEVOPS.md ]] || \
+       [[ -f docs/deployment.md || -f docs/DEPLOYMENT.md ]] || \
+       [[ -f docs/ops/README.md ]] || \
+       [[ -f CONTRIBUTING.md ]]; then
+        details+="DEVOPS ✓  "
+        ((score++))
+    else
+        details+="DEVOPS ✗  "
+    fi
+
+    # Stack reference
+    if [[ -f TOOLCHAIN.md ]] || \
+       [[ -f docs/stack-reference.md || -f docs/STACK.md ]] || \
+       ( [[ -f CLAUDE.md ]] && grep -qiE 'tech.stack|toolchain|stack' CLAUDE.md 2>/dev/null ); then
+        details+="Stack ref ✓"
+        ((score++))
+    else
+        details+="Stack ref ✗"
+    fi
+
+    local pct=$(( score * 100 / max ))
+    print_dimension "Documentation" "$pct" "$details"
+
+    ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + score ))
+    ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + max ))
+
+    if [[ ! -f DEVOPS.md && ! -f docs/deployment.md ]]; then
+        ASSESS_RECOMMENDATIONS+=("Create DEVOPS.md                      document branching, environments, quality gates")
+    fi
+    if [[ ! -f TOOLCHAIN.md && ! -f docs/stack-reference.md ]]; then
+        if [[ ! -f CLAUDE.md ]] || ! grep -qiE 'tech.stack|toolchain|stack' CLAUDE.md 2>/dev/null; then
+            ASSESS_RECOMMENDATIONS+=("Add stack reference                    TOOLCHAIN.md or tech stack section in CLAUDE.md")
+        fi
+    fi
+}
+
+assess_ci_pipeline() {
+    local score=0
+    local max=1
+    local details=""
+
+    if compgen -G ".github/workflows/*.yml" > /dev/null 2>&1 || \
+       compgen -G ".github/workflows/*.yaml" > /dev/null 2>&1; then
+        details="GitHub Actions ✓"
+        score=1
+    elif [[ -f .gitlab-ci.yml ]]; then
+        details="GitLab CI ✓"
+        score=1
+    elif [[ -f Jenkinsfile ]]; then
+        details="Jenkins ✓"
+        score=1
+    elif [[ -d .circleci ]]; then
+        details="CircleCI ✓"
+        score=1
+    elif [[ -f bitbucket-pipelines.yml ]]; then
+        details="Bitbucket Pipelines ✓"
+        score=1
+    else
+        details="No CI/CD pipeline found"
+    fi
+
+    local pct=$(( score * 100 / max ))
+    print_dimension "CI/CD Pipeline" "$pct" "$details"
+
+    ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + score ))
+    ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + max ))
+
+    if [[ $score -eq 0 ]]; then
+        ASSESS_RECOMMENDATIONS+=("Set up CI/CD pipeline                 .github/workflows/, .gitlab-ci.yml, or equivalent")
+    fi
+}
+
+assess_backlog() {
+    local score=0
+    local max=1
+    local details=""
+
+    if [[ -d backlog ]] || \
+       [[ -f backlog.yaml || -f backlog.yml || -f backlog.md || -f BACKLOG.md ]] || \
+       [[ -d .jira ]] || \
+       [[ -d .github/ISSUE_TEMPLATE ]]; then
+        score=1
+        if [[ -d backlog ]]; then details="backlog/ ✓"
+        elif [[ -f backlog.yaml || -f backlog.yml ]]; then details="backlog.yaml ✓"
+        elif [[ -f backlog.md || -f BACKLOG.md ]]; then details="backlog.md ✓"
+        elif [[ -d .github/ISSUE_TEMPLATE ]]; then details="GitHub Issues ✓"
+        else details="Jira config ✓"
+        fi
+    else
+        details="No backlog structure found"
+    fi
+
+    local pct=$(( score * 100 / max ))
+    print_dimension "Backlog" "$pct" "$details"
+
+    ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + score ))
+    ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + max ))
+
+    if [[ $score -eq 0 ]]; then
+        ASSESS_RECOMMENDATIONS+=("Set up backlog structure               agilar-coder install (creates backlog/)")
+    fi
+}
+
+assess_framework_tracking() {
+    local repo_root="$1"
+    local score=0
+    local max=2
+    local details=""
+
+    if [[ -f .agilar-coder.version ]]; then
+        local installed_version
+        installed_version="$(cat .agilar-coder.version)"
+        local current_version
+        current_version="$(cat "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
+        details+=".agilar-coder.version ✓"
+        ((score++))
+        if [[ "$installed_version" == "$current_version" ]]; then
+            details+=" (current)"
+            ((score++))
+        else
+            details+=" (outdated: $installed_version → $current_version)"
+        fi
+    else
+        details="Not tracked by agilar-coder"
+    fi
+
+    local pct=$(( score * 100 / max ))
+    print_dimension "Framework Tracking" "$pct" "$details"
+
+    ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + score ))
+    ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + max ))
+
+    if [[ ! -f .agilar-coder.version ]]; then
+        ASSESS_RECOMMENDATIONS+=("Track with agilar-coder               agilar-coder install (creates .agilar-coder.version)")
+    elif [[ $score -eq 1 ]]; then
+        ASSESS_RECOMMENDATIONS+=("Upgrade agilar-coder                  agilar-coder upgrade")
+    fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Subcommands
 # ─────────────────────────────────────────────────────────────────────────────
+
+fill_gaps() {
+    local repo_root="$1"
+
+    echo ""
+    echo "Filling methodology gaps..."
+    echo ""
+
+    # Skills: install only missing ones
+    local added=0
+    mkdir -p .claude/skills
+    for skill_file in "$repo_root"/implementations/claude-code/*.md; do
+        [[ -f "$skill_file" ]] || continue
+        local skill_name
+        skill_name="$(basename "$skill_file")"
+        if [[ ! -f ".claude/skills/$skill_name" ]]; then
+            cp "$skill_file" ".claude/skills/$skill_name"
+            echo "  Added skill: $skill_name"
+            ((added++))
+        fi
+    done
+    [[ $added -eq 0 ]] && echo "  Skills: all present"
+
+    # AGENTS.md / GEMINI.md symlinks if missing
+    if [[ -f CLAUDE.md && ! -f AGENTS.md && ! -L AGENTS.md ]]; then
+        ln -s CLAUDE.md AGENTS.md
+        echo "  Created: AGENTS.md → CLAUDE.md"
+    fi
+    if [[ -f CLAUDE.md && ! -f GEMINI.md && ! -L GEMINI.md ]]; then
+        ln -s CLAUDE.md GEMINI.md
+        echo "  Created: GEMINI.md → CLAUDE.md"
+    fi
+
+    # Backlog structure if missing
+    if [[ ! -d backlog ]] && \
+       [[ ! -f backlog.yaml && ! -f backlog.yml && ! -f backlog.md && ! -f BACKLOG.md ]] && \
+       [[ ! -d .github/ISSUE_TEMPLATE ]]; then
+        mkdir -p backlog/ready backlog/in_progress backlog/done
+        touch backlog/ready/.gitkeep backlog/in_progress/.gitkeep backlog/done/.gitkeep
+        echo "  Created: backlog/ directory structure"
+    fi
+
+    # Canonical skill docs if docs/skills/ doesn't exist
+    if [[ ! -d docs/skills ]]; then
+        mkdir -p docs/skills
+        local docs_added=0
+        for skill_dir in "$repo_root"/skills/*/; do
+            [[ -d "$skill_dir" ]] || continue
+            local sname
+            sname="$(basename "$skill_dir")"
+            if [[ -f "$skill_dir/SKILL.md" ]]; then
+                cp "$skill_dir/SKILL.md" "docs/skills/$sname.md"
+                ((docs_added++))
+            fi
+        done
+        if [[ $docs_added -gt 0 ]]; then
+            echo "  Created: docs/skills/ ($docs_added canonical references)"
+        fi
+    fi
+
+    # Version tracking
+    echo "$VERSION" > .agilar-coder.version
+    echo "  Created: .agilar-coder.version ($VERSION)"
+
+    echo ""
+    echo "Done. Run 'agilar-coder assess' to see updated compliance."
+}
+
+has_methodology_signals() {
+    # Returns 0 (true) if the project has any methodology artifacts
+    [[ -f CLAUDE.md ]] && return 0
+    [[ -f AGENTS.md || -L AGENTS.md ]] && return 0
+    [[ -d .claude/skills ]] && return 0
+    compgen -G ".github/workflows/*.yml" > /dev/null 2>&1 && return 0
+    compgen -G ".github/workflows/*.yaml" > /dev/null 2>&1 && return 0
+    [[ -f Makefile ]] && return 0
+    [[ -d docs ]] && return 0
+    [[ -f DEVOPS.md ]] && return 0
+    [[ -d backlog ]] && return 0
+    [[ -f .cursorrules ]] && return 0
+    return 1
+}
 
 cmd_install() {
     local repo_root="$1"
 
-    # Run the scaffold wizard from the repo
+    # Verify scaffold exists
     if [[ ! -x "$repo_root/scaffold" ]]; then
         echo "Error: scaffold not found at $repo_root/scaffold"
         exit 1
@@ -103,6 +613,39 @@ cmd_install() {
 
     echo "agilar-coder v$VERSION — Project Setup"
     echo ""
+
+    # Smart install: detect existing methodology
+    if has_methodology_signals; then
+        # Consulting mode: assess first, then offer choices
+        cmd_assess "$repo_root"
+        echo ""
+        echo "This project already has methodology artifacts."
+        echo "  [1] Fill gaps only (add what's missing, don't touch what exists)"
+        echo "  [2] Full install (scaffold wizard — may overwrite existing files)"
+        echo "  [3] Abort"
+        echo ""
+        read -rp "Choice [1/2/3]: " choice
+        case "$choice" in
+            1)
+                fill_gaps "$repo_root"
+                ;;
+            2)
+                echo ""
+                run_full_scaffold "$repo_root"
+                ;;
+            3|*)
+                echo "Aborted."
+                exit 0
+                ;;
+        esac
+    else
+        # Greenfield: run scaffold wizard directly
+        run_full_scaffold "$repo_root"
+    fi
+}
+
+run_full_scaffold() {
+    local repo_root="$1"
 
     # Check for existing skills with different content
     if [[ -d .claude/skills ]]; then
@@ -334,6 +877,56 @@ cmd_upgrade() {
     echo "Done."
 }
 
+cmd_assess() {
+    local repo_root="$1"
+    local project_name
+    project_name="$(basename "$(pwd)")"
+
+    # Try to get project name from package.json
+    if [[ -f package.json ]]; then
+        local pkg_name
+        pkg_name="$(grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' package.json 2>/dev/null | head -1 | sed 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')"
+        [[ -n "$pkg_name" ]] && project_name="$pkg_name"
+    fi
+
+    echo "agilar-coder assess"
+    echo "═══════════════════"
+    echo "Project: $project_name"
+    echo ""
+
+    ASSESS_TOTAL_SCORE=0
+    ASSESS_TOTAL_MAX=0
+    ASSESS_RECOMMENDATIONS=()
+
+    assess_agent_guidance
+    assess_working_agreements
+    assess_quality_gates
+    assess_skills_library "$repo_root"
+    assess_documentation
+    assess_ci_pipeline
+    assess_backlog
+    assess_framework_tracking "$repo_root"
+
+    echo ""
+    local overall_pct=0
+    if [[ $ASSESS_TOTAL_MAX -gt 0 ]]; then
+        overall_pct=$(( ASSESS_TOTAL_SCORE * 100 / ASSESS_TOTAL_MAX ))
+    fi
+    local overall_color
+    overall_color="$(score_color "$overall_pct")"
+    echo -e "  Overall: ${overall_color}${overall_pct}% Agilar-compliant${NC}"
+
+    if [[ ${#ASSESS_RECOMMENDATIONS[@]} -gt 0 ]]; then
+        echo ""
+        echo "Recommendations:"
+        local i=1
+        for rec in "${ASSESS_RECOMMENDATIONS[@]}"; do
+            echo "  $i. $rec"
+            ((i++))
+        done
+    fi
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Functions
 # ─────────────────────────────────────────────────────────────────────────────
@@ -346,6 +939,7 @@ USAGE:
     agilar-coder install [repo]                Set up a new project (scaffold wizard)
     agilar-coder upgrade [repo]                Update the framework to the latest version
     agilar-coder status [repo]                 Show installed version of the framework
+    agilar-coder assess [repo]                 Assess methodology compliance
     agilar-coder run <backlog-file> [count]    Build PBI's from a Product Backlog in unattended mode
     agilar-coder -h | --help                   Show this help message
     agilar-coder --version                     Show version
@@ -355,11 +949,13 @@ OPTIONS (run mode):
     -v, --verbose   Enable verbose output
 
 SUBCOMMANDS:
-    install [git repository]  Run the scaffold wizard to set up methodology, skills,
-                              and CLAUDE.md. Defaults to current directory.
+    install [git repository]  Set up a new project. Detects existing methodology and
+                              offers fill-gaps mode or full scaffold wizard.
     upgrade [git repository]  Update the framework to the latest version.
                               Shows what changed and handles removed/renamed skills.
-    status [git repository]   Show installed version of the framework and skill inventory
+    status  [git repository]  Show installed version of the framework and skill inventory
+    assess  [git repository]  Assess project methodology against Agilar standards.
+                              Scores 8 dimensions with recommendations.
     run                       Build PBI's from a Product Backlog in unattended mode
 
 CONFIGURATION:
@@ -585,9 +1181,16 @@ main() {
     REPO_ROOT="$(resolve_repo_root)"
     VERSION="$(cat "$REPO_ROOT/VERSION" 2>/dev/null || echo "dev")"
 
+    # Check Claude CLI for operational subcommands
+    case "${1:-}" in
+        install|init|upgrade|status|assess|run)
+            check_claude_cli
+            ;;
+    esac
+
     # Handle subcommands and global flags
     case "${1:-}" in
-        install|init|upgrade|status)
+        install|init|upgrade|status|assess)
             local subcmd="$1"
             # init is an undocumented synonym for install
             [[ "$subcmd" == "init" ]] && subcmd="install"

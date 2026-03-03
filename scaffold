@@ -311,7 +311,7 @@ if [[ "$TEAM_MODE_CHOICE" == "3" ]]; then
   CODE_REVIEW="yes"
 else
   echo -e "${BOLD}Code review:${NC}"
-  echo "  If you're a non-technical PO, leave this disabled (TDD + verification still active)."
+  echo "  If you're a non-technical person, leave this disabled (TDD + verification still active)."
   echo "  If you can read and review code, enable it for an extra quality gate."
   read -rp "Enable code review? [y/N]: " CODE_REVIEW_CHOICE
   CODE_REVIEW_CHOICE="${CODE_REVIEW_CHOICE:-N}"

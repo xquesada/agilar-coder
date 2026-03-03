@@ -892,5 +892,10 @@ fi
 echo ""
 echo -e "${BOLD}Done.${NC} Your project is ready."
 echo ""
-echo "  Start your AI coding tool and describe what you want to build."
-echo "  The methodology will guide the process from here."
+if [[ -n "$DETECTED_STACK" ]]; then
+  echo "  The Agilar methodology is now active. Start your AI coding tool"
+  echo "  and continue where you left off — the skills will guide the process."
+else
+  echo "  Start your AI coding tool and describe what you want to build."
+  echo "  The methodology will guide the process from here."
+fi

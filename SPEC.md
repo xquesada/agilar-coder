@@ -7,12 +7,12 @@ Agilar's opinionated way of doing AI-augmented Agile Software Development — pr
 ## Usage
 
 ```bash
-agilar-coder init [directory]              # Set up a new project (scaffold wizard)
-agilar-coder upgrade [directory]           # Update skills and docs to latest version
-agilar-coder status [directory]            # Show installed version and skill status
-agilar-coder run <backlog-file> [count]    # Process PBIs from a backlog
-agilar-coder -h | --help                   # Show help
-agilar-coder --version                     # Show version
+agilar-coder init [git repository]              # Set up a new project (scaffold wizard)
+agilar-coder upgrade [git repository]           # Update the framework to the latest version
+agilar-coder status [git repository]            # Show installed version of the framework
+agilar-coder run <backlog-file> [count]         # Build PBI's from a Product Backlog in unattended mode
+agilar-coder -h | --help                        # Show help
+agilar-coder --version                          # Show version
 ```
 
 ## Self-Location
@@ -33,12 +33,12 @@ This allows the script to be symlinked into `$PATH` (e.g., `ln -s ~/projects/agi
 
 ## Subcommands
 
-### `init [directory]`
+### `init [git repository]`
 
 Set up a new project with the Agilar AI SDLC methodology.
 
 **Arguments:**
-- `directory` — (Optional) Target project directory. Defaults to `.`
+- `git repository` — (Optional) Target git repository directory. Defaults to `.`
 
 **Behavior:**
 1. Changes to the target directory
@@ -50,12 +50,12 @@ Set up a new project with the Agilar AI SDLC methodology.
 
 **Exit code:** `0` on success, `1` if scaffold not found or directory not found
 
-### `status [directory]`
+### `status [git repository]`
 
-Show installed vs available version and skill inventory.
+Show installed version of the framework and skill inventory.
 
 **Arguments:**
-- `directory` — (Optional) Target project directory. Defaults to `.`
+- `git repository` — (Optional) Target git repository directory. Defaults to `.`
 
 **Behavior:**
 1. Changes to the target directory
@@ -90,12 +90,12 @@ agilar-coder status
 
 **Exit code:** `0`
 
-### `upgrade [directory]`
+### `upgrade [git repository]`
 
-Update installed skills and docs to the latest version.
+Update the framework to the latest version.
 
 **Arguments:**
-- `directory` — (Optional) Target project directory. Defaults to `.`
+- `git repository` — (Optional) Target git repository directory. Defaults to `.`
 
 **Behavior:**
 1. Changes to the target directory
@@ -112,7 +112,7 @@ Update installed skills and docs to the latest version.
 
 ### `run <backlog-file> [count]`
 
-Process PBIs from a backlog file. This is the explicit form of the default behavior.
+Build PBI's from a Product Backlog in unattended mode.
 
 **Arguments:**
 - `backlog-file` — Path to markdown file containing the Product Backlog

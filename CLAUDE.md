@@ -37,11 +37,11 @@ agilar-coder/
 Single entry point for the Agilar AI SDLC: project setup, skill management, and unattended PBI processing.
 
 ```bash
-./agilar-coder init [directory]              # Set up a new project (scaffold wizard)
-./agilar-coder upgrade [directory]           # Update skills and docs to latest version
-./agilar-coder status [directory]            # Show installed version and skill status
-./agilar-coder run backlog.md                # Process all PBIs until done
-./agilar-coder run backlog.md 3              # Process exactly 3 PBIs
+./agilar-coder init [git repository]         # Set up a new project (scaffold wizard)
+./agilar-coder upgrade [git repository]      # Update the framework to the latest version
+./agilar-coder status [git repository]       # Show installed version of the framework
+./agilar-coder run backlog.md                # Build all PBIs until done
+./agilar-coder run backlog.md 3              # Build exactly 3 PBIs
 ./agilar-coder run --debug backlog.md        # Show command without executing
 ./agilar-coder --version                     # Show version
 ```

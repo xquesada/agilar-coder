@@ -294,24 +294,24 @@ show_help() {
 agilar-coder - Agilar's opinionated way of doing AI-augmented Agile Software Development
 
 USAGE:
-    agilar-coder init [directory]              Set up a new project (scaffold wizard)
-    agilar-coder upgrade [directory]           Update skills and docs to latest version
-    agilar-coder status [directory]            Show installed version and skill status
-    agilar-coder run <backlog-file> [count]    Process PBIs from a backlog
-    agilar-coder -h | --help                   Show this help message
-    agilar-coder --version                     Show version
+    agilar-coder init [git repository]              Set up a new project (scaffold wizard)
+    agilar-coder upgrade [git repository]           Update the framework to the latest version
+    agilar-coder status [git repository]            Show installed version of the framework
+    agilar-coder run <backlog-file> [count]         Build PBI's from a Product Backlog in unattended mode
+    agilar-coder -h | --help                        Show this help message
+    agilar-coder --version                          Show version
 
 OPTIONS (run mode):
     --debug         Show full command without executing
     -v, --verbose   Enable verbose output
 
 SUBCOMMANDS:
-    init [dir]      Run the scaffold wizard to set up methodology, skills,
+    init [repo]     Run the scaffold wizard to set up methodology, skills,
                     and CLAUDE.md. Defaults to current directory.
-    upgrade [dir]   Update installed skills to the latest version.
+    upgrade [repo]  Update the framework to the latest version.
                     Shows what changed and handles removed/renamed skills.
-    status [dir]    Show installed vs available version and skill inventory
-    run             Process PBIs from a backlog file one at a time
+    status [repo]   Show installed version of the framework and skill inventory
+    run             Build PBI's from a Product Backlog in unattended mode
 
 CONFIGURATION:
     ~/.agilar-coder/config.conf    Runtime config (model, max turns, user prompt)

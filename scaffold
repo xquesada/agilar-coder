@@ -483,10 +483,23 @@ else
   esac
 fi
 
-# --- Step 8: Audit trail ---
+# --- Audit trail ---
+
+# Default depends on team mode: Y for teams, N for solo
+if [[ "$TEAM_MODE_CHOICE" == "2" || "$TEAM_MODE_CHOICE" == "3" ]]; then
+  ENTIRE_DEFAULT="Y"
+  ENTIRE_PROMPT="Enable Entire? [Y/n]: "
+else
+  ENTIRE_DEFAULT="N"
+  ENTIRE_PROMPT="Enable Entire? [y/N]: "
+fi
 
 echo ""
-if [[ -n "$DETECTED_ENTIRE" ]]; then
+if [[ -n "$DETECTED_STACK" && -n "$DETECTED_ENTIRE" ]]; then
+  # Existing project with Entire already active — skip silently
+  echo -e "${DIM}Audit trail: Entire enabled${NC}"
+  ENTIRE_ENABLED="yes"
+elif [[ -n "$DETECTED_ENTIRE" ]]; then
   echo -e "${BOLD}Audit trail:${NC} ${GREEN}Entire is $DETECTED_ENTIRE_LABEL${NC}"
   read -rp "Keep enabled? [Y/n]: " ENTIRE_CONFIRM
   ENTIRE_CONFIRM="${ENTIRE_CONFIRM:-Y}"
@@ -496,11 +509,11 @@ if [[ -n "$DETECTED_ENTIRE" ]]; then
     ENTIRE_ENABLED="no"
   fi
 else
-  echo -e "${BOLD}Audit trail:${NC}"
-  echo -e "  Entire captures a git-native log of every AI agent session (what was asked,"
-  echo -e "  what changed, what tests ran). Recommended for teams; optional for solo."
-  read -rp "Enable Entire? [y/N]: " ENTIRE_CHOICE
-  ENTIRE_CHOICE="${ENTIRE_CHOICE:-N}"
+  echo -e "${BOLD}Audit trail:${NC} Would you like to use the \"Entire\" open source tool to log"
+  echo -e "  everything the AI does? (it gets saved in your GitHub repository)"
+  echo -e "  Recommended for teams; optional for solo."
+  read -rp "$ENTIRE_PROMPT" ENTIRE_CHOICE
+  ENTIRE_CHOICE="${ENTIRE_CHOICE:-$ENTIRE_DEFAULT}"
   case "$ENTIRE_CHOICE" in
     [Yy]*) ENTIRE_ENABLED="yes" ;;
     *) ENTIRE_ENABLED="no" ;;

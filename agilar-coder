@@ -823,10 +823,23 @@ cmd_install() {
     if has_methodology_signals; then
         # Consulting mode: assess first, then offer choices
         cmd_assess "$repo_root"
+
+        # If already 100%, congratulate and point to config
+        local overall_pct=0
+        if [[ $ASSESS_TOTAL_MAX -gt 0 ]]; then
+            overall_pct=$(( ASSESS_TOTAL_SCORE * 100 / ASSESS_TOTAL_MAX ))
+        fi
+        if [[ $overall_pct -eq 100 ]]; then
+            echo ""
+            echo "This project is fully Agilar-compliant. Nothing to install."
+            echo "Run 'agilar-coder config$(if [[ "${2:-.}" != "." ]]; then echo " ${2:-.}"; fi)' to reconfigure parameters."
+            exit 0
+        fi
+
         echo ""
         echo "This project already has methodology artifacts."
         echo "  [1] Fill gaps only (add what's missing, don't touch what exists)"
-        echo "  [2] Full install (scaffold wizard — may overwrite existing files)"
+        echo "  [2] Reconfigure (scaffold wizard — may overwrite existing files)"
         echo "  [3] Abort"
         echo ""
         read -rp "Choice [1/2/3]: " choice
@@ -847,6 +860,21 @@ cmd_install() {
         # Greenfield: run scaffold wizard directly
         run_full_scaffold "$repo_root"
     fi
+}
+
+cmd_config() {
+    local repo_root="$1"
+
+    # Verify scaffold exists
+    if [[ ! -x "$repo_root/scaffold" ]]; then
+        echo "Error: scaffold not found at $repo_root/scaffold"
+        exit 1
+    fi
+
+    echo "agilar-coder v$VERSION — Reconfigure"
+    echo ""
+
+    run_full_scaffold "$repo_root"
 }
 
 run_full_scaffold() {
@@ -1142,6 +1170,7 @@ agilar-coder - Agilar's opinionated way of doing AI-augmented Agile Software Dev
 
 USAGE:
     agilar-coder install [repo]                Set up a new project (scaffold wizard)
+    agilar-coder config [repo]                 Reconfigure project parameters
     agilar-coder upgrade [repo]                Update the framework to the latest version
     agilar-coder status [repo]                 Show installed version of the framework
     agilar-coder assess [repo]                 Assess methodology compliance
@@ -1156,6 +1185,8 @@ OPTIONS (run mode):
 SUBCOMMANDS:
     install [git repository]  Set up a new project. Detects existing methodology and
                               offers fill-gaps mode or full scaffold wizard.
+    config  [git repository]  Reconfigure project parameters (team mode, code review,
+                              audit trail, etc.) by re-running the scaffold wizard.
     upgrade [git repository]  Update the framework to the latest version.
                               Shows what changed and handles removed/renamed skills.
     status  [git repository]  Show installed version of the framework and skill inventory
@@ -1388,14 +1419,14 @@ main() {
 
     # Check Claude CLI for operational subcommands
     case "${1:-}" in
-        install|init|upgrade|status|assess|run)
+        install|init|config|upgrade|status|assess|run)
             check_claude_cli
             ;;
     esac
 
     # Handle subcommands and global flags
     case "${1:-}" in
-        install|init|upgrade|status|assess)
+        install|init|config|upgrade|status|assess)
             local subcmd="$1"
             # init is an undocumented synonym for install
             [[ "$subcmd" == "init" ]] && subcmd="install"

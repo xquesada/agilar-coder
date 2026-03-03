@@ -226,6 +226,26 @@ case "$ENTIRE_CHOICE" in
   *) ENTIRE_ENABLED="no" ;;
 esac
 
+# --- Step 8b: CI provider (multi-agent only) ---
+
+CI_PROVIDER="none"
+if [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
+  echo ""
+  echo -e "${BOLD}CI provider (for automated CI checking):${NC}"
+  echo "  1) GitHub Actions"
+  echo "  2) GitLab CI"
+  echo "  3) None (manual CI)"
+  read -rp "Choose [3]: " CI_CHOICE
+  CI_CHOICE="${CI_CHOICE:-3}"
+
+  case "$CI_CHOICE" in
+    1) CI_PROVIDER="github-actions" ;;
+    2) CI_PROVIDER="gitlab-ci" ;;
+    3) CI_PROVIDER="none" ;;
+    *) CI_PROVIDER="none" ;;
+  esac
+fi
+
 # --- Step 9: Project type ---
 
 echo ""
@@ -331,6 +351,32 @@ if [[ "$TOOL_NAME" == "claude-code" ]]; then
   fi
 fi
 
+# Create .claude/agents/ for multi-agent mode (Claude Code only)
+if [[ "$TOOL_NAME" == "claude-code" && "$TEAM_MODE_CHOICE" == "2" ]]; then
+  AGENTS_DIR="$PROJECT_DIR/.claude/agents"
+  mkdir -p "$AGENTS_DIR"
+
+  # Copy stack-specific agent templates if available, otherwise use generic
+  if [[ "$STACK_NAME" != "other" ]]; then
+    REVIEWER_SRC="$SCRIPT_DIR/templates/stacks/${STACK_NAME}-code-reviewer.md"
+    CHECKER_SRC="$SCRIPT_DIR/templates/stacks/${STACK_NAME}-ci-checker.md"
+  fi
+
+  if [[ -n "${REVIEWER_SRC:-}" && -f "$REVIEWER_SRC" ]]; then
+    cp "$REVIEWER_SRC" "$AGENTS_DIR/code-reviewer.md"
+  else
+    cp "$SCRIPT_DIR/templates/agents/code-reviewer.md" "$AGENTS_DIR/code-reviewer.md"
+  fi
+  echo -e "  ${GREEN}+${NC} .claude/agents/code-reviewer.md"
+
+  if [[ -n "${CHECKER_SRC:-}" && -f "$CHECKER_SRC" ]]; then
+    cp "$CHECKER_SRC" "$AGENTS_DIR/ci-checker.md"
+  else
+    cp "$SCRIPT_DIR/templates/agents/ci-checker.md" "$AGENTS_DIR/ci-checker.md"
+  fi
+  echo -e "  ${GREEN}+${NC} .claude/agents/ci-checker.md"
+fi
+
 # Generate CLAUDE.md from template
 CLAUDEMD="$PROJECT_DIR/CLAUDE.md"
 
@@ -338,7 +384,28 @@ CLAUDEMD="$PROJECT_DIR/CLAUDE.md"
 if [[ "$TEAM_MODE_CHOICE" == "1" ]]; then
   BRANCH_SECTION="Trunk-based. All commits on \`main\`. Run full test suite before every commit."
 elif [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
-  BRANCH_SECTION="Worktrees from \`main\`. Each agent works in isolation. Self-merge after tests pass."
+  BRANCH_SECTION="Worktrees from \`main\`. Each agent works in isolation. Self-merge after tests pass.
+
+### Multi-Agent Worktree Workflow
+
+**Orchestrator** (main session) coordinates. **Workers** (sub-agents) implement in isolated worktrees.
+
+1. Orchestrator creates a branch per worker before dispatch
+2. Worker implements in its worktree following TDD
+3. Code reviewer agent verifies (spec compliance + quality)
+4. Orchestrator merges to main, runs full test suite
+5. Push to remote after all tests pass
+
+**Port Assignments** (if running dev servers):
+
+| Agent | Dev Server | Test | Debug |
+|-------|-----------|------|-------|
+| Orchestrator | 3000 | 3100 | 3200 |
+| Worker 1 | 3001 | 3101 | 3201 |
+| Worker 2 | 3002 | 3102 | 3202 |
+| Worker 3 | 3003 | 3103 | 3203 |
+
+**Worker instructions:** Workers receive a focused prompt with task, context, constraints, and TDD requirement. They have no conversation history — include everything they need."
 else
   BRANCH_SECTION="Feature branches. PRs required. CI must pass before merge. Code review mandatory."
 fi
@@ -348,7 +415,8 @@ COORD_SKILLS=""
 if [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
   COORD_SKILLS="- \`subagent-driven\` — orchestrate sub-agents for independent tasks
 - \`parallel-agents\` — dispatch parallel work
-- \`git-worktrees\` — agent isolation via worktrees"
+- \`git-worktrees\` — agent isolation via worktrees
+- \`finishing-a-development-branch\` — clean branch completion"
 elif [[ "$TEAM_MODE_CHOICE" == "3" ]]; then
   COORD_SKILLS="- \`git-worktrees\` — optional, for developer isolation"
 fi
@@ -538,6 +606,8 @@ The following skills are active. The agent follows them as executable processes,
 - \`executing-plans\` — execute plans with checkpoints
 - \`debugging\` — root cause before fix
 - \`code-review\` — two-stage review (spec compliance + quality)
+- \`requesting-code-review\` — when and how to request review
+- \`receiving-code-review\` — responding to review feedback
 - \`verification\` — evidence before claims
 - \`bdd\` — acceptance tests as executable specifications
 
@@ -616,6 +686,9 @@ echo -e "${BOLD}What was created:${NC}"
 echo "  CLAUDE.md                  — Working agreements, DoR, DoD, skills"
 if [[ "$TOOL_NAME" == "claude-code" ]]; then
   echo "  .claude/skills/*.md        — Claude Code skill implementations"
+fi
+if [[ "$TOOL_NAME" == "claude-code" && "$TEAM_MODE_CHOICE" == "2" ]]; then
+  echo "  .claude/agents/*.md        — Agent definitions (code reviewer, CI checker)"
 fi
 if [[ "$STACK_NAME" != "other" ]]; then
   echo "  docs/stack-reference.md    — Stack-specific configuration guide"

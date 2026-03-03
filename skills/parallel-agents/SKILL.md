@@ -104,6 +104,94 @@ Without worktrees, parallel agents would conflict on the filesystem. Worktrees a
 
 For parallel investigation (read-only tasks), worktrees are optional — agents can read from the same working directory without conflict.
 
+## Orchestrator Responsibilities
+
+When coordinating parallel agents, the orchestrator has specific duties beyond dispatch:
+
+### Before Dispatch
+1. **Create branches** — One branch per agent, created before dispatch. Branch naming: `agent-N/task-description` (e.g., `agent-1/add-health-endpoint`).
+2. **Verify independence** — Confirm no file overlap between tasks (Step 1 of the Process).
+3. **Prepare context** — Each agent prompt includes all files, patterns, and constraints. No assumptions about shared context.
+
+### During Execution
+4. **Monitor** — Check agent progress if tools allow. Do not interfere with running agents.
+5. **Handle failures** — If an agent fails, assess whether to retry, reassign, or escalate.
+
+### After Completion
+6. **Review each result** — Read reports, check diffs, verify claims.
+7. **Merge sequentially** — Merge one branch at a time to main. Run tests after EACH merge, not just after the last one.
+8. **Push once** — After all merges pass tests, push to remote once. Batch pushes save CI runs.
+9. **Cleanup** — Delete merged branches and worktrees.
+
+## Shared Resources
+
+Parallel agents may need access to shared resources: ports, databases, browsers. Uncoordinated access causes conflicts. The orchestrator assigns resources before dispatch.
+
+### Port Allocation
+
+Each agent gets a dedicated port range. The orchestrator assigns ports in the worker prompt.
+
+| Agent | Dev Server Port | Test Port | Debug Port |
+|-------|----------------|-----------|------------|
+| Agent 0 (orchestrator) | 3000 | 3100 | 3200 |
+| Agent 1 | 3001 | 3101 | 3201 |
+| Agent 2 | 3002 | 3102 | 3202 |
+| Agent 3 | 3003 | 3103 | 3203 |
+| Agent 4 | 3004 | 3104 | 3204 |
+
+Include port assignments in the worker prompt:
+```
+PORT ASSIGNMENTS:
+- Dev server: 3001
+- Test runner: 3101
+- Do NOT use port 3000 (orchestrator) or any other agent's ports
+```
+
+### Database Safety
+
+Parallel agents must NOT share a database instance for write operations. Options:
+1. **Separate test databases** — Each agent gets its own test database (e.g., `testdb_agent1`, `testdb_agent2`)
+2. **In-memory databases** — Each agent uses SQLite in-memory or equivalent
+3. **Read-only shared access** — Multiple agents can read the same database safely; only one writes
+
+### Browser Lock Pattern
+
+If agents need a browser instance (for E2E tests), use a filesystem lock to prevent concurrent access:
+
+```bash
+LOCK_FILE="/tmp/browser-lock"
+MAX_WAIT=60
+
+acquire_lock() {
+  local waited=0
+  while [ -f "$LOCK_FILE" ]; do
+    # Check for stale lock (older than 5 minutes)
+    if [ -f "$LOCK_FILE" ] && [ $(($(date +%s) - $(stat -f %m "$LOCK_FILE" 2>/dev/null || echo 0))) -gt 300 ]; then
+      rm -f "$LOCK_FILE"
+      break
+    fi
+    sleep 2
+    waited=$((waited + 2))
+    if [ "$waited" -ge "$MAX_WAIT" ]; then
+      echo "ERROR: Could not acquire browser lock after ${MAX_WAIT}s"
+      exit 1
+    fi
+  done
+  echo $$ > "$LOCK_FILE"
+}
+
+release_lock() {
+  rm -f "$LOCK_FILE"
+}
+
+# Usage
+acquire_lock
+# ... run browser tests ...
+release_lock
+```
+
+Agents include the lock in their E2E test scripts. The orchestrator does not manage the lock — agents self-coordinate through the filesystem.
+
 ## Task Prompt Template
 
 ```

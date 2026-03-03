@@ -151,7 +151,13 @@ Then re-dispatch the same reviewer to verify the fixes.
 
 1. **Read the plan** — load the implementation plan file, verify it has ordered tasks with acceptance criteria.
 
-2. **For each task:**
+2. **Questions before dispatching** — For each task, check:
+   - Is the task description unambiguous? (could a fresh agent interpret it two ways?)
+   - Are dependencies between tasks explicit?
+   - Does the worker prompt need project-specific conventions?
+   - If any questions arise, ask the user before dispatching.
+
+3. **For each task:**
    a. Dispatch worker via **Agent** tool with the worker prompt template
    b. Read the worker's report
    c. Dispatch spec compliance reviewer via **Agent** tool
@@ -160,7 +166,7 @@ Then re-dispatch the same reviewer to verify the fixes.
    f. If quality review fails: re-dispatch worker with issues, re-review (max 3 cycles)
    g. Log task as complete, advance to next
 
-3. **After all tasks:** Run full test suite, compile summary, provide verification evidence to the user.
+4. **After all tasks:** Run full test suite, compile summary, provide verification evidence to the user.
 
 ## What NOT to Do
 
@@ -170,3 +176,5 @@ Then re-dispatch the same reviewer to verify the fixes.
 - Do not give workers vague prompts. Include file paths, patterns, constraints. The worker has no context beyond what you provide.
 - Do not let more than 3 review-fix cycles pass without escalating to the user. Something is structurally wrong if a worker cannot satisfy a reviewer in 3 attempts.
 - Do not use **Agent** for the brainstorming or design phases. Those are conversations with the user, not delegated tasks.
+- Do not dispatch a worker if you have unresolved questions about the task. Ask the user first — a clarification round costs less than a wrong implementation + rework.
+- Do not reverse the review order. Spec compliance FIRST, then code quality. Wrong order doubles the cost (see canonical skill for the waste example).

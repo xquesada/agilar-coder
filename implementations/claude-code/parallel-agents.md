@@ -136,6 +136,50 @@ Workflow:
 
 This prevents filesystem conflicts when multiple agents write code simultaneously.
 
+## Shared Resource Management
+
+### Port Table in Worker Prompts
+
+When dispatching agents that run servers, include port assignments:
+
+```
+PORT ASSIGNMENTS (your agent ID: 1):
+- Dev server: 3001
+- Test runner: 3101
+- Do NOT bind to port 3000 or any port outside your range
+```
+
+### Browser Lock (Bash)
+
+For E2E tests that need a browser, use a filesystem lock:
+
+```bash
+# Acquire lock before browser tests
+LOCK="/tmp/agilar-browser-lock"
+while [ -f "$LOCK" ] && [ $(($(date +%s) - $(stat -f %m "$LOCK"))) -lt 300 ]; do sleep 2; done
+echo $$ > "$LOCK"
+
+# Run browser tests
+npm run test:e2e
+
+# Release lock
+rm -f "$LOCK"
+```
+
+Include this pattern in worker prompts that involve E2E tests. Workers that don't use browsers don't need the lock.
+
+### Database Isolation
+
+For parallel agents that run tests with database writes:
+
+```bash
+# Each agent creates its own test database
+export TEST_DB="testdb_agent_${AGENT_ID}"
+createdb "$TEST_DB" 2>/dev/null || true
+DATABASE_URL="postgres://localhost/$TEST_DB" npm test
+dropdb "$TEST_DB" 2>/dev/null || true
+```
+
 ## What NOT to Do
 
 - Do not dispatch agents sequentially when they are independent — make all **Agent** calls in one response.

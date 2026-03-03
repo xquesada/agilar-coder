@@ -101,6 +101,49 @@ The methodology still works. It's just more manual.
 
 ---
 
+## Claude Code Agent Definitions
+
+Claude Code supports persistent agent definitions in `.claude/agents/`. Each agent definition is a markdown file that configures a specialized role — its identity, capabilities, constraints, and behavior.
+
+### Format
+
+Each file in `.claude/agents/` defines one agent role:
+
+```
+# [Role Name]
+
+## Identity
+[Who this agent is and what it does]
+
+## Capabilities
+[What this agent can and should do]
+
+## Constraints
+[What this agent must NOT do — safety rails]
+
+## Process
+[Step-by-step protocol this agent follows]
+```
+
+### Standard Roles
+
+The methodology defines two standard agent roles for multi-agent mode:
+
+| Agent | File | Purpose |
+|-------|------|---------|
+| **Code Reviewer** | `.claude/agents/code-reviewer.md` | Pre-merge review and periodic audit |
+| **CI Checker** | `.claude/agents/ci-checker.md` | CI failure diagnosis and auto-repair |
+
+Generic templates are provided in `templates/agents/`. Stack-specific templates in `templates/stacks/` fill in the quality commands for specific tech stacks (Go, Node.js, Python, Elixir).
+
+### When to Use
+
+Agent definitions are used in multi-agent mode when the orchestrator dispatches specialized roles. The scaffold wizard generates these files when team mode is multi-agent and the CI provider is configured.
+
+Solo mode does not need agent definitions — the single agent handles all roles directly.
+
+---
+
 ## Entire
 
 ### What it does for the methodology

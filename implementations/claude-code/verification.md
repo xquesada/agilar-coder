@@ -161,6 +161,26 @@ When delegating to sub-agents (Task tool), do not trust the sub-agent's completi
 3. Verify the changes match the requirements
 4. THEN report the result to the human partner
 
+## Self-Check Protocol
+
+Before claiming ANY positive outcome in your response, scan your own response for trigger words:
+
+### Trigger Words — STOP and Verify
+- "should" — Did you actually run the command?
+- "probably" — Replace with certainty from evidence
+- "seems to" — Replace with observed output
+- "looks good" — What specifically looks good? Cite evidence.
+- "that fixes it" — Run the reproduction test
+- "all tests pass" — Is there a Bash output above this in your response?
+- "done" / "complete" — Have you verified against acceptance criteria?
+- "moving on" — Did you run the full suite since your last change?
+
+### The Protocol
+1. Write your response
+2. Before sending, scan for trigger words above
+3. If any found: add verification evidence (Bash output) or rewrite the claim
+4. Only send when every positive claim has evidence in the same response
+
 ## Acceptance Criteria as Verification Target
 
 When verifying a PBI against its acceptance criteria, read the criteria from the backlog source — not from memory or conversation context. Use the po-coach skill's Backlog Access adapter to fetch the current PBI details and extract the acceptance criteria. This ensures verification checks against what was actually agreed, not what was discussed or paraphrased during the session.

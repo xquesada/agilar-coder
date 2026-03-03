@@ -40,7 +40,7 @@ The opinions come from Agilar's experience building real products with AI agents
 
 - **[SCRUM.md](SCRUM.md)** — How you manage work: Scrum for multi-human teams, Kanban for solo and multi-agent
 - **[DEVOPS.md](DEVOPS.md)** — How code moves to production: environments, quality gates, branching, CI/CD
-- **Skills** (`skills/`) — How you develop: TDD, debugging, brainstorming, code review, verification — each one a concrete, executable process
+- **Skills** (`skills/`) — How you develop: 17 skills covering TDD, debugging, brainstorming, code review (performing, requesting, receiving), verification, multi-agent orchestration, and more — each one a concrete, executable process
 
 You can adapt the opinions to your context. But the defaults work. Start with them and change only what you need to.
 
@@ -99,11 +99,14 @@ agilar-ai-sdlc/
 │   ├── executing-plans/SKILL.md
 │   ├── debugging/SKILL.md
 │   ├── code-review/SKILL.md
+│   ├── requesting-code-review/SKILL.md
+│   ├── receiving-code-review/SKILL.md
 │   ├── verification/SKILL.md
 │   ├── bdd/SKILL.md
 │   ├── subagent-driven/SKILL.md
 │   ├── parallel-agents/SKILL.md
 │   ├── git-worktrees/SKILL.md
+│   ├── finishing-a-development-branch/SKILL.md
 │   ├── scrum-master/SKILL.md
 │   ├── po-coach/SKILL.md
 │   └── facilitator/SKILL.md
@@ -113,9 +116,15 @@ agilar-ai-sdlc/
 │   └── generic/
 ├── templates/
 │   ├── CLAUDE.md.tmpl
-│   └── stacks/
+│   ├── agents/                  # Generic agent role templates
+│   │   ├── code-reviewer.md
+│   │   └── ci-checker.md
+│   └── stacks/                  # Stack-specific templates + agent roles
 ├── scaffold                     # Setup wizard
 └── examples/
+    ├── solo-go/
+    ├── team-node/
+    └── multi-agent-web/         # Multi-agent + Node.js (with agent definitions)
 ```
 
 ## Philosophy

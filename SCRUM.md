@@ -57,6 +57,20 @@ The human designs. The AI implements. The human reviews. The AI verifies. Decisi
 
 In multi-human teams, each developer has their own agent. Agents do not share context across developers unless explicitly coordinated through the backlog or version control.
 
+### Agent Roles in Multi-Agent Mode
+
+In multi-agent mode, the agent team has specialized roles beyond the general developer pair:
+
+| Role | Purpose | When Active |
+|------|---------|-------------|
+| **Worker** | Implements a single task following TDD. Receives a focused prompt, executes, reports back. | During subagent-driven execution |
+| **Code Reviewer** | Verifies implementation against spec and code quality standards. Two modes: pre-merge review (before changes land on main) and audit (periodic codebase scan). | After each worker task, before merge |
+| **CI Checker** | Monitors CI pipeline, diagnoses failures, applies fixes, verifies the fix resolves the failure. | After push to remote, when CI fails |
+
+These roles can be filled by the same underlying agent with different prompts, or by dedicated agent definitions (see `.claude/agents/` convention in TOOLCHAIN.md). The orchestrator dispatches the right role at the right time.
+
+Workers implement. Reviewers verify. CI checkers repair. The orchestrator coordinates all three.
+
 ---
 
 ## Artifacts
@@ -190,6 +204,35 @@ The workflow is:
 6. Pull the next one
 
 Work-in-progress limit: one PBI at a time per agent. Finish before starting. Context-switching is the enemy of quality.
+
+#### Orchestrator Responsibilities (Multi-Agent)
+
+In multi-agent mode, the orchestrator (the agent running in the main session) has additional responsibilities:
+
+1. **Branch-first safety** — Create a feature branch FIRST, before any worker begins implementation. Workers operate on branches, never directly on main.
+
+2. **Worker dispatch** — Create focused, self-contained prompts for each worker. Include all context the worker needs — it has no conversation history.
+
+3. **Review coordination** — After each worker task, dispatch the code reviewer. Spec compliance first, then code quality (see `skills/subagent-driven/`).
+
+4. **Merge management** — After review passes, merge the worker's branch to main. Run the full test suite on main after merge.
+
+5. **Push decision** — Push to remote only when:
+   - All tests pass on main after merge
+   - The human approves (or pre-approves for the session)
+   - Be aware of push cost: each push may trigger CI, notify collaborators, and create a permanent record
+
+6. **CI monitoring** — After push, check CI status. If CI fails, dispatch the CI checker agent to diagnose and fix.
+
+#### Push Permission Model
+
+| Scenario | Who Pushes | When |
+|----------|-----------|------|
+| Solo, trunk-based | Agent (after human pre-approval) | After each verified change |
+| Multi-agent, worktrees | Orchestrator | After merge + test pass on main |
+| Multi-human, PRs | CI/merge automation | After PR approval + CI pass |
+
+The orchestrator never pushes broken code. The test suite must pass on main before any push.
 
 ### Multi-Human (Full Scrum)
 

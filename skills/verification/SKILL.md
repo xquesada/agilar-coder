@@ -63,6 +63,19 @@ Skip any step = lying, not verifying
 - Tired and wanting work over
 - **ANY wording implying success without having run verification**
 
+## Red Flags — Structured Detection
+
+| Signal | Risk | Action |
+|--------|------|--------|
+| Using "should", "probably", "seems to" | Claiming without evidence | STOP — run the verification command |
+| Expressing satisfaction ("Great!", "Perfect!") | Premature completion claim | STOP — have you run tests since last change? |
+| About to commit or create PR | Shipping unverified code | STOP — run full test suite + lint + build |
+| Trusting agent success report | Agent may have hallucinated results | STOP — verify independently with Bash |
+| Relying on partial test run | Regressions in untested areas | STOP — run the FULL suite, not a subset |
+| "Just this once" thinking | Normalizing unverified claims | STOP — no exceptions, ever |
+| Copying output from earlier run | Evidence is stale after code change | STOP — re-run after every code change |
+| Moving to next task without verifying current | Incomplete PBI marked done | STOP — verify before advancing |
+
 ## Rationalization Prevention
 
 | Excuse | Reality |
@@ -75,6 +88,25 @@ Skip any step = lying, not verifying
 | "I'm tired" | Exhaustion is not an excuse |
 | "Partial check is enough" | Partial proves nothing |
 | "Different words so rule doesn't apply" | Spirit over letter |
+
+## Before/After: Rationalization in Practice
+
+### Before (WRONG)
+Developer implements a fix, runs linter (passes), says "Build passes, moving on."
+Reality: Linter is not compiler. Build was never run. The fix may not compile.
+
+### After (CORRECT)
+Developer implements a fix, runs linter (passes), runs build command (exit 0), runs tests (34/34 pass), says "All checks pass: linter clean, build succeeds, 34 tests green."
+
+### Before (WRONG)
+Agent sub-task returns "Task complete, all tests pass."
+Orchestrator says "Great, task 3 is done, moving to task 4."
+Reality: Agent's claim was never verified independently.
+
+### After (CORRECT)
+Agent sub-task returns "Task complete, all tests pass."
+Orchestrator checks VCS diff, runs test suite independently, confirms 34/34 pass.
+Orchestrator says "Task 3 verified: diff reviewed, 34 tests pass independently."
 
 ## Key Patterns
 

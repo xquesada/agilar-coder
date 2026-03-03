@@ -17,3 +17,9 @@ Represents the simplest setup: one person, one agent, no ceremony beyond what th
 **Multi-human team + Node.js/TypeScript.** Three developers building a React + Express dashboard. Full Scrum with two-week sprints, feature branches, mandatory PRs, CI/CD pipeline.
 
 Represents the most structured setup: multiple people, sprint ceremonies, code review via PRs, staging environment before production.
+
+### `multi-agent-web/`
+
+**Multi-agent team + Node.js/TypeScript.** One developer orchestrating multiple AI agents building a React + Express dashboard. Kanban workflow, worktree-based branching, dedicated code reviewer and CI checker agents.
+
+Represents the multi-agent setup: one human coordinating an agent team with specialized roles (workers, code reviewer, CI checker), worktree isolation, port assignments, and all 17 skills active. Includes `.claude/agents/` with instantiated agent definitions.

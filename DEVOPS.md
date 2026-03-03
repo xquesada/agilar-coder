@@ -38,6 +38,26 @@ Worktrees provide filesystem isolation without the overhead of separate clones. 
 | **Lead session merges** | Session that spawned sub-agents merges after review | Using subagent-driven skill with review between tasks |
 | **Human merges** | Human explicitly triggers merge | Maximum control over what reaches main |
 
+#### Orchestrator Workflow
+
+After a worker completes and review passes, the orchestrator follows this sequence:
+
+```
+Worker done → Review passes → Merge to main → Test suite on main → Push → CI check
+                                                   |                        |
+                                               Tests fail?              CI fails?
+                                                   |                        |
+                                              Fix before push         Spawn CI checker
+```
+
+1. **Merge** the worker's branch to main
+2. **Run full test suite** on main — do not push if tests fail
+3. **Push** to remote (if push permissions granted)
+4. **Check CI** — if CI fails, dispatch the CI checker agent
+5. **Report** — inform the human of the push result and CI status
+
+**Push cost awareness:** Every push to remote may trigger CI pipelines (compute cost), send notifications (attention cost), and create permanent history (audit cost). Batch merges when practical — push once after multiple workers complete, not after each one.
+
 See `skills/git-worktrees/` for the worktree management process and `skills/parallel-agents/` for patterns.
 
 ### Multi-Human: Feature Branches + PRs
@@ -268,6 +288,66 @@ main (CI green) ──→ Build ──→ Deploy to Staging ──→ Verify ─
 | Multi-human | Automated pipeline | Pipeline after staging verification passes |
 
 The artifact deployed to production must be the same artifact validated in staging. Rebuilding between staging and production defeats the purpose of staging validation.
+
+## CI Auto-Repair (Multi-Agent)
+
+In multi-agent mode, CI failures can be diagnosed and fixed automatically by a dedicated CI checker agent. The orchestrator dispatches the CI checker after a push triggers a failing CI run.
+
+### Workflow
+
+```
+Push to remote
+       |
+       v
+   CI runs ──pass──> Done (report success)
+       |
+      fail
+       |
+       v
+  Spawn CI checker agent
+       |
+       v
+  Monitor: read CI failure output
+       |
+       v
+  Diagnose: categorize failure (test/lint/build/security)
+       |
+       v
+  Fix: apply minimal targeted fix
+       |
+       v
+  Verify: run the failed check locally
+       |
+      pass ──> Commit fix, merge to main, push ──> CI runs again
+       |                                                |
+      fail                                          pass ──> Done
+       |                                                |
+  Retry (max 3) ──> Escalate to human               fail ──> Loop
+```
+
+### Safety Rules
+
+1. **Fix the code, not the pipeline** — Never modify CI configuration files (`.github/workflows/`, `.gitlab-ci.yml`). If the pipeline definition is wrong, escalate to the human.
+
+2. **Never skip hooks or verification** — The CI checker follows the same working agreements as every other agent. No `--no-verify`, no force push, no skipped tests.
+
+3. **Never change test assertions** — If a test fails, the test is telling you something. Fix the code under test, not the assertion. If the assertion is genuinely wrong (the spec changed), escalate — that's a scope decision, not a CI fix.
+
+4. **Minimal fixes only** — The CI checker's job is to make the failing check pass without changing anything else. No refactoring, no improvements, no "while I'm here" changes.
+
+5. **3 retries maximum** — If the CI checker cannot fix the failure in 3 attempts, something is structurally wrong. Escalate to the orchestrator or human with a diagnosis report.
+
+6. **Commit hygiene** — CI fix commits use a clear prefix: `ci-fix: [description]`. This makes them easy to identify in git history and during code review.
+
+### Integration with Quality Gates
+
+CI auto-repair operates between Gate 1 (Test Gate) and Gate 2 (Review Gate). The CI checker's fixes are still subject to review — they are not exempt from the working agreements. The orchestrator should review CI fix commits before pushing again, or dispatch the code reviewer to verify the fix is correct.
+
+### When NOT to Auto-Repair
+
+- **Flaky tests** — If a test fails intermittently, the fix is not a retry. Investigate the root cause (see `skills/debugging/`).
+- **Infrastructure failures** — CI runner out of disk, network timeout, service unavailable. These are not code problems. Report and wait.
+- **New test failures on main** — If main was green before your push and is now red, your changes caused it. The CI checker fixes your changes, not pre-existing failures.
 
 ## Observability
 

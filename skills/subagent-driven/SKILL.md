@@ -87,7 +87,21 @@ Read the implementation plan. Verify:
 
 If any of these are missing, stop and resolve before proceeding.
 
-### Step 2: Dispatch the First Worker
+### Step 2: Questions Before Implementation
+
+After loading the plan and before dispatching the first worker, check for unanswered questions:
+
+1. **Ambiguity check** — For each task, ask: "Could a reasonable developer interpret this two different ways?" If yes, clarify with the human partner before dispatching.
+
+2. **Dependency check** — Are there implicit dependencies between tasks that the plan doesn't mention? (e.g., Task 3 creates a type that Task 5 uses, but the plan doesn't list this dependency)
+
+3. **Scope check** — Does any task feel too large for a single worker dispatch? If a task has more than 3 requirements, consider splitting it.
+
+4. **Convention check** — Does the project have patterns the workers need to follow? If so, include them explicitly in the worker prompt. Workers have no context beyond what you provide.
+
+If any questions arise, resolve them with the human partner before proceeding. Dispatching a worker with ambiguous instructions wastes both time and tokens.
+
+### Step 3: Dispatch the First Worker
 
 Create a focused prompt for the first task. The worker prompt must include:
 
@@ -101,7 +115,7 @@ Create a focused prompt for the first task. The worker prompt must include:
 
 The worker receives this prompt and executes independently.
 
-### Step 3: Spec Compliance Review
+### Step 4: Spec Compliance Review
 
 After the worker reports back, dispatch a spec compliance reviewer. The reviewer prompt must include:
 
@@ -112,9 +126,9 @@ After the worker reports back, dispatch a spec compliance reviewer. The reviewer
 
 The reviewer examines the actual code changes against the spec and returns a verdict.
 
-### Step 4: Handle Spec Review Result
+### Step 5: Handle Spec Review Result
 
-**If pass:** Proceed to code quality review (Step 5).
+**If pass:** Proceed to code quality review (Step 6).
 
 **If fail:** Re-dispatch the worker with:
 - The original task spec
@@ -123,7 +137,7 @@ The reviewer examines the actual code changes against the spec and returns a ver
 
 Then re-run the spec compliance review. Repeat until pass, up to 3 cycles. If 3 cycles fail, escalate to the human partner.
 
-### Step 5: Code Quality Review
+### Step 6: Code Quality Review
 
 Dispatch a code quality reviewer. The reviewer prompt must include:
 
@@ -133,9 +147,9 @@ Dispatch a code quality reviewer. The reviewer prompt must include:
 
 The reviewer examines code quality and returns a verdict.
 
-### Step 6: Handle Code Quality Result
+### Step 7: Handle Code Quality Result
 
-**If pass:** Task is complete. Advance to the next task (back to Step 2).
+**If pass:** Task is complete. Advance to the next task (back to Step 3).
 
 **If fail:** Re-dispatch the worker with:
 - The quality reviewer's specific issues
@@ -144,7 +158,7 @@ The reviewer examines code quality and returns a verdict.
 
 Then re-run the code quality review. Repeat until pass, up to 3 cycles. If 3 cycles fail, escalate to the human partner.
 
-### Step 7: Repeat Until Plan Complete
+### Step 8: Repeat Until Plan Complete
 
 Continue dispatching workers and reviews for each task in the plan. After the final task passes both reviews:
 
@@ -175,6 +189,20 @@ Quality Review ──fail──> Worker fixes ──> Quality Review (retry)
        v
 Next task
 ```
+
+### Why Order Matters: A Waste Example
+
+Imagine you run quality review first on a worker's output:
+
+1. Quality reviewer finds 3 issues: naming conventions (Minor), missing error handling (Important), unused import (Minor)
+2. Worker fixes all 3 issues
+3. NOW spec compliance review runs: "This endpoint returns JSON but the spec says XML"
+4. Worker must rewrite the entire endpoint — including re-fixing all 3 quality issues
+
+Total: 2 quality reviews + 2 spec reviews + 2 worker dispatches = 6 agent calls
+Correct order: 1 spec review + 1 quality review + 0-1 fix cycles = 2-3 agent calls
+
+Wrong order literally doubles the cost. Spec compliance first, always.
 
 ## Worker Prompt Structure
 

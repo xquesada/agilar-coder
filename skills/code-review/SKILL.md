@@ -174,6 +174,18 @@ A PBI is not done until it passes code review. The review gate applies regardles
 | Multi-agent | Orchestrator reviews agent output |
 | Multi-human | Peer review via PR |
 
+## Connection to Other Skills
+
+| Skill | Relationship |
+|-------|-------------|
+| `skills/requesting-code-review/` | Defines how to REQUEST a review — the dispatch template, when to request, what to include |
+| `skills/receiving-code-review/` | Defines how to RESPOND to review feedback — the 4-phase process, pushback protocol, YAGNI check |
+| `skills/verification/` | Verification evidence is required before requesting review — test output proves the code works |
+| `skills/tdd/` | TDD discipline is checked during quality review (Stage 2) — tests before code |
+| `skills/subagent-driven/` | The two-stage review process from this skill is used for every worker task |
+
+Together, these three skills form a complete review lifecycle: **request** (`requesting-code-review`) → **perform** (`code-review`, this skill) → **receive** (`receiving-code-review`).
+
 ## Real-World Impact
 
 From code review sessions:

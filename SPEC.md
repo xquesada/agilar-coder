@@ -7,7 +7,7 @@ Agilar's opinionated way of doing AI-augmented Agile Software Development — pr
 ## Usage
 
 ```bash
-agilar-coder init [git repository]              # Set up a new project (scaffold wizard)
+agilar-coder install [git repository]              # Set up a new project (scaffold wizard)
 agilar-coder upgrade [git repository]           # Update the framework to the latest version
 agilar-coder status [git repository]            # Show installed version of the framework
 agilar-coder run <backlog-file> [count]         # Build PBI's from a Product Backlog in unattended mode
@@ -33,7 +33,7 @@ This allows the script to be symlinked into `$PATH` (e.g., `ln -s ~/projects/agi
 
 ## Subcommands
 
-### `init [git repository]`
+### `install [git repository]`
 
 Set up a new project with the Agilar AI SDLC methodology.
 

@@ -37,7 +37,7 @@ agilar-coder/
 Single entry point for the Agilar AI SDLC: project setup, skill management, and unattended PBI processing.
 
 ```bash
-./agilar-coder init [git repository]         # Set up a new project (scaffold wizard)
+./agilar-coder install [git repository]       # Set up a new project (scaffold wizard)
 ./agilar-coder upgrade [git repository]      # Update the framework to the latest version
 ./agilar-coder status [git repository]       # Show installed version of the framework
 ./agilar-coder run backlog.md                # Build all PBIs until done
@@ -60,7 +60,7 @@ The script resolves its repo root from `$0` (follows symlinks), verifying `skill
 Single bash script, 14 functions:
 
 - `resolve_repo_root()` — self-locate the agilar-coder repo via `$0` or env var
-- `cmd_init()` — run scaffold wizard, write `.agilar-coder.version`
+- `cmd_install()` — run scaffold wizard, write `.agilar-coder.version`
 - `cmd_status()` — show installed/available version, compare skill inventories
 - `cmd_upgrade()` — update skills, detect removals, bump version marker
 - `load_config()` / `create_default_config()` — manage `~/.agilar-coder/config.conf`

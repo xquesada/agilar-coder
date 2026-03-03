@@ -92,7 +92,7 @@ resolve_repo_root() {
 # Subcommands
 # ─────────────────────────────────────────────────────────────────────────────
 
-cmd_init() {
+cmd_install() {
     local repo_root="$1"
 
     # Run the scaffold wizard from the repo
@@ -186,7 +186,7 @@ cmd_status() {
         fi
     else
         echo -e "  ${RED}agilar-coder is not installed, or not correctly installed, in this repository${NC}"
-        echo "  Tip: run 'agilar-coder init' to set up, or 'agilar-coder upgrade' if skills already exist"
+        echo "  Tip: run 'agilar-coder install' to set up, or 'agilar-coder upgrade' if skills already exist"
         echo "  Latest version available: $available_version"
     fi
 
@@ -220,7 +220,7 @@ cmd_upgrade() {
         installed_version="unknown"
     else
         echo "Error: No .agilar-coder.version found and no skills installed."
-        echo "  Run 'agilar-coder init' first."
+        echo "  Run 'agilar-coder install' first."
         exit 1
     fi
 
@@ -343,7 +343,7 @@ show_help() {
 agilar-coder - Agilar's opinionated way of doing AI-augmented Agile Software Development
 
 USAGE:
-    agilar-coder init [repo]                   Set up a new project (scaffold wizard)
+    agilar-coder install [repo]                Set up a new project (scaffold wizard)
     agilar-coder upgrade [repo]                Update the framework to the latest version
     agilar-coder status [repo]                 Show installed version of the framework
     agilar-coder run <backlog-file> [count]    Build PBI's from a Product Backlog in unattended mode
@@ -355,7 +355,7 @@ OPTIONS (run mode):
     -v, --verbose   Enable verbose output
 
 SUBCOMMANDS:
-    init [git repository]     Run the scaffold wizard to set up methodology, skills,
+    install [git repository]  Run the scaffold wizard to set up methodology, skills,
                               and CLAUDE.md. Defaults to current directory.
     upgrade [git repository]  Update the framework to the latest version.
                               Shows what changed and handles removed/renamed skills.
@@ -587,8 +587,10 @@ main() {
 
     # Handle subcommands and global flags
     case "${1:-}" in
-        init|upgrade|status)
+        install|init|upgrade|status)
             local subcmd="$1"
+            # init is an undocumented synonym for install
+            [[ "$subcmd" == "init" ]] && subcmd="install"
             local target_dir="${2:-.}"
             if [[ ! -d "$target_dir" ]]; then
                 echo "Error: Directory not found: $target_dir"

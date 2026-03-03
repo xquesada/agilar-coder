@@ -186,13 +186,11 @@ esac
 
 echo ""
 echo -e "${BOLD}Where do you manage requirements (Product Backlog)?${NC}"
-echo -e "${DIM}Note: A filesystem backlog (backlog/ directory) is always created regardless of your choice.${NC}"
-echo -e "${DIM}It serves as a parallel record maintained by agents alongside your primary tool.${NC}"
-echo "  1) Agilar PO Companion (API-based)        — recommended"
-echo "  2) YAML file in this repo                  — simplest, works offline"
+echo -e "${DIM}A filesystem backlog (backlog/ directory) is always created as a parallel record.${NC}"
+echo "  1) Agilar PO Companion (recommended for enterprise product management)"
+echo "  2) Agilar Chepibe (recommended for solo development & small projects)"
 echo "  3) Jira"
-echo "  4) GitHub Issues"
-echo "  5) Other system"
+echo "  4) Other system"
 read -rp "Choose [1]: " BACKLOG_CHOICE
 BACKLOG_CHOICE="${BACKLOG_CHOICE:-1}"
 
@@ -202,7 +200,7 @@ case "$BACKLOG_CHOICE" in
     read -rp "PO Companion API URL (e.g. https://po.example.com/api/backlog): " BACKLOG_URL
     BACKLOG_SECTION="## Product Backlog
 
-PBIs are managed in an external backlog tool (PO layer). This repo is the development layer.
+PBIs are managed in Agilar PO Companion (PO layer). This repo is the development layer.
 
 **Backlog API:** \`$BACKLOG_URL\`
 
@@ -212,13 +210,22 @@ PBIs are managed in an external backlog tool (PO layer). This repo is the develo
 **At session start:** query the API for PBIs with status \`ready\`. Read notes, acceptance criteria, and checklist before starting work. Mark \`in_progress\` when you begin."
     ;;
   2)
-    read -rp "Backlog file path [backlog.yaml]: " BACKLOG_FILE
-    BACKLOG_FILE="${BACKLOG_FILE:-backlog.yaml}"
+    read -rp "Chepibe API URL (e.g. http://server:8076/api/backlog): " BACKLOG_URL
     BACKLOG_SECTION="## Product Backlog
 
-PBIs are tracked in \`$BACKLOG_FILE\` in this repo.
+PBIs are managed via the Chepibe Backlog Board API.
 
-**At session start:** read the backlog file, find PBIs with status \`ready\`. Read notes, acceptance criteria, and checklist before starting work. Update status to \`in_progress\` when you begin."
+**Backlog API:** \`$BACKLOG_URL\`
+
+- List PBIs: \`GET $BACKLOG_URL\`
+- Create: \`POST $BACKLOG_URL\` with \`{ title, status, epic, notes, checklist }\`
+- Update: \`PATCH $BACKLOG_URL/:id\` with fields to change
+- Reorder: \`PATCH $BACKLOG_URL/reorder\` with \`{ items: [{ id, status, priority }] }\`
+- Delete: \`DELETE $BACKLOG_URL/:id\`
+
+**IMPORTANT:** Always use the API — never edit the backlog file directly.
+
+**At session start:** query the API for PBIs with status \`ready\`. Read notes, acceptance criteria, and checklist before starting work. Mark \`in_progress\` when you begin."
     ;;
   3)
     read -rp "Jira project URL (e.g. https://myorg.atlassian.net/browse/PROJ): " JIRA_URL
@@ -228,22 +235,60 @@ PBIs are managed in Jira. This repo is the development layer.
 
 **Jira project:** \`$JIRA_URL\`
 
-**At session start:** use the Jira CLI or API to find tickets in the Ready column. Read description, acceptance criteria, and subtasks before starting work."
+**At session start:** use the Jira MCP or API to find tickets in the Ready column. Read description, acceptance criteria, and subtasks before starting work."
     ;;
   4)
-    BACKLOG_SECTION="## Product Backlog
+    echo ""
+    echo -e "${DIM}Your system needs either a REST API or an MCP server so AI agents can read and update PBIs.${NC}"
+    read -rp "System name (e.g. Linear, Shortcut, Azure DevOps): " OTHER_SYSTEM_NAME
+    if [[ -z "$OTHER_SYSTEM_NAME" ]]; then
+      echo "System name is required." >&2
+      exit 1
+    fi
 
-PBIs are tracked as GitHub Issues in this repo.
+    echo ""
+    echo -e "${BOLD}How will AI agents connect to $OTHER_SYSTEM_NAME?${NC}"
+    echo "  1) REST API"
+    echo "  2) MCP server"
+    read -rp "Choose: " OTHER_CONNECT_CHOICE
 
-**At session start:** run \`gh issue list --label ready\` to find PBIs to work on. Read the issue body for acceptance criteria and checklist. Assign yourself when you begin."
-    ;;
-  5)
-    read -rp "Describe your backlog system (one line): " BACKLOG_DESC
-    BACKLOG_SECTION="## Product Backlog
+    case "$OTHER_CONNECT_CHOICE" in
+      1)
+        read -rp "$OTHER_SYSTEM_NAME API URL: " OTHER_API_URL
+        if [[ -z "$OTHER_API_URL" ]]; then
+          echo "API URL is required for agents to access your backlog." >&2
+          exit 1
+        fi
+        BACKLOG_SECTION="## Product Backlog
 
-$BACKLOG_DESC
+PBIs are managed in $OTHER_SYSTEM_NAME. This repo is the development layer.
 
-**At session start:** check the backlog for PBIs with status \`ready\`. Read acceptance criteria and checklist before starting work."
+**API:** \`$OTHER_API_URL\`
+
+**At session start:** query the API for PBIs that are ready. Read acceptance criteria and checklist before starting work."
+        ;;
+      2)
+        read -rp "MCP server package (e.g. @anthropic/mcp-server-linear): " OTHER_MCP_PKG
+        if [[ -z "$OTHER_MCP_PKG" ]]; then
+          echo "MCP server package is required for agents to access your backlog." >&2
+          exit 1
+        fi
+        BACKLOG_SECTION="## Product Backlog
+
+PBIs are managed in $OTHER_SYSTEM_NAME via MCP. This repo is the development layer.
+
+**MCP server:** \`$OTHER_MCP_PKG\`
+
+**At session start:** use the $OTHER_SYSTEM_NAME MCP tools to find PBIs that are ready. Read acceptance criteria and checklist before starting work."
+
+        # Store MCP info for later config generation
+        OTHER_MCP_SERVER_NAME="$(echo "$OTHER_SYSTEM_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
+        ;;
+      *)
+        echo "Invalid choice. Agents need either an API or MCP to work with your backlog." >&2
+        exit 1
+        ;;
+    esac
     ;;
   *)
     echo "Invalid choice." >&2
@@ -716,13 +761,10 @@ fi
 
 # Generate MCP config for backlog tools that need it
 if [[ "$TOOL_NAME" == "claude-code" ]]; then
+  MCP_CONFIG=""
   case "$BACKLOG_CHOICE" in
     3) # Jira
-      SETTINGS_DIR="$PROJECT_DIR/.claude"
-      mkdir -p "$SETTINGS_DIR"
-      if [[ ! -f "$SETTINGS_DIR/settings.json" ]]; then
-        cat > "$SETTINGS_DIR/settings.json" << 'SETTINGS_EOF'
-{
+      MCP_CONFIG='{
   "mcpServers": {
     "jira": {
       "command": "npx",
@@ -734,14 +776,35 @@ if [[ "$TOOL_NAME" == "claude-code" ]]; then
       }
     }
   }
-}
-SETTINGS_EOF
-        echo -e "  ${GREEN}+${NC} .claude/settings.json (Jira MCP — update credentials before use)"
-      else
-        echo -e "  ${YELLOW}!${NC} .claude/settings.json already exists — add Jira MCP config manually"
+}'
+      MCP_LABEL="Jira MCP — update credentials before use"
+      ;;
+    4) # Other system with MCP
+      if [[ -n "${OTHER_MCP_SERVER_NAME:-}" ]]; then
+        MCP_CONFIG="{
+  \"mcpServers\": {
+    \"$OTHER_MCP_SERVER_NAME\": {
+      \"command\": \"npx\",
+      \"args\": [\"-y\", \"$OTHER_MCP_PKG\"],
+      \"env\": {}
+    }
+  }
+}"
+        MCP_LABEL="$OTHER_SYSTEM_NAME MCP — update env vars before use"
       fi
       ;;
   esac
+
+  if [[ -n "$MCP_CONFIG" ]]; then
+    SETTINGS_DIR="$PROJECT_DIR/.claude"
+    mkdir -p "$SETTINGS_DIR"
+    if [[ ! -f "$SETTINGS_DIR/settings.json" ]]; then
+      echo "$MCP_CONFIG" > "$SETTINGS_DIR/settings.json"
+      echo -e "  ${GREEN}+${NC} .claude/settings.json ($MCP_LABEL)"
+    else
+      echo -e "  ${YELLOW}!${NC} .claude/settings.json already exists — add MCP config manually"
+    fi
+  fi
 fi
 
 # Copy canonical skill definitions as reference

@@ -20,11 +20,9 @@ echo ""
 
 # --- Step 1: Project basics ---
 
-read -rp "Project name: " PROJECT_NAME
-if [[ -z "$PROJECT_NAME" ]]; then
-  echo "Project name is required." >&2
-  exit 1
-fi
+DEFAULT_PROJECT_NAME="$(basename "$(pwd)")"
+read -rp "Project name [$DEFAULT_PROJECT_NAME]: " PROJECT_NAME
+PROJECT_NAME="${PROJECT_NAME:-$DEFAULT_PROJECT_NAME}"
 
 read -rp "Project description (one line): " PROJECT_DESCRIPTION
 if [[ -z "$PROJECT_DESCRIPTION" ]]; then

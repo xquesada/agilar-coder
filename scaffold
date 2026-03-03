@@ -259,10 +259,15 @@ case "$TEAM_MODE_CHOICE" in
   *) echo "Invalid choice." >&2; exit 1 ;;
 esac
 
-# --- Step 5: Toolchain ---
+# --- AI coding tool ---
 
-echo ""
-if [[ -n "$DETECTED_TOOL" ]]; then
+if [[ -n "$DETECTED_STACK" && -n "$DETECTED_TOOL" ]]; then
+  # Existing project with clear tool — skip silently
+  echo -e "${DIM}AI coding tool: ${DETECTED_TOOL_LABEL}${NC}"
+  TOOL_CHOICE="$DETECTED_TOOL"
+elif [[ -n "$DETECTED_TOOL" ]]; then
+  # Greenfield but tool detected (e.g. .claude/ exists) — confirm
+  echo ""
   echo -e "${BOLD}AI coding tool:${NC} ${GREEN}$DETECTED_TOOL_LABEL${NC} detected"
   read -rp "Correct? [Y/n]: " TOOL_CONFIRM
   TOOL_CONFIRM="${TOOL_CONFIRM:-Y}"
@@ -280,6 +285,7 @@ if [[ -n "$DETECTED_TOOL" ]]; then
     read -rp "Choose: " TOOL_CHOICE
   fi
 else
+  echo ""
   echo -e "${BOLD}AI coding tool:${NC}"
   echo "  1) Claude Code (recommended)"
   echo "  2) Codex CLI"

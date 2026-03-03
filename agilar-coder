@@ -5,6 +5,17 @@
 
 set -euo pipefail
 
+# Colors (disabled if not a terminal)
+if [[ -t 1 ]]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    NC='\033[0m'
+else
+    RED=''
+    GREEN=''
+    NC=''
+fi
+
 CONFIG_DIR="$HOME/.agilar-coder"
 CONFIG_FILE="$CONFIG_DIR/config.conf"
 STATUS_FILE=".agilar-status"
@@ -134,22 +145,20 @@ cmd_status() {
     local available_version
     available_version="$(cat "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
 
-    # Count skills first (needed for version section messaging)
+    # Count skills
     local installed_count=0
     local available_count=0
-    local missing=()
-    local modified=()
-    local extra=()
+    local modified_count=0
 
     for skill_file in "$repo_root"/implementations/claude-code/*.md; do
         [[ -f "$skill_file" ]] || continue
         ((available_count++))
         local skill_name
         skill_name="$(basename "$skill_file")"
-        if [[ ! -f ".claude/skills/$skill_name" ]]; then
-            missing+=("$skill_name")
-        elif ! diff -q "$skill_file" ".claude/skills/$skill_name" > /dev/null 2>&1; then
-            modified+=("$skill_name")
+        if [[ -f ".claude/skills/$skill_name" ]]; then
+            if ! diff -q "$skill_file" ".claude/skills/$skill_name" > /dev/null 2>&1; then
+                ((modified_count++))
+            fi
         fi
     done
 
@@ -157,59 +166,36 @@ cmd_status() {
         for skill_file in .claude/skills/*.md; do
             [[ -f "$skill_file" ]] || continue
             ((installed_count++))
-            local skill_name
-            skill_name="$(basename "$skill_file")"
-            if [[ ! -f "$repo_root/implementations/claude-code/$skill_name" ]]; then
-                extra+=("$skill_name")
-            fi
         done
     fi
 
     echo "agilar-coder status"
     echo "═══════════════════"
 
-    # Version
     if [[ -f .agilar-coder.version ]]; then
         local installed_version
         installed_version="$(cat .agilar-coder.version)"
-        echo "  Installed: $installed_version"
+        echo -e "  Installed: ${GREEN}$installed_version${NC}"
         echo "  Available: $available_version"
         if [[ "$installed_version" == "$available_version" ]]; then
-            echo "  Status:    up to date"
+            echo -e "  Status:    ${GREEN}up to date${NC}"
         else
-            echo "  Status:    upgrade available"
+            echo -e "  Status:    ${RED}upgrade available${NC}"
         fi
-    elif [[ $installed_count -gt 0 ]]; then
-        echo "  Installed: not tracked (skills present, installed outside agilar-coder)"
-        echo "  Available: $available_version"
-        echo "  Tip:       run 'agilar-coder upgrade' to start tracking"
     else
-        echo "  Installed: not initialized (run 'agilar-coder init')"
-        echo "  Available: $available_version"
+        echo -e "  ${RED}agilar-coder is not installed, or not correctly installed, in this repository${NC}"
+        echo "  Tip: run 'agilar-coder init' to set up, or 'agilar-coder upgrade' if skills already exist"
+        echo "  Latest version available: $available_version"
     fi
 
     echo ""
 
-    # Skills inventory
-    echo "Skills:"
-    echo "  Installed: $installed_count"
-    echo "  Available: $available_count"
-
-    if [[ ${#modified[@]} -gt 0 ]]; then
-        echo "  Modified:  ${#modified[@]} (content differs from agilar-coder version)"
-        for m in "${modified[@]}"; do
-            echo "    - $m"
-        done
+    # Skills — single line
+    local skills_line="Skills: $installed_count of $available_count available"
+    if [[ $modified_count -gt 0 ]]; then
+        skills_line="$skills_line, ${RED}$modified_count skill(s) need to be upgraded${NC}"
     fi
-    if [[ ${#missing[@]} -gt 0 ]]; then
-        echo "  Missing:   ${missing[*]}"
-    fi
-    if [[ ${#extra[@]} -gt 0 ]]; then
-        echo "  Extra:     ${extra[*]} (project-specific or removed from agilar-coder)"
-    fi
-    if [[ ${#missing[@]} -eq 0 && ${#modified[@]} -eq 0 && ${#extra[@]} -eq 0 && $installed_count -eq $available_count ]]; then
-        echo "  Status:    all skills installed"
-    fi
+    echo -e "  $skills_line"
 }
 
 cmd_upgrade() {

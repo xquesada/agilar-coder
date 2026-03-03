@@ -486,6 +486,68 @@ assess_framework_tracking() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Ensure CLAUDE.md is a real file (not a symlink) and AGENTS.md/GEMINI.md
+# are symlinks pointing TO it. Handles projects where the direction is
+# reversed (e.g. CLAUDE.md → AGENTS.md) or where circular symlinks exist.
+normalize_agent_guidance() {
+    # Case 1: CLAUDE.md is a symlink
+    if [[ -L CLAUDE.md ]]; then
+        local target
+        target="$(readlink CLAUDE.md)"
+        if [[ -f "$target" && ! -L "$target" ]]; then
+            # Target is a real file — replace symlink with the content
+            rm CLAUDE.md
+            cp "$target" CLAUDE.md
+            echo "  Normalized: CLAUDE.md (was symlink to $target, now a real file)"
+        else
+            # Target is missing or also a symlink (circular) — remove broken symlink
+            rm CLAUDE.md
+            echo "  Removed: broken CLAUDE.md symlink"
+        fi
+    fi
+
+    # Case 2: AGENTS.md is a real file but CLAUDE.md doesn't exist — rename it
+    if [[ ! -f CLAUDE.md && -f AGENTS.md && ! -L AGENTS.md ]]; then
+        mv AGENTS.md CLAUDE.md
+        echo "  Normalized: renamed AGENTS.md → CLAUDE.md"
+    fi
+
+    # Now fix AGENTS.md / GEMINI.md to be symlinks TO CLAUDE.md (if CLAUDE.md exists)
+    if [[ -f CLAUDE.md && ! -L CLAUDE.md ]]; then
+        # AGENTS.md: replace real file or wrong-direction symlink with correct symlink
+        if [[ -f AGENTS.md && ! -L AGENTS.md ]]; then
+            # Real file — only replace if content matches CLAUDE.md (avoid data loss)
+            if cmp -s CLAUDE.md AGENTS.md; then
+                rm AGENTS.md
+                ln -s CLAUDE.md AGENTS.md
+                echo "  Normalized: AGENTS.md → CLAUDE.md (was duplicate file)"
+            fi
+        elif [[ -L AGENTS.md ]]; then
+            local agents_target
+            agents_target="$(readlink AGENTS.md)"
+            if [[ "$agents_target" != "CLAUDE.md" ]]; then
+                rm AGENTS.md
+                ln -s CLAUDE.md AGENTS.md
+                echo "  Normalized: AGENTS.md → CLAUDE.md (was pointing to $agents_target)"
+            fi
+        fi
+
+        if [[ -L GEMINI.md ]]; then
+            local gemini_target
+            gemini_target="$(readlink GEMINI.md)"
+            if [[ "$gemini_target" != "CLAUDE.md" ]]; then
+                rm GEMINI.md
+                ln -s CLAUDE.md GEMINI.md
+                echo "  Normalized: GEMINI.md → CLAUDE.md (was pointing to $gemini_target)"
+            fi
+        fi
+    fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Subcommands
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -510,6 +572,35 @@ fill_gaps() {
         fi
     done
     [[ $added -eq 0 ]] && echo "  Skills: all present"
+
+    # Normalize symlink direction (CLAUDE.md must be the real file)
+    normalize_agent_guidance
+
+    # Create minimal CLAUDE.md if still missing after normalization
+    if [[ ! -f CLAUDE.md ]]; then
+        local project_name
+        project_name="$(basename "$(pwd)")"
+
+        local stack_label=""
+        if [[ -f package.json ]]; then stack_label="Node.js / TypeScript"
+        elif [[ -f go.mod ]]; then stack_label="Go"
+        elif [[ -f pyproject.toml || -f setup.py ]]; then stack_label="Python"
+        elif [[ -f mix.exs ]]; then stack_label="Elixir"
+        fi
+
+        cat > CLAUDE.md << CLAUDE_EOF
+# CLAUDE.md — $project_name
+
+## Project
+
+$project_name
+
+## Tech Stack
+
+${stack_label:-TBD}
+CLAUDE_EOF
+        echo "  Created: CLAUDE.md"
+    fi
 
     # AGENTS.md / GEMINI.md symlinks if missing
     if [[ -f CLAUDE.md && ! -f AGENTS.md && ! -L AGENTS.md ]]; then
@@ -552,32 +643,49 @@ AGREEMENTS
             ((claude_appended++))
         fi
 
-        # Test/lint commands — detect stack and add if missing
-        if ! grep -qiE 'test command|npm test|go test|pytest|mix test' CLAUDE.md 2>/dev/null; then
-            local test_cmd="" lint_cmd="" build_cmd=""
-            if [[ -f package.json ]]; then
-                test_cmd="npm test"; lint_cmd="npx eslint . && npx tsc --noEmit"; build_cmd="npm run build"
-            elif [[ -f go.mod ]]; then
-                test_cmd="go test ./..."; lint_cmd="go vet ./... && golangci-lint run ./..."; build_cmd="go build ./cmd/..."
-            elif [[ -f pyproject.toml || -f setup.py || -f requirements.txt ]]; then
-                test_cmd="pytest"; lint_cmd="ruff check . && mypy src/"; build_cmd="python -m build"
-            elif [[ -f mix.exs ]]; then
-                test_cmd="mix test"; lint_cmd="mix format --check-formatted && mix credo --strict"; build_cmd="MIX_ENV=prod mix release"
-            fi
-            if [[ -n "$test_cmd" ]]; then
-                cat >> CLAUDE.md << COMMANDS
+        # Detect stack commands once
+        local test_cmd="" lint_cmd="" build_cmd=""
+        if [[ -f package.json ]]; then
+            test_cmd="npm test"; lint_cmd="npx eslint . && npx tsc --noEmit"; build_cmd="npm run build"
+        elif [[ -f go.mod ]]; then
+            test_cmd="go test ./..."; lint_cmd="go vet ./... && golangci-lint run ./..."; build_cmd="go build ./cmd/..."
+        elif [[ -f pyproject.toml || -f setup.py || -f requirements.txt ]]; then
+            test_cmd="pytest"; lint_cmd="ruff check . && mypy src/"; build_cmd="python -m build"
+        elif [[ -f mix.exs ]]; then
+            test_cmd="mix test"; lint_cmd="mix format --check-formatted && mix credo --strict"; build_cmd="MIX_ENV=prod mix release"
+        fi
+
+        # Test command — add if missing
+        if [[ -n "$test_cmd" ]] && ! grep -qiE 'test command|npm test|go test|pytest|mix test|cargo test' CLAUDE.md 2>/dev/null; then
+            cat >> CLAUDE.md << COMMANDS
 
 ## Test Commands
 
 \`\`\`bash
 $test_cmd
 \`\`\`
+COMMANDS
+            echo "  Appended: Test Commands to CLAUDE.md"
+            ((claude_appended++))
+        fi
+
+        # Lint command — add if missing (independent of test check)
+        if [[ -n "$lint_cmd" ]] && ! grep -qiE 'lint command|eslint|golangci|ruff|pylint|rubocop|credo|mix format' CLAUDE.md 2>/dev/null; then
+            cat >> CLAUDE.md << COMMANDS
 
 ## Lint Commands
 
 \`\`\`bash
 $lint_cmd
 \`\`\`
+COMMANDS
+            echo "  Appended: Lint Commands to CLAUDE.md"
+            ((claude_appended++))
+        fi
+
+        # Build command — add if missing
+        if [[ -n "$build_cmd" ]] && ! grep -qiE 'build command|npm run build|go build|python -m build|mix release' CLAUDE.md 2>/dev/null; then
+            cat >> CLAUDE.md << COMMANDS
 
 ## Build Commands
 
@@ -585,9 +693,8 @@ $lint_cmd
 $build_cmd
 \`\`\`
 COMMANDS
-                echo "  Appended: Test/Lint/Build commands to CLAUDE.md"
-                ((claude_appended++))
-            fi
+            echo "  Appended: Build Commands to CLAUDE.md"
+            ((claude_appended++))
         fi
 
         # Tech stack section

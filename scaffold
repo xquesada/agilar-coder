@@ -616,6 +616,10 @@ if [[ "$TOOL_NAME" == "claude-code" && "$TEAM_MODE_CHOICE" == "2" ]]; then
 fi
 
 # Generate CLAUDE.md from template
+# Remove any existing symlink so cat > writes a real file (handles reversed symlinks)
+if [[ -L "$PROJECT_DIR/CLAUDE.md" ]]; then
+    rm "$PROJECT_DIR/CLAUDE.md"
+fi
 CLAUDEMD="$PROJECT_DIR/CLAUDE.md"
 
 # Build the branching section

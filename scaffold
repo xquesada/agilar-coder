@@ -24,21 +24,38 @@ DEFAULT_PROJECT_NAME="$(basename "$(pwd)")"
 read -rp "Project name [$DEFAULT_PROJECT_NAME]: " PROJECT_NAME
 PROJECT_NAME="${PROJECT_NAME:-$DEFAULT_PROJECT_NAME}"
 
-read -rp "Project description (one line): " PROJECT_DESCRIPTION
-if [[ -z "$PROJECT_DESCRIPTION" ]]; then
-  PROJECT_DESCRIPTION="$PROJECT_NAME"
+# Auto-detect project description from common sources
+DEFAULT_DESCRIPTION=""
+if [[ -f package.json ]]; then
+  DEFAULT_DESCRIPTION="$(grep -o '"description"[[:space:]]*:[[:space:]]*"[^"]*"' package.json 2>/dev/null | head -1 | sed 's/.*"description"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')"
+fi
+if [[ -z "$DEFAULT_DESCRIPTION" && -f go.mod ]]; then
+  # Go modules don't have descriptions, but check for a doc.go or README first line
+  DEFAULT_DESCRIPTION="$(head -5 README.md 2>/dev/null | grep -v '^#' | grep -v '^$' | head -1 || true)"
+fi
+if [[ -z "$DEFAULT_DESCRIPTION" && -f pyproject.toml ]]; then
+  DEFAULT_DESCRIPTION="$(grep -E '^description\s*=' pyproject.toml 2>/dev/null | head -1 | sed 's/.*=\s*"\(.*\)"/\1/')"
+fi
+if [[ -z "$DEFAULT_DESCRIPTION" && -f mix.exs ]]; then
+  DEFAULT_DESCRIPTION="$(grep -o 'description:.*"[^"]*"' mix.exs 2>/dev/null | head -1 | sed 's/.*"\([^"]*\)".*/\1/')"
+fi
+# Last resort: first non-heading, non-empty line from README
+if [[ -z "$DEFAULT_DESCRIPTION" && -f README.md ]]; then
+  DEFAULT_DESCRIPTION="$(grep -v '^#' README.md 2>/dev/null | grep -v '^\s*$' | head -1 || true)"
 fi
 
-# --- Step 2: Target directory ---
-
-read -rp "Project directory [.]: " PROJECT_DIR
-PROJECT_DIR="${PROJECT_DIR:-.}"
-PROJECT_DIR="$(cd "$PROJECT_DIR" 2>/dev/null && pwd || echo "$PROJECT_DIR")"
-
-if [[ ! -d "$PROJECT_DIR" ]]; then
-  echo "Directory $PROJECT_DIR does not exist." >&2
-  exit 1
+if [[ -n "$DEFAULT_DESCRIPTION" ]]; then
+  read -rp "Project description [$DEFAULT_DESCRIPTION]: " PROJECT_DESCRIPTION
+  PROJECT_DESCRIPTION="${PROJECT_DESCRIPTION:-$DEFAULT_DESCRIPTION}"
+else
+  read -rp "Project description (one line): " PROJECT_DESCRIPTION
+  if [[ -z "$PROJECT_DESCRIPTION" ]]; then
+    PROJECT_DESCRIPTION="$PROJECT_NAME"
+  fi
 fi
+
+# Project directory is the current working directory (passed via agilar-coder install [dir])
+PROJECT_DIR="$(pwd)"
 
 # --- Step 3: Team mode ---
 

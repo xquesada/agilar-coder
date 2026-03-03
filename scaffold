@@ -14,8 +14,8 @@ CYAN='\033[0;36m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
-echo -e "${BOLD}Agilar AI SDLC — Project Scaffold${NC}"
-echo -e "${DIM}Sets up your project with skills, working agreements, and configuration.${NC}"
+echo -e "${BOLD}agilar-coder repo scaffold${NC}"
+echo -e "${DIM}Sets up your project with the Agilar AI framework - an AI augmented Agile way of working${NC}"
 echo ""
 
 # --- Step 1: Project basics ---

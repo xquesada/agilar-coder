@@ -107,14 +107,18 @@ fi
 # Detect deployment
 DETECTED_DEPLOY=""
 DETECTED_DEPLOY_LABEL=""
-if [[ -f "$PROJECT_DIR/vercel.json" || -f "$PROJECT_DIR/netlify.toml" ]]; then
+if [[ -f "$PROJECT_DIR/fly.toml" ]]; then
+  DETECTED_DEPLOY="hosted"; DETECTED_DEPLOY_LABEL="Fly.io"
+elif [[ -f "$PROJECT_DIR/vercel.json" || -f "$PROJECT_DIR/netlify.toml" ]]; then
   DETECTED_DEPLOY="hosted"
   [[ -f "$PROJECT_DIR/vercel.json" ]] && DETECTED_DEPLOY_LABEL="Vercel"
   [[ -f "$PROJECT_DIR/netlify.toml" ]] && DETECTED_DEPLOY_LABEL="Netlify"
-elif [[ -f "$PROJECT_DIR/Dockerfile" ]] || [[ -f "$PROJECT_DIR/docker-compose.yml" ]] || [[ -f "$PROJECT_DIR/docker-compose.yaml" ]]; then
-  DETECTED_DEPLOY="remote"; DETECTED_DEPLOY_LABEL="Docker (remote server)"
+elif [[ -f "$PROJECT_DIR/render.yaml" ]]; then
+  DETECTED_DEPLOY="hosted"; DETECTED_DEPLOY_LABEL="Render"
 elif [[ -f "$PROJECT_DIR/Procfile" ]]; then
   DETECTED_DEPLOY="hosted"; DETECTED_DEPLOY_LABEL="Heroku"
+elif [[ -f "$PROJECT_DIR/Dockerfile" ]] || [[ -f "$PROJECT_DIR/docker-compose.yml" ]] || [[ -f "$PROJECT_DIR/docker-compose.yaml" ]]; then
+  DETECTED_DEPLOY="remote"; DETECTED_DEPLOY_LABEL="Docker (remote server)"
 fi
 
 # Detect architecture (source/instance split)

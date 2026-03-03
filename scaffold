@@ -355,88 +355,62 @@ if [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
   esac
 fi
 
-# --- Step 9: Project type ---
+# --- Step 9: What are you building ---
 
 echo ""
-echo -e "${BOLD}What are you building?${NC}"
-echo "  1) A website or web page"
-echo -e "     ${DIM}Examples: a company website like wikipedia.com, a blog, a landing page${NC}"
-echo "  2) An app that people use in their browser"
-echo -e "     ${DIM}Examples: something like Google Sheets, a dashboard, an online store${NC}"
-echo "  3) A tool that runs in the background or from the command line"
-echo -e "     ${DIM}Examples: a chatbot, a scheduled report, a file organizer${NC}"
-echo "  4) I'll describe it myself (for experienced developers)"
-read -rp "Choose [1]: " PROJECT_TYPE_CHOICE
-PROJECT_TYPE_CHOICE="${PROJECT_TYPE_CHOICE:-1}"
+read -rp "What type of software are you building and what does it do? (examples: a corporate website, a mobile app, a report...) " PROJECT_TYPE_DESC
 
-PROJECT_TYPE_DESC=""
-case "$PROJECT_TYPE_CHOICE" in
-  1) PROJECT_TYPE="website" ;;
-  2) PROJECT_TYPE="webapp" ;;
-  3) PROJECT_TYPE="tool" ;;
-  4)
-    PROJECT_TYPE="custom"
-    echo ""
-    read -rp "Describe your software and how it should be deployed: " PROJECT_TYPE_DESC
-    ;;
-  *) echo "Invalid choice." >&2; exit 1 ;;
-esac
-
-# --- Step 10: Architecture (types 1-3 only) ---
+# --- Step 10: Architecture ---
 
 ARCH_TYPE="allinone"
 INSTANCE_LOCATION=""
-if [[ "$PROJECT_TYPE" != "custom" ]]; then
-  echo ""
-  echo -e "${BOLD}Where will the settings and data for this software live?${NC}"
-  echo "  1) Together with the code"
-  echo -e "     ${DIM}Like a Word document — everything in one place. Most projects start here.${NC}"
-  echo "  2) In a separate location"
-  echo -e "     ${DIM}Like an app you install on your phone — the app comes from the App Store,${NC}"
-  echo -e "     ${DIM}but your data and settings live on your phone.${NC}"
-  echo "  3) Not sure yet — I'll figure it out later"
-  read -rp "Choose [1]: " ARCH_CHOICE
-  ARCH_CHOICE="${ARCH_CHOICE:-1}"
+echo ""
+echo -e "${BOLD}Where will the settings and data for this software live?${NC}"
+echo "  1) Together with the code"
+echo -e "     ${DIM}Like a Word document — everything in one place. Most projects start here.${NC}"
+echo "  2) In a separate location"
+echo -e "     ${DIM}Like an app you install on your phone — the app comes from the App Store,${NC}"
+echo -e "     ${DIM}but your data and settings live on your phone.${NC}"
+echo "  3) Not sure yet — I'll figure it out later"
+read -rp "Choose [1]: " ARCH_CHOICE
+ARCH_CHOICE="${ARCH_CHOICE:-1}"
 
-  case "$ARCH_CHOICE" in
-    1) ARCH_TYPE="allinone" ;;
-    2)
-      ARCH_TYPE="separated"
-      read -rp "Describe where (a folder path, a server name, anything that helps): " INSTANCE_LOCATION
-      ;;
-    3) ARCH_TYPE="undecided" ;;
-    *) echo "Invalid choice." >&2; exit 1 ;;
-  esac
-fi
+case "$ARCH_CHOICE" in
+  1) ARCH_TYPE="allinone" ;;
+  2)
+    ARCH_TYPE="separated"
+    read -rp "Describe where (a folder path, a server name, anything that helps): " INSTANCE_LOCATION
+    ;;
+  3) ARCH_TYPE="undecided" ;;
+  *) echo "Invalid choice." >&2; exit 1 ;;
+esac
 
-# --- Step 11: Deployment (types 1-3 only) ---
+# --- Step 11: Deployment ---
 
 DEPLOY_TARGET="local"
 DEPLOY_TARGET_DESC=""
-if [[ "$PROJECT_TYPE" != "custom" ]]; then
-  echo ""
-  echo -e "${BOLD}Where will this software run when it's ready for real use?${NC}"
-  echo "  1) On my own computer"
-  echo "  2) On another computer I manage (a server, a Raspberry Pi, etc.)"
-  echo "  3) On a hosting service (like Wix, Squarespace, Vercel, or similar)"
-  echo "  4) I don't know yet"
-  read -rp "Choose [1]: " DEPLOY_CHOICE
-  DEPLOY_CHOICE="${DEPLOY_CHOICE:-1}"
+echo ""
+echo -e "${BOLD}Where will this software run when it's ready for real use?${NC}"
+echo "  1) On my own computer"
+echo "  2) On another computer I manage (a server, a Raspberry Pi, etc.)"
+echo "  3) On a hosting service (like Wix, Squarespace, Vercel, or similar)"
+echo "  4) I don't know yet"
+read -rp "Choose [1]: " DEPLOY_CHOICE
+DEPLOY_CHOICE="${DEPLOY_CHOICE:-1}"
 
-  case "$DEPLOY_CHOICE" in
-    1) DEPLOY_TARGET="local" ;;
-    2)
-      DEPLOY_TARGET="remote"
-      read -rp "How do you connect to that computer? (a name, address, or anything you know): " DEPLOY_TARGET_DESC
-      ;;
-    3)
-      DEPLOY_TARGET="hosted"
-      read -rp "Which service?: " DEPLOY_TARGET_DESC
-      ;;
-    4) DEPLOY_TARGET="undecided" ;;
-    *) echo "Invalid choice." >&2; exit 1 ;;
-  esac
-fi
+case "$DEPLOY_CHOICE" in
+  1) DEPLOY_TARGET="local" ;;
+  2)
+    DEPLOY_TARGET="remote"
+    read -rp "How do you connect to that computer? (a name, address, or anything you know): " DEPLOY_TARGET_DESC
+    ;;
+  3)
+    DEPLOY_TARGET="hosted"
+    read -rp "Which service?: " DEPLOY_TARGET_DESC
+    ;;
+  4) DEPLOY_TARGET="undecided" ;;
+  *) echo "Invalid choice." >&2; exit 1 ;;
+esac
 
 # --- Generate files ---
 
@@ -558,14 +532,7 @@ fi
 
 # Build deploy section
 DEPLOY_SECTION=""
-if [[ "$PROJECT_TYPE" == "custom" ]]; then
-  DEPLOY_SECTION="## Deploy
-
-$PROJECT_TYPE_DESC
-
-The agent should use this description to understand the deployment setup. Ask
-clarifying questions at session start if anything is unclear."
-elif [[ "$DEPLOY_TARGET" == "undecided" ]]; then
+if [[ "$DEPLOY_TARGET" == "undecided" ]]; then
   DEPLOY_SECTION="## Deploy
 
 Not configured yet. When you're ready to deploy, describe where the software should
@@ -578,15 +545,6 @@ This runs locally on this computer. Start it with:
 \`\`\`bash
 $BUILD_CMD
 \`\`\`"
-elif [[ "$DEPLOY_TARGET" == "remote" && "$PROJECT_TYPE" == "tool" ]]; then
-  DEPLOY_SECTION="## Deploy
-
-| Environment | Where |
-|-------------|-------|
-| Development | This computer (build and test here) |
-| Production | $DEPLOY_TARGET_DESC |
-
-Build the software here, then deploy the result to the production machine."
 elif [[ "$DEPLOY_TARGET" == "remote" ]]; then
   DEPLOY_SECTION="## Deploy
 
@@ -643,7 +601,7 @@ cat > "$CLAUDEMD" << CLAUDEMD_EOF
 
 ## Project
 
-$PROJECT_DESCRIPTION
+$PROJECT_DESCRIPTION$(if [[ -n "$PROJECT_TYPE_DESC" ]]; then printf '\n\n**What we are building:** %s' "$PROJECT_TYPE_DESC"; fi)
 
 ## Team Mode
 
@@ -848,9 +806,7 @@ fi
 if [[ "$ARCH_TYPE" == "separated" ]]; then
   echo "  Architecture: Source and Instance — instance at $INSTANCE_LOCATION"
 fi
-if [[ "$PROJECT_TYPE" == "custom" ]]; then
-  echo "  Deploy: custom (described in CLAUDE.md)"
-elif [[ "$DEPLOY_TARGET" == "local" ]]; then
+if [[ "$DEPLOY_TARGET" == "local" ]]; then
   echo "  Deploy: local (this computer)"
 elif [[ "$DEPLOY_TARGET" == "remote" ]]; then
   echo "  Deploy: $DEPLOY_TARGET_DESC"

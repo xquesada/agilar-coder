@@ -530,6 +530,99 @@ fill_gaps() {
         echo "  Created: backlog/ directory structure"
     fi
 
+    # Append missing sections to CLAUDE.md (if it exists)
+    if [[ -f CLAUDE.md ]]; then
+        local claude_appended=0
+
+        # Working agreements (check each keyword)
+        if ! grep -qiE 'tdd|test.driven|write tests first' CLAUDE.md 2>/dev/null; then
+            cat >> CLAUDE.md << 'AGREEMENTS'
+
+## Working Agreements
+
+These are non-negotiable. The agent enforces them.
+
+- **No production code without a failing test first** (TDD)
+- **No fix without root cause investigation** (Debugging)
+- **No completion claim without fresh verification evidence** (Verification)
+- **No design without exploring alternatives** (Brainstorming)
+- **No merge without code review** (Code Review)
+AGREEMENTS
+            echo "  Appended: Working Agreements to CLAUDE.md"
+            ((claude_appended++))
+        fi
+
+        # Test/lint commands — detect stack and add if missing
+        if ! grep -qiE 'test command|npm test|go test|pytest|mix test' CLAUDE.md 2>/dev/null; then
+            local test_cmd="" lint_cmd="" build_cmd=""
+            if [[ -f package.json ]]; then
+                test_cmd="npm test"; lint_cmd="npx eslint . && npx tsc --noEmit"; build_cmd="npm run build"
+            elif [[ -f go.mod ]]; then
+                test_cmd="go test ./..."; lint_cmd="go vet ./... && golangci-lint run ./..."; build_cmd="go build ./cmd/..."
+            elif [[ -f pyproject.toml || -f setup.py || -f requirements.txt ]]; then
+                test_cmd="pytest"; lint_cmd="ruff check . && mypy src/"; build_cmd="python -m build"
+            elif [[ -f mix.exs ]]; then
+                test_cmd="mix test"; lint_cmd="mix format --check-formatted && mix credo --strict"; build_cmd="MIX_ENV=prod mix release"
+            fi
+            if [[ -n "$test_cmd" ]]; then
+                cat >> CLAUDE.md << COMMANDS
+
+## Test Commands
+
+\`\`\`bash
+$test_cmd
+\`\`\`
+
+## Lint Commands
+
+\`\`\`bash
+$lint_cmd
+\`\`\`
+
+## Build Commands
+
+\`\`\`bash
+$build_cmd
+\`\`\`
+COMMANDS
+                echo "  Appended: Test/Lint/Build commands to CLAUDE.md"
+                ((claude_appended++))
+            fi
+        fi
+
+        # Tech stack section
+        if ! grep -qiE 'tech.stack|toolchain|stack' CLAUDE.md 2>/dev/null; then
+            local stack_label=""
+            if [[ -f package.json ]]; then stack_label="Node.js / TypeScript"
+            elif [[ -f go.mod ]]; then stack_label="Go"
+            elif [[ -f pyproject.toml || -f setup.py ]]; then stack_label="Python"
+            elif [[ -f mix.exs ]]; then stack_label="Elixir"
+            fi
+            if [[ -n "$stack_label" ]]; then
+                printf '\n## Tech Stack\n\n%s\n' "$stack_label" >> CLAUDE.md
+                echo "  Appended: Tech Stack to CLAUDE.md"
+                ((claude_appended++))
+            fi
+        fi
+
+        [[ $claude_appended -eq 0 ]] && true  # no-op to avoid set -e
+    fi
+
+    # Stack reference doc
+    if [[ ! -f docs/stack-reference.md && ! -f TOOLCHAIN.md ]]; then
+        local stack_name=""
+        if [[ -f package.json ]]; then stack_name="node"
+        elif [[ -f go.mod ]]; then stack_name="go"
+        elif [[ -f pyproject.toml || -f setup.py ]]; then stack_name="python"
+        elif [[ -f mix.exs ]]; then stack_name="elixir"
+        fi
+        if [[ -n "$stack_name" && -f "$repo_root/templates/stacks/$stack_name.md" ]]; then
+            mkdir -p docs
+            cp "$repo_root/templates/stacks/$stack_name.md" docs/stack-reference.md
+            echo "  Created: docs/stack-reference.md"
+        fi
+    fi
+
     # Canonical skill docs if docs/skills/ doesn't exist
     if [[ ! -d docs/skills ]]; then
         mkdir -p docs/skills

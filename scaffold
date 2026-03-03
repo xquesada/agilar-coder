@@ -877,15 +877,24 @@ for skill_dir in "$SCRIPT_DIR"/skills/*/; do
 done
 echo -e "  ${GREEN}+${NC} docs/skills/ (canonical skill definitions)"
 
-# Enable Entire if selected
+# Create PBI for Entire setup if selected
 if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
-  if command -v entire &>/dev/null; then
-    (cd "$PROJECT_DIR" && entire enable 2>/dev/null) && \
-      echo -e "  ${GREEN}+${NC} Entire audit trail enabled" || \
-      echo -e "  ${YELLOW}!${NC} Entire: could not enable automatically — run 'entire enable' manually"
-  else
-    echo -e "  ${YELLOW}!${NC} Entire: not installed — run 'brew tap entireio/tap && brew install entireio/tap/entire && entire enable'"
-  fi
+  cat > "$PROJECT_DIR/backlog/ready/entire-audit-trail.md" << 'ENTIRE_PBI'
+# Install Entire audit trail
+
+## Description
+Set up the Entire open source tool to capture a git-native log of every AI agent session.
+
+## Steps
+1. Install: `brew tap entireio/tap && brew install entireio/tap/entire`
+2. Enable in this repo: `entire enable`
+3. Verify: run a short AI session and check that the transcript appears in git history
+
+## Acceptance Criteria
+- `entire status` shows enabled
+- AI session transcripts are captured in git history
+ENTIRE_PBI
+  echo -e "  ${GREEN}+${NC} backlog/ready/entire-audit-trail.md"
 fi
 
 # Done

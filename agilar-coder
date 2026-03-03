@@ -294,24 +294,24 @@ show_help() {
 agilar-coder - Agilar's opinionated way of doing AI-augmented Agile Software Development
 
 USAGE:
-    agilar-coder init [git repository]              Set up a new project (scaffold wizard)
-    agilar-coder upgrade [git repository]           Update the framework to the latest version
-    agilar-coder status [git repository]            Show installed version of the framework
-    agilar-coder run <backlog-file> [count]         Build PBI's from a Product Backlog in unattended mode
-    agilar-coder -h | --help                        Show this help message
-    agilar-coder --version                          Show version
+    agilar-coder init [repo]                   Set up a new project (scaffold wizard)
+    agilar-coder upgrade [repo]                Update the framework to the latest version
+    agilar-coder status [repo]                 Show installed version of the framework
+    agilar-coder run <backlog-file> [count]    Build PBI's from a Product Backlog in unattended mode
+    agilar-coder -h | --help                   Show this help message
+    agilar-coder --version                     Show version
 
 OPTIONS (run mode):
     --debug         Show full command without executing
     -v, --verbose   Enable verbose output
 
 SUBCOMMANDS:
-    init [repo]     Run the scaffold wizard to set up methodology, skills,
-                    and CLAUDE.md. Defaults to current directory.
-    upgrade [repo]  Update the framework to the latest version.
-                    Shows what changed and handles removed/renamed skills.
-    status [repo]   Show installed version of the framework and skill inventory
-    run             Build PBI's from a Product Backlog in unattended mode
+    init [git repository]     Run the scaffold wizard to set up methodology, skills,
+                              and CLAUDE.md. Defaults to current directory.
+    upgrade [git repository]  Update the framework to the latest version.
+                              Shows what changed and handles removed/renamed skills.
+    status [git repository]   Show installed version of the framework and skill inventory
+    run                       Build PBI's from a Product Backlog in unattended mode
 
 CONFIGURATION:
     ~/.agilar-coder/config.conf    Runtime config (model, max turns, user prompt)

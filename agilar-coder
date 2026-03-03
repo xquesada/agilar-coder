@@ -9,10 +9,12 @@ set -euo pipefail
 if [[ -t 1 ]]; then
     RED='\033[0;31m'
     GREEN='\033[0;32m'
+    YELLOW='\033[0;33m'
     NC='\033[0m'
 else
     RED=''
     GREEN=''
+    YELLOW=''
     NC=''
 fi
 
@@ -190,8 +192,16 @@ cmd_status() {
 
     echo ""
 
-    # Skills — single line
-    local skills_line="Skills: $installed_count of $available_count available"
+    # Skills — single line, color-coded
+    local skills_color
+    if [[ $installed_count -eq $available_count ]]; then
+        skills_color="$GREEN"
+    elif [[ $installed_count -eq 0 ]]; then
+        skills_color="$RED"
+    else
+        skills_color="$YELLOW"
+    fi
+    local skills_line="Skills: ${skills_color}$installed_count of $available_count available${NC}"
     if [[ $modified_count -gt 0 ]]; then
         skills_line="$skills_line, ${RED}$modified_count skill(s) need to be upgraded${NC}"
     fi

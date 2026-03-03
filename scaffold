@@ -301,28 +301,35 @@ case "$TOOL_CHOICE" in
   *) echo "Invalid choice." >&2; exit 1 ;;
 esac
 
-# --- Step 6: Requirements management ---
+# --- Backlog management ---
 
-echo ""
-if [[ -n "$DETECTED_BACKLOG" ]]; then
-  echo -e "${BOLD}Backlog management:${NC} ${GREEN}$DETECTED_BACKLOG_LABEL${NC} detected"
-  echo "  1) Keep $DETECTED_BACKLOG_LABEL"
-  echo "  2) Change"
-  read -rp "Choose [1]: " BACKLOG_CONFIRM
-  BACKLOG_CONFIRM="${BACKLOG_CONFIRM:-1}"
-  if [[ "$BACKLOG_CONFIRM" == "1" ]]; then
-    BACKLOG_CHOICE="$DETECTED_BACKLOG"
-  else
-    echo ""
-    echo -e "${BOLD}Where do you manage requirements (Product Backlog)?${NC}"
-    echo "  1) Agilar PO Companion (recommended for enterprise product management)"
-    echo "  2) Agilar Chepibe (recommended for solo development & small projects)"
-    echo "  3) Jira"
-    echo "  4) Filesystem backlog only (built-in, no external tool needed)"
-    echo "  5) Other system"
-    read -rp "Choose: " BACKLOG_CHOICE
-  fi
+BACKLOG_SECTION=""
+BACKLOG_CHOICE=""
+
+if [[ -n "$DETECTED_STACK" && -n "$DETECTED_BACKLOG" ]]; then
+  # Existing project with detected backlog — skip silently
+  echo -e "${DIM}Backlog: ${DETECTED_BACKLOG_LABEL}${NC}"
+  BACKLOG_CHOICE="$DETECTED_BACKLOG"
+
+  # Set section without prompting for URLs
+  case "$DETECTED_BACKLOG" in
+    3)
+      BACKLOG_SECTION="## Product Backlog
+
+PBIs are managed in Jira. This repo is the development layer.
+
+**At session start:** use the Jira MCP or API to find tickets in the Ready column. Read description, acceptance criteria, and subtasks before starting work."
+      ;;
+    4)
+      BACKLOG_SECTION="## Product Backlog
+
+PBIs are managed as files in the \`backlog/\` directory. No external tool required.
+
+**At session start:** check \`backlog/ready/\` for PBIs to work on. Read the PBI file for acceptance criteria and checklist. Move to \`backlog/in_progress/\` when you begin."
+      ;;
+  esac
 else
+  echo ""
   echo -e "${BOLD}Where do you manage requirements (Product Backlog)?${NC}"
   echo "  1) Agilar PO Companion (recommended for enterprise product management)"
   echo "  2) Agilar Chepibe (recommended for solo development & small projects)"
@@ -333,7 +340,7 @@ else
   BACKLOG_CHOICE="${BACKLOG_CHOICE:-1}"
 fi
 
-BACKLOG_SECTION=""
+if [[ -z "$BACKLOG_SECTION" ]]; then
 case "$BACKLOG_CHOICE" in
   1)
     read -rp "PO Companion API URL (e.g. https://po.example.com/api/backlog): " BACKLOG_URL
@@ -441,8 +448,9 @@ PBIs are managed in $OTHER_SYSTEM_NAME via MCP. This repo is the development lay
     exit 1
     ;;
 esac
+fi # end of BACKLOG_SECTION empty check
 
-# --- Step 7: Code review ---
+# --- Code review ---
 
 echo ""
 if [[ "$TEAM_MODE_CHOICE" == "3" ]]; then

@@ -104,32 +104,6 @@ if command -v entire &>/dev/null && [[ -d "$PROJECT_DIR/.git" ]]; then
   fi
 fi
 
-# Detect deployment
-DETECTED_DEPLOY=""
-DETECTED_DEPLOY_LABEL=""
-if [[ -f "$PROJECT_DIR/fly.toml" ]]; then
-  DETECTED_DEPLOY="hosted"; DETECTED_DEPLOY_LABEL="Fly.io"
-elif [[ -f "$PROJECT_DIR/vercel.json" || -f "$PROJECT_DIR/netlify.toml" ]]; then
-  DETECTED_DEPLOY="hosted"
-  [[ -f "$PROJECT_DIR/vercel.json" ]] && DETECTED_DEPLOY_LABEL="Vercel"
-  [[ -f "$PROJECT_DIR/netlify.toml" ]] && DETECTED_DEPLOY_LABEL="Netlify"
-elif [[ -f "$PROJECT_DIR/render.yaml" ]]; then
-  DETECTED_DEPLOY="hosted"; DETECTED_DEPLOY_LABEL="Render"
-elif [[ -f "$PROJECT_DIR/Procfile" ]]; then
-  DETECTED_DEPLOY="hosted"; DETECTED_DEPLOY_LABEL="Heroku"
-elif [[ -f "$PROJECT_DIR/Dockerfile" ]] || [[ -f "$PROJECT_DIR/docker-compose.yml" ]] || [[ -f "$PROJECT_DIR/docker-compose.yaml" ]]; then
-  DETECTED_DEPLOY="remote"; DETECTED_DEPLOY_LABEL="Docker (remote server)"
-fi
-
-# Detect architecture (source/instance split)
-DETECTED_ARCH=""
-DETECTED_ARCH_LABEL=""
-if [[ -f "$PROJECT_DIR/DEVOPS.md" ]]; then
-  if grep -qi 'source.*instance\|instance.*source' "$PROJECT_DIR/DEVOPS.md" 2>/dev/null; then
-    DETECTED_ARCH="separated"; DETECTED_ARCH_LABEL="Source and Instance (from DEVOPS.md)"
-  fi
-fi
-
 # Is this an existing project?
 IS_EXISTING="false"
 [[ -n "$DETECTED_STACK" ]] && IS_EXISTING="true"
@@ -562,115 +536,6 @@ if [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
   fi
 fi
 
-# --- Step 10: Architecture ---
-
-ARCH_TYPE="allinone"
-INSTANCE_LOCATION=""
-echo ""
-if [[ -n "$DETECTED_ARCH" ]]; then
-  echo -e "${BOLD}Architecture:${NC} ${GREEN}$DETECTED_ARCH_LABEL${NC}"
-  read -rp "Keep this setup? [Y/n]: " ARCH_CONFIRM
-  ARCH_CONFIRM="${ARCH_CONFIRM:-Y}"
-  if [[ "$ARCH_CONFIRM" =~ ^[Yy] ]]; then
-    ARCH_TYPE="separated"
-  else
-    echo ""
-    echo -e "${BOLD}Where will the settings and data for this software live?${NC}"
-    echo "  1) Together with the code"
-    echo "  2) In a separate location"
-    echo "  3) Not sure yet — I'll figure it out later"
-    read -rp "Choose: " ARCH_CHOICE
-    case "$ARCH_CHOICE" in
-      1) ARCH_TYPE="allinone" ;;
-      2)
-        ARCH_TYPE="separated"
-        read -rp "Describe where (a folder path, a server name, anything that helps): " INSTANCE_LOCATION
-        ;;
-      3) ARCH_TYPE="undecided" ;;
-      *) echo "Invalid choice." >&2; exit 1 ;;
-    esac
-  fi
-else
-  echo -e "${BOLD}Where will the settings and data for this software live?${NC}"
-  echo "  1) Together with the code"
-  echo -e "     ${DIM}Like a Word document — everything in one place. Most projects start here.${NC}"
-  echo "  2) In a separate location"
-  echo -e "     ${DIM}Like an app you install on your phone — the app comes from the App Store,${NC}"
-  echo -e "     ${DIM}but your data and settings live on your phone.${NC}"
-  echo "  3) Not sure yet — I'll figure it out later"
-  read -rp "Choose [1]: " ARCH_CHOICE
-  ARCH_CHOICE="${ARCH_CHOICE:-1}"
-
-  case "$ARCH_CHOICE" in
-    1) ARCH_TYPE="allinone" ;;
-    2)
-      ARCH_TYPE="separated"
-      read -rp "Describe where (a folder path, a server name, anything that helps): " INSTANCE_LOCATION
-      ;;
-    3) ARCH_TYPE="undecided" ;;
-    *) echo "Invalid choice." >&2; exit 1 ;;
-  esac
-fi
-
-# --- Step 11: Deployment ---
-
-DEPLOY_TARGET="local"
-DEPLOY_TARGET_DESC=""
-echo ""
-if [[ -n "$DETECTED_DEPLOY" ]]; then
-  echo -e "${BOLD}Deployment:${NC} ${GREEN}$DETECTED_DEPLOY_LABEL${NC} detected"
-  echo "  1) Keep $DETECTED_DEPLOY_LABEL"
-  echo "  2) Change"
-  read -rp "Choose [1]: " DEPLOY_CONFIRM
-  DEPLOY_CONFIRM="${DEPLOY_CONFIRM:-1}"
-  if [[ "$DEPLOY_CONFIRM" == "1" ]]; then
-    DEPLOY_TARGET="$DETECTED_DEPLOY"
-    DEPLOY_TARGET_DESC="$DETECTED_DEPLOY_LABEL"
-  else
-    echo ""
-    echo -e "${BOLD}Where will this software run when it's ready for real use?${NC}"
-    echo "  1) On my own computer"
-    echo "  2) On another computer I manage (a server, a Raspberry Pi, etc.)"
-    echo "  3) On a hosting service (like Wix, Squarespace, Vercel, or similar)"
-    echo "  4) I don't know yet"
-    read -rp "Choose: " DEPLOY_CHOICE
-    case "$DEPLOY_CHOICE" in
-      1) DEPLOY_TARGET="local" ;;
-      2)
-        DEPLOY_TARGET="remote"
-        read -rp "How do you connect to that computer? (a name, address, or anything you know): " DEPLOY_TARGET_DESC
-        ;;
-      3)
-        DEPLOY_TARGET="hosted"
-        read -rp "Which service?: " DEPLOY_TARGET_DESC
-        ;;
-      4) DEPLOY_TARGET="undecided" ;;
-      *) echo "Invalid choice." >&2; exit 1 ;;
-    esac
-  fi
-else
-  echo -e "${BOLD}Where will this software run when it's ready for real use?${NC}"
-  echo "  1) On my own computer"
-  echo "  2) On another computer I manage (a server, a Raspberry Pi, etc.)"
-  echo "  3) On a hosting service (like Wix, Squarespace, Vercel, or similar)"
-  echo "  4) I don't know yet"
-  read -rp "Choose [1]: " DEPLOY_CHOICE
-  DEPLOY_CHOICE="${DEPLOY_CHOICE:-1}"
-
-  case "$DEPLOY_CHOICE" in
-    1) DEPLOY_TARGET="local" ;;
-    2)
-      DEPLOY_TARGET="remote"
-      read -rp "How do you connect to that computer? (a name, address, or anything you know): " DEPLOY_TARGET_DESC
-      ;;
-    3)
-      DEPLOY_TARGET="hosted"
-      read -rp "Which service?: " DEPLOY_TARGET_DESC
-      ;;
-    4) DEPLOY_TARGET="undecided" ;;
-    *) echo "Invalid choice." >&2; exit 1 ;;
-  esac
-fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Generate files
@@ -771,62 +636,6 @@ elif [[ "$TEAM_MODE_CHOICE" == "3" ]]; then
   COORD_SKILLS="- \`git-worktrees\` — optional, for developer isolation"
 fi
 
-# Build architecture section (only for separated installs)
-ARCH_SECTION=""
-if [[ "$ARCH_TYPE" == "separated" ]]; then
-  ARCH_SECTION="## Architecture: Source and Instance
-
-This repo is the **source** — it contains the code you build. It does not contain
-runtime configuration or data.
-
-The **instance** (where the software actually runs) lives at: $INSTANCE_LOCATION
-
-| What | Where |
-|------|-------|
-| Source code and tests | This repo |
-| Configuration and settings | $INSTANCE_LOCATION |
-| Data created at runtime | $INSTANCE_LOCATION |
-
-When building, never add instance-specific configuration (secrets, server addresses,
-user data) to this repo. When deploying, copy the built software to the instance
-and let it read its configuration from there."
-fi
-
-# Build deploy section
-DEPLOY_SECTION=""
-if [[ "$DEPLOY_TARGET" == "undecided" ]]; then
-  DEPLOY_SECTION="## Deploy
-
-Not configured yet. When you're ready to deploy, describe where the software should
-run and the agent will help you set it up."
-elif [[ "$DEPLOY_TARGET" == "local" ]]; then
-  DEPLOY_SECTION="## Deploy
-
-This runs locally on this computer. Start it with:
-
-\`\`\`bash
-$BUILD_CMD
-\`\`\`"
-elif [[ "$DEPLOY_TARGET" == "remote" ]]; then
-  DEPLOY_SECTION="## Deploy
-
-| Environment | Where |
-|-------------|-------|
-| Development | This computer |
-| Production | $DEPLOY_TARGET_DESC |
-
-To deploy, connect to the production machine and pull the latest code, build, and restart."
-elif [[ "$DEPLOY_TARGET" == "hosted" ]]; then
-  DEPLOY_SECTION="## Deploy
-
-| Environment | Where |
-|-------------|-------|
-| Development | This computer |
-| Production | $DEPLOY_TARGET_DESC |
-
-Follow the hosting service's deployment process to publish updates."
-fi
-
 # Build code review line
 if [[ "$CODE_REVIEW" == "yes" ]]; then
   CR_AGREEMENT="- **No merge without code review** (Code Review)"
@@ -921,7 +730,7 @@ $BUILD_CMD
 
 ## Branching
 
-$BRANCH_SECTION$(if [[ -n "$ENTIRE_SECTION" ]]; then printf '\n\n%s' "$ENTIRE_SECTION"; fi)$(if [[ -n "$ARCH_SECTION" ]]; then printf '\n\n%s' "$ARCH_SECTION"; fi)
+$BRANCH_SECTION$(if [[ -n "$ENTIRE_SECTION" ]]; then printf '\n\n%s' "$ENTIRE_SECTION"; fi)
 
 ## PBI-First Rule
 
@@ -942,7 +751,7 @@ PBI files live in \`backlog/\` and move through folders as they progress:
 - "Build the next ready PBI" — picks oldest from ready/, executes, archives to done/
 - "Build all ready PBIs" — processes the queue
 
-$BACKLOG_SECTION$(if [[ -n "$DEPLOY_SECTION" ]]; then printf '\n\n%s' "$DEPLOY_SECTION"; fi)
+$BACKLOG_SECTION
 
 ## Skills
 
@@ -1064,18 +873,6 @@ fi
 echo "  docs/skills/               — Canonical skill definitions (reference)"
 if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
   echo "  Entire                     — Git-native audit trail (install separately)"
-fi
-if [[ "$ARCH_TYPE" == "separated" ]]; then
-  echo "  Architecture: Source and Instance — instance at $INSTANCE_LOCATION"
-fi
-if [[ "$DEPLOY_TARGET" == "local" ]]; then
-  echo "  Deploy: local (this computer)"
-elif [[ "$DEPLOY_TARGET" == "remote" ]]; then
-  echo "  Deploy: $DEPLOY_TARGET_DESC"
-elif [[ "$DEPLOY_TARGET" == "hosted" ]]; then
-  echo "  Deploy: $DEPLOY_TARGET_DESC"
-elif [[ "$DEPLOY_TARGET" == "undecided" ]]; then
-  echo "  Deploy: not configured yet"
 fi
 echo ""
 echo -e "${BOLD}Next steps:${NC}"

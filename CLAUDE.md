@@ -1,59 +1,63 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working in this repository.
 
 ## Project Overview
 
-agilar-coder is a bash script that runs Claude Code unattended, processing Product Backlog Items (PBIs) from a markdown file. It orchestrates Claude Code to implement one PBI at a time, tracking progress via a status file.
+agilar-coder is Agilar's AI SDLC methodology made executable — a CLI, skills, scaffold wizard, and documentation in a single product. It encodes how humans and AI agents build software together: humans design, AI executes, quality is non-negotiable.
 
-## Running the Script
+**Version:** See `VERSION` file (semver)
 
-```bash
-# Process all PBIs until backlog is empty
-./agilar-coder backlog.md
+## Repository Structure
 
-# Process exactly N PBIs
-./agilar-coder backlog.md 3
-
-# Show full command without executing (debug mode)
-./agilar-coder --debug backlog.md
+```
+agilar-coder/
+├── agilar-coder              # CLI bash script
+├── SPEC.md                   # CLI specification
+├── VERSION                   # Semver version (major.minor.patch)
+├── README.md                 # Methodology overview + getting started
+├── SCRUM.md                  # Agile framework: roles, artifacts, events
+├── DEVOPS.md                 # Pipeline: environments, quality gates, CI/CD
+├── TOOLCHAIN.md              # Recommended tools + alternatives
+├── scaffold                  # Project setup wizard (bash)
+├── skills/                   # 17 canonical skill definitions (tool-agnostic)
+├── implementations/          # Tool-specific skill implementations
+│   ├── claude-code/          # Claude Code .claude/skills/ format
+│   ├── cursor/               # Cursor format (future)
+│   └── generic/              # Plain markdown
+├── templates/                # Scaffold templates (CLAUDE.md.tmpl, stacks/, agents/)
+├── examples/                 # Example project configs (solo-go, team-node, multi-agent-web)
+├── docs/                     # Case studies and implementation plans
+└── .claude/
+    └── settings.local.json   # Claude Code permissions
 ```
 
-## Testing Changes
+## The CLI (`agilar-coder`)
 
-No automated test framework. To verify changes:
-1. Use `--debug` mode to inspect prompt construction without execution
-2. Run with `shellcheck agilar-coder` for static analysis
-3. Test with a sample backlog file in a project directory
+Bash script that runs Claude Code unattended, processing PBIs from a markdown backlog file one at a time.
 
-## Architecture
+```bash
+./agilar-coder backlog.md        # Process all PBIs until done
+./agilar-coder backlog.md 3      # Process exactly 3 PBIs
+./agilar-coder --debug backlog.md  # Show command without executing
+```
 
-Single 413-line bash script with 10 functions:
+### Architecture
 
-**Configuration & Setup:**
-- `load_config()` / `create_default_config()` - Manage `~/.agilar-coder/config.conf`
-- `validate_project_context()` - Ensure working directory has code/CLAUDE.md
+Single bash script (~415 lines), 10 functions:
 
-**Prompt Engineering:**
-- `build_prompt()` - Assembles fixed prompt + user prompt + backlog path
-- `FIXED_PROMPT` constant - Core instructions for PBI processing
+- `load_config()` / `create_default_config()` — manage `~/.agilar-coder/config.conf`
+- `validate_project_context()` — ensure working directory has code/CLAUDE.md
+- `build_prompt()` — assemble fixed prompt + user prompt + backlog path
+- `run_claude()` — invoke `claude` CLI with configured flags
+- `read_status_file()` — parse `.agilar-status` after each run
+- `main()` — loop: run Claude → check status → print progress → repeat or exit
 
-**Execution:**
-- `run_claude()` - Invokes `claude` CLI with configured flags
-- `read_status_file()` - Parses `.agilar-status` after each run
-- `main()` - Loop: run Claude → check status → print progress → repeat or exit
+### Communication Protocol
 
-**Communication Protocol:**
 Claude writes `.agilar-status` with `TOTAL`, `REMAINING`, `LAST_PBI`, `STATUS` (and `ERROR` if failed). The script sources this file to determine next action.
 
-## Key Design Decisions
-
-- **One PBI per execution**: Prevents runaway processes; enables granular control
-- **Project context required**: Must have CLAUDE.md or existing code to prevent arbitrary tech choices
-- **Status file interface**: Shell-sourceable format for easy parsing
-- **Fixed + User prompt**: Core behavior is hardcoded; user customizes via `USER_PROMPT` config
-
-## Exit Codes
+### Exit Codes
 
 | Code | Meaning |
 |------|---------|
@@ -63,3 +67,73 @@ Claude writes `.agilar-status` with `TOTAL`, `REMAINING`, `LAST_PBI`, `STATUS` (
 | 3 | Status file missing/invalid |
 | 4 | Status file reports error |
 | 5 | No project context |
+
+Full specification: `SPEC.md`
+
+## The Methodology
+
+Three Pillars:
+
+1. **Human Designs, AI Executes** — clear role contract (human = PO, AI = skilled developer)
+2. **Working Agreements** — quality gates the team commits to (TDD, debugging root cause, verification evidence, brainstorming alternatives, code review)
+3. **Opinionated by Default** — concrete choices, not guidelines. Adapt when needed, but defaults work.
+
+Details in: `SCRUM.md` (Agile framework), `DEVOPS.md` (pipeline + quality gates), `TOOLCHAIN.md` (recommended tools)
+
+## Skills
+
+17 skills covering the full development lifecycle:
+
+| Category | Skills |
+|----------|--------|
+| **Planning** | brainstorming, sprint-planning, executing-plans |
+| **Development** | tdd, debugging, bdd |
+| **Quality** | code-review, requesting-code-review, receiving-code-review, verification |
+| **Completion** | finishing-a-development-branch |
+| **Multi-agent** | subagent-driven, parallel-agents, git-worktrees |
+| **Facilitation** | scrum-master, po-coach, facilitator |
+
+### Two layers
+
+- **Canonical** (`skills/<name>/SKILL.md`) — tool-agnostic process definition
+- **Implementations** (`implementations/<tool>/<name>.md`) — tool-specific format
+
+When editing a skill, update the canonical SKILL.md first, then sync implementations. The canonical version is the source of truth.
+
+## Scaffold
+
+Interactive bash wizard that generates project configuration from templates.
+
+```bash
+./scaffold    # Run in your project directory
+```
+
+Asks about: project name, description, team mode (solo/multi-agent/multi-human), stack, tool, code review, branching, deployment, architecture, Entire audit trail.
+
+**Testing scaffold changes:**
+1. `bash -n scaffold` — syntax check
+2. Run in a temp directory — verify generated files
+3. Check that optional sections (deploy, architecture) appear/omit correctly
+
+## Testing
+
+- **CLI:** `shellcheck agilar-coder` for static analysis, `--debug` mode for prompt inspection
+- **Scaffold:** `bash -n scaffold` + manual runs in temp directories
+- **Skills:** Manual review — check that canonical and implementations stay in sync
+- No automated test framework (bash scripts + markdown docs)
+
+## Key Design Decisions
+
+- **One PBI per execution** — prevents runaway processes, enables granular control
+- **Project context required** — must have CLAUDE.md or existing code to prevent arbitrary tech choices
+- **Status file interface** — shell-sourceable format for easy parsing
+- **Skills are tool-agnostic** — canonical definitions separate from tool-specific implementations
+- **Scaffold is opinionated** — generates working defaults, not blank templates
+- **Engine + instance** — DEVOPS.md defines the Source/Instance architecture pattern
+
+## Versioning
+
+`VERSION` file at repo root. Semver convention:
+- **Major** — breaking changes (skill renames, removed skills, changed scaffold output)
+- **Minor** — new skills, new features
+- **Patch** — content fixes, documentation updates

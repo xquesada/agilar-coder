@@ -56,6 +56,18 @@ The methodology scales across three configurations:
 
 Solo and multi-agent use Kanban: pull next ready PBI, no sprint ceremonies. Multi-human uses full Scrum with sprint planning, review, and retrospective.
 
+## The CLI (`agilar-coder`)
+
+A bash script that runs Claude Code unattended, processing Product Backlog Items from a markdown file one at a time.
+
+```bash
+./agilar-coder backlog.md          # Process all PBIs until done
+./agilar-coder backlog.md 3        # Process exactly 3 PBIs
+./agilar-coder --debug backlog.md  # Show command without executing
+```
+
+Config: `~/.agilar-coder/config.conf` (created on first run). Full specification: [SPEC.md](SPEC.md).
+
 ## Getting Started
 
 ### Quick Start
@@ -65,6 +77,7 @@ Solo and multi-agent use Kanban: pull next ready PBI, no sprint ceremonies. Mult
 3. Read [DEVOPS.md](DEVOPS.md) for environments and quality gates
 4. Read [TOOLCHAIN.md](TOOLCHAIN.md) for recommended tools
 5. Browse `skills/` for the development practices
+6. Try the CLI: `./agilar-coder --help`
 
 ### Scaffolding a New Project
 
@@ -87,11 +100,15 @@ Skills are in `skills/`. Each has a `SKILL.md` with the tool-agnostic process de
 ## Structure
 
 ```
-agilar-ai-sdlc/
+agilar-coder/
+├── agilar-coder                 # CLI bash script
+├── SPEC.md                      # CLI specification
+├── VERSION                      # Semver version
 ├── README.md                    # This file
 ├── SCRUM.md                     # Agile framework: roles, artifacts, events
 ├── DEVOPS.md                    # Pipeline: environments, quality gates, CI/CD
 ├── TOOLCHAIN.md                 # Recommended tools + alternatives
+├── scaffold                     # Project setup wizard
 ├── skills/                      # Canonical skill definitions (tool-agnostic)
 │   ├── brainstorming/SKILL.md
 │   ├── tdd/SKILL.md
@@ -120,7 +137,6 @@ agilar-ai-sdlc/
 │   │   ├── code-reviewer.md
 │   │   └── ci-checker.md
 │   └── stacks/                  # Stack-specific templates + agent roles
-├── scaffold                     # Setup wizard
 └── examples/
     ├── solo-go/
     ├── team-node/

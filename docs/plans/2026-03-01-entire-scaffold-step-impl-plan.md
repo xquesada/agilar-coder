@@ -45,13 +45,13 @@ Change the three comments:
 
 **Step 3: Verify script syntax**
 
-Run: `bash -n ~/projects/agilar-ai-sdlc/scaffold`
+Run: `bash -n ~/projects/agilar-coder/scaffold`
 Expected: no output (syntax OK)
 
 **Step 4: Commit**
 
 ```bash
-cd ~/projects/agilar-ai-sdlc
+cd ~/projects/agilar-coder
 git add scaffold
 git commit -m "feat(scaffold): add Entire audit trail prompt as step 8"
 ```
@@ -106,13 +106,13 @@ $ARCH_SECTION
 
 **Step 3: Verify script syntax**
 
-Run: `bash -n ~/projects/agilar-ai-sdlc/scaffold`
+Run: `bash -n ~/projects/agilar-coder/scaffold`
 Expected: no output (syntax OK)
 
 **Step 4: Commit**
 
 ```bash
-cd ~/projects/agilar-ai-sdlc
+cd ~/projects/agilar-coder
 git add scaffold
 git commit -m "feat(scaffold): generate Audit Trail section in CLAUDE.md when Entire enabled"
 ```
@@ -164,13 +164,13 @@ fi
 
 **Step 3: Verify script syntax**
 
-Run: `bash -n ~/projects/agilar-ai-sdlc/scaffold`
+Run: `bash -n ~/projects/agilar-coder/scaffold`
 Expected: no output (syntax OK)
 
 **Step 4: Commit**
 
 ```bash
-cd ~/projects/agilar-ai-sdlc
+cd ~/projects/agilar-coder
 git add scaffold
 git commit -m "feat(scaffold): show Entire in summary and next steps when enabled"
 ```
@@ -181,7 +181,7 @@ git commit -m "feat(scaffold): show Entire in summary and next steps when enable
 
 **Step 1: Run wizard with Entire enabled**
 
-Run: `~/projects/agilar-ai-sdlc/scaffold` in a temp directory, answer "y" to Entire. Verify:
+Run: `~/projects/agilar-coder/scaffold` in a temp directory, answer "y" to Entire. Verify:
 - Step 8 prompt appears between code review and project type
 - Generated CLAUDE.md contains `## Audit Trail` section after `## Branching`
 - Summary shows Entire line

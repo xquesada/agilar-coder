@@ -5,7 +5,7 @@
 
 ## Context
 
-The agilar-ai-sdlc TOOLCHAIN.md recommends Entire as a git-native audit trail for AI agent work (status: recommended, not required). However, the scaffold wizard never asks about it — the recommendation only exists in documentation that users may not read.
+The agilar-coder TOOLCHAIN.md recommends Entire as a git-native audit trail for AI agent work (status: recommended, not required). However, the scaffold wizard never asks about it — the recommendation only exists in documentation that users may not read.
 
 Entire is tool-agnostic (not Claude Code-specific). It works with any AI assistant.
 

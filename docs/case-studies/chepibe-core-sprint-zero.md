@@ -32,7 +32,7 @@ These documents existed in the `chepibe` repository (Xavier's private instance r
 
 ### What the Agilar AI SDLC provided
 
-Xavier had recently completed PBI #138: designing the Agilar AI SDLC methodology itself. The methodology repo (`agilar-ai-sdlc`) contained:
+Xavier had recently completed PBI #138: designing the Agilar AI SDLC methodology itself. The methodology (now part of `agilar-coder`) contained:
 
 - **SCRUM.md** — the Agile framework adapted for AI-enabled teams (Kanban for solo, Scrum for multi-human)
 - **DEVOPS.md** — pipeline definition, quality gates, branching strategies

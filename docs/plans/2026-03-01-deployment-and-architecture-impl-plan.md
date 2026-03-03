@@ -540,7 +540,7 @@ Run the scaffold interactively, choosing:
 - Deployment: 1 (local)
 
 ```bash
-cd /path/to/agilar-ai-sdlc && ./scaffold
+cd /path/to/agilar-coder && ./scaffold
 ```
 
 Verify the generated CLAUDE.md:

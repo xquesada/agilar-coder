@@ -263,56 +263,35 @@ assess_working_agreements() {
 
 assess_quality_gates() {
     local score=0
-    local max=4
+    local max=2
     local details=""
 
-    # Test command
+    # Test command (documented or configured)
     if [[ -f Makefile ]] && grep -q 'test' Makefile 2>/dev/null; then
         details+="Tests ✓  "
         ((score++))
     elif [[ -f package.json ]] && grep -q '"test"' package.json 2>/dev/null; then
         details+="Tests ✓  "
         ((score++))
-    elif [[ -f CLAUDE.md ]] && grep -qiE 'test command|run tests|npm test|go test|pytest|cargo test' CLAUDE.md 2>/dev/null; then
+    elif [[ -f CLAUDE.md ]] && grep -qiE 'test command|run tests|npm test|go test|pytest|cargo test|mix test' CLAUDE.md 2>/dev/null; then
         details+="Tests ✓  "
         ((score++))
     else
         details+="Tests ✗  "
     fi
 
-    # Lint command
+    # Lint command (config file or documented)
     if compgen -G ".eslintrc*" > /dev/null 2>&1 || \
        compgen -G "eslint.config*" > /dev/null 2>&1 || \
        [[ -f .golangci.yml || -f .golangci.yaml ]] || \
-       [[ -f .pylintrc || -f pyproject.toml ]] && grep -q 'ruff\|pylint\|flake8' pyproject.toml 2>/dev/null || \
-       [[ -f .rubocop.yml ]]; then
-        details+="Lint ✓  "
+       [[ -f .pylintrc ]] || \
+       ( [[ -f pyproject.toml ]] && grep -qE 'ruff|pylint|flake8' pyproject.toml 2>/dev/null ) || \
+       [[ -f .rubocop.yml ]] || \
+       ( [[ -f CLAUDE.md ]] && grep -qiE 'lint command|eslint|golangci|ruff|pylint|rubocop|credo' CLAUDE.md 2>/dev/null ); then
+        details+="Lint ✓"
         ((score++))
     else
-        details+="Lint ✗  "
-    fi
-
-    # CI config
-    if compgen -G ".github/workflows/*.yml" > /dev/null 2>&1 || \
-       compgen -G ".github/workflows/*.yaml" > /dev/null 2>&1 || \
-       [[ -f .gitlab-ci.yml ]] || \
-       [[ -f Jenkinsfile ]] || \
-       [[ -d .circleci ]] || \
-       [[ -f bitbucket-pipelines.yml ]]; then
-        details+="CI ✓  "
-        ((score++))
-    else
-        details+="CI ✗  "
-    fi
-
-    # Pre-commit hook
-    if [[ -d .husky ]] || \
-       [[ -f .pre-commit-config.yaml ]] || \
-       [[ -f .git/hooks/pre-commit && -x .git/hooks/pre-commit ]]; then
-        details+="Pre-commit ✓"
-        ((score++))
-    else
-        details+="Pre-commit ✗"
+        details+="Lint ✗"
     fi
 
     local pct=$(( score * 100 / max ))
@@ -322,7 +301,7 @@ assess_quality_gates() {
     ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + max ))
 
     if [[ $score -lt $max ]]; then
-        ASSESS_RECOMMENDATIONS+=("Add missing quality gates              tests, linting, CI, pre-commit hooks")
+        ASSESS_RECOMMENDATIONS+=("Add missing quality gates              document test and lint commands")
     fi
 }
 
@@ -365,29 +344,22 @@ assess_skills_library() {
 
 assess_documentation() {
     local score=0
-    local max=3
+    local max=2
     local details=""
 
-    # README
-    if [[ -f README.md || -f readme.md || -f README ]]; then
-        details+="README ✓  "
+    # Project documentation (README or CLAUDE.md — either counts)
+    if [[ -f README.md || -f readme.md || -f README || -f CLAUDE.md ]]; then
+        if [[ -f README.md || -f readme.md || -f README ]]; then
+            details+="README ✓  "
+        else
+            details+="CLAUDE.md ✓  "
+        fi
         ((score++))
     else
         details+="README ✗  "
     fi
 
-    # DEVOPS.md or equivalent
-    if [[ -f DEVOPS.md ]] || \
-       [[ -f docs/deployment.md || -f docs/DEPLOYMENT.md ]] || \
-       [[ -f docs/ops/README.md ]] || \
-       [[ -f CONTRIBUTING.md ]]; then
-        details+="DEVOPS ✓  "
-        ((score++))
-    else
-        details+="DEVOPS ✗  "
-    fi
-
-    # Stack reference
+    # Stack reference (docs, CLAUDE.md tech stack section, or TOOLCHAIN.md)
     if [[ -f TOOLCHAIN.md ]] || \
        [[ -f docs/stack-reference.md || -f docs/STACK.md ]] || \
        ( [[ -f CLAUDE.md ]] && grep -qiE 'tech.stack|toolchain|stack' CLAUDE.md 2>/dev/null ); then
@@ -403,9 +375,6 @@ assess_documentation() {
     ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + score ))
     ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + max ))
 
-    if [[ ! -f DEVOPS.md && ! -f docs/deployment.md ]]; then
-        ASSESS_RECOMMENDATIONS+=("Create DEVOPS.md                      document branching, environments, quality gates")
-    fi
     if [[ ! -f TOOLCHAIN.md && ! -f docs/stack-reference.md ]]; then
         if [[ ! -f CLAUDE.md ]] || ! grep -qiE 'tech.stack|toolchain|stack' CLAUDE.md 2>/dev/null; then
             ASSESS_RECOMMENDATIONS+=("Add stack reference                    TOOLCHAIN.md or tech stack section in CLAUDE.md")

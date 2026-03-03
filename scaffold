@@ -151,15 +151,80 @@ else
   fi
 fi
 
-# --- Step 2: What are you building (greenfield only) ---
+# --- Helper: set stack commands from choice number ---
+set_stack_commands() {
+  case "$1" in
+    1)
+      STACK_NAME="node"
+      TEST_CMD="npm test"
+      LINT_CMD="npx eslint . && npx tsc --noEmit"
+      BUILD_CMD="npm run build"
+      STACK_SECTION="Node.js / TypeScript. See \`templates/stacks/node.md\` for detailed configuration."
+      ;;
+    2)
+      STACK_NAME="go"
+      TEST_CMD="go test ./..."
+      LINT_CMD="go vet ./... && golangci-lint run ./..."
+      BUILD_CMD="go build ./cmd/..."
+      STACK_SECTION="Go. See \`templates/stacks/go.md\` for detailed configuration."
+      ;;
+    3)
+      STACK_NAME="python"
+      TEST_CMD="pytest"
+      LINT_CMD="ruff check . && mypy src/"
+      BUILD_CMD="python -m build"
+      STACK_SECTION="Python. See \`templates/stacks/python.md\` for detailed configuration."
+      ;;
+    4)
+      STACK_NAME="elixir"
+      TEST_CMD="mix test"
+      LINT_CMD="mix format --check-formatted && mix credo --strict"
+      BUILD_CMD="MIX_ENV=prod mix release"
+      STACK_SECTION="Elixir. See \`templates/stacks/elixir.md\` for detailed configuration."
+      ;;
+    5)
+      STACK_NAME="other"
+      STACK_SECTION="Custom stack. Update this section with your tools and conventions."
+      ;;
+    *) echo "Invalid choice." >&2; exit 1 ;;
+  esac
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Existing project vs Greenfield — different flows
+# ─────────────────────────────────────────────────────────────────────────────
 
 PROJECT_TYPE_DESC=""
-if [[ -z "$DETECTED_STACK" ]]; then
+
+if [[ -n "$DETECTED_STACK" ]]; then
+  # ── EXISTING PROJECT ──────────────────────────────────────────────────────
+  # Tech stack is a fact, not a question. "What are you building" is irrelevant.
+  echo -e "${DIM}Existing project detected: ${DETECTED_STACK_LABEL}${NC}"
+  set_stack_commands "$DETECTED_STACK"
+else
+  # ── GREENFIELD ────────────────────────────────────────────────────────────
   echo ""
   read -rp "What type of software are you building and what does it do? (examples: a corporate website, a mobile app, a report...) " PROJECT_TYPE_DESC
+
+  echo ""
+  echo -e "${BOLD}Tech stack:${NC}"
+  echo "  1) Node.js / TypeScript"
+  echo "  2) Go"
+  echo "  3) Python"
+  echo "  4) Elixir"
+  echo "  5) Other (manual configuration)"
+  read -rp "Choose [1]: " STACK_CHOICE
+  STACK_CHOICE="${STACK_CHOICE:-1}"
+  set_stack_commands "$STACK_CHOICE"
+
+  if [[ "$STACK_NAME" == "other" ]]; then
+    read -rp "Test command: " TEST_CMD
+    read -rp "Lint command: " LINT_CMD
+    read -rp "Build command: " BUILD_CMD
+  fi
 fi
 
-# --- Step 3: Team mode ---
+# --- Team mode ---
 
 echo ""
 if [[ -n "$DETECTED_TEAM" ]]; then
@@ -191,75 +256,6 @@ case "$TEAM_MODE_CHOICE" in
   1) TEAM_MODE="Solo"; TEAM_MODE_DESC="1 human + 1 agent. Kanban. Trunk-based development." ;;
   2) TEAM_MODE="Multi-agent"; TEAM_MODE_DESC="1 human + agent team. Kanban. Worktrees from main." ;;
   3) TEAM_MODE="Multi-human"; TEAM_MODE_DESC="PO + developers. Full Scrum. Feature branches + PRs." ;;
-  *) echo "Invalid choice." >&2; exit 1 ;;
-esac
-
-# --- Step 4: Tech stack ---
-
-echo ""
-if [[ -n "$DETECTED_STACK" ]]; then
-  echo -e "${BOLD}Tech stack:${NC} ${GREEN}$DETECTED_STACK_LABEL${NC} detected"
-  read -rp "Correct? [Y/n]: " STACK_CONFIRM
-  STACK_CONFIRM="${STACK_CONFIRM:-Y}"
-  if [[ "$STACK_CONFIRM" =~ ^[Yy] ]]; then
-    STACK_CHOICE="$DETECTED_STACK"
-  else
-    echo ""
-    echo -e "${BOLD}Tech stack:${NC}"
-    echo "  1) Node.js / TypeScript"
-    echo "  2) Go"
-    echo "  3) Python"
-    echo "  4) Elixir"
-    echo "  5) Other (manual configuration)"
-    read -rp "Choose: " STACK_CHOICE
-  fi
-else
-  echo -e "${BOLD}Tech stack:${NC}"
-  echo "  1) Node.js / TypeScript"
-  echo "  2) Go"
-  echo "  3) Python"
-  echo "  4) Elixir"
-  echo "  5) Other (manual configuration)"
-  read -rp "Choose [1]: " STACK_CHOICE
-  STACK_CHOICE="${STACK_CHOICE:-1}"
-fi
-
-case "$STACK_CHOICE" in
-  1)
-    STACK_NAME="node"
-    TEST_CMD="npm test"
-    LINT_CMD="npx eslint . && npx tsc --noEmit"
-    BUILD_CMD="npm run build"
-    STACK_SECTION="Node.js / TypeScript. See \`templates/stacks/node.md\` for detailed configuration."
-    ;;
-  2)
-    STACK_NAME="go"
-    TEST_CMD="go test ./..."
-    LINT_CMD="go vet ./... && golangci-lint run ./..."
-    BUILD_CMD="go build ./cmd/..."
-    STACK_SECTION="Go. See \`templates/stacks/go.md\` for detailed configuration."
-    ;;
-  3)
-    STACK_NAME="python"
-    TEST_CMD="pytest"
-    LINT_CMD="ruff check . && mypy src/"
-    BUILD_CMD="python -m build"
-    STACK_SECTION="Python. See \`templates/stacks/python.md\` for detailed configuration."
-    ;;
-  4)
-    STACK_NAME="elixir"
-    TEST_CMD="mix test"
-    LINT_CMD="mix format --check-formatted && mix credo --strict"
-    BUILD_CMD="MIX_ENV=prod mix release"
-    STACK_SECTION="Elixir. See \`templates/stacks/elixir.md\` for detailed configuration."
-    ;;
-  5)
-    STACK_NAME="other"
-    read -rp "Test command: " TEST_CMD
-    read -rp "Lint command: " LINT_CMD
-    read -rp "Build command: " BUILD_CMD
-    STACK_SECTION="Custom stack. Update this section with your tools and conventions."
-    ;;
   *) echo "Invalid choice." >&2; exit 1 ;;
 esac
 

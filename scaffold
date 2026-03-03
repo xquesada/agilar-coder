@@ -877,35 +877,20 @@ for skill_dir in "$SCRIPT_DIR"/skills/*/; do
 done
 echo -e "  ${GREEN}+${NC} docs/skills/ (canonical skill definitions)"
 
-# Summary
-echo ""
-echo -e "${BOLD}Done.${NC} Project scaffolded at ${CYAN}$PROJECT_DIR${NC}"
-echo ""
-echo -e "${BOLD}What was created:${NC}"
-echo "  CLAUDE.md                  — Working agreements, DoR, DoD, skills"
-echo "  backlog/                   — Filesystem backlog (ready/, in_progress/, done/)"
-if [[ "$TOOL_NAME" == "claude-code" ]]; then
-  echo "  .claude/skills/*.md        — Claude Code skill implementations"
-fi
-if [[ "$TOOL_NAME" == "claude-code" && "$TEAM_MODE_CHOICE" == "2" ]]; then
-  echo "  .claude/agents/*.md        — Agent definitions (code reviewer, CI checker)"
-fi
-if [[ "$STACK_NAME" != "other" ]]; then
-  echo "  docs/stack-reference.md    — Stack-specific configuration guide"
-fi
-echo "  docs/skills/               — Canonical skill definitions (reference)"
+# Enable Entire if selected
 if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
-  echo "  Entire                     — Git-native audit trail (install separately)"
+  if command -v entire &>/dev/null; then
+    (cd "$PROJECT_DIR" && entire enable 2>/dev/null) && \
+      echo -e "  ${GREEN}+${NC} Entire audit trail enabled" || \
+      echo -e "  ${YELLOW}!${NC} Entire: could not enable automatically — run 'entire enable' manually"
+  else
+    echo -e "  ${YELLOW}!${NC} Entire: not installed — run 'brew tap entireio/tap && brew install entireio/tap/entire && entire enable'"
+  fi
 fi
+
+# Done
 echo ""
-echo -e "${BOLD}Next steps:${NC}"
-echo "  1. Review and customize CLAUDE.md for your project"
-echo "  2. Set up your test runner and linter"
-if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
-  echo "  3. Install Entire for automatic session capture (see CLAUDE.md)"
-  echo "  4. Create your first PBI"
-  echo "  5. Start building — the skills will guide the process"
-else
-  echo "  3. Create your first PBI"
-  echo "  4. Start building — the skills will guide the process"
-fi
+echo -e "${BOLD}Done.${NC} Your project is ready."
+echo ""
+echo "  Start your AI coding tool and describe what you want to build."
+echo "  The methodology will guide the process from here."

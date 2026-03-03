@@ -294,23 +294,24 @@ show_help() {
 agilar-coder - Agilar AI SDLC CLI
 
 USAGE:
-    agilar-coder init                      Set up a new project (scaffold wizard)
-    agilar-coder upgrade                   Update skills and docs to latest version
-    agilar-coder status                    Show installed version and skill status
-    agilar-coder <backlog-file> [count]    Process PBIs from a backlog
-    agilar-coder -h | --help               Show this help message
-    agilar-coder --version                 Show version
+    agilar-coder init [directory]              Set up a new project (scaffold wizard)
+    agilar-coder upgrade [directory]           Update skills and docs to latest version
+    agilar-coder status [directory]            Show installed version and skill status
+    agilar-coder run <backlog-file> [count]    Process PBIs from a backlog
+    agilar-coder -h | --help                   Show this help message
+    agilar-coder --version                     Show version
 
 OPTIONS (run mode):
     --debug         Show full command without executing
     -v, --verbose   Enable verbose output
 
 SUBCOMMANDS:
-    init            Run the scaffold wizard to set up methodology, skills,
-                    and CLAUDE.md in the current directory
-    upgrade         Update installed skills to the latest version.
+    init [dir]      Run the scaffold wizard to set up methodology, skills,
+                    and CLAUDE.md. Defaults to current directory.
+    upgrade [dir]   Update installed skills to the latest version.
                     Shows what changed and handles removed/renamed skills.
-    status          Show installed vs available version and skill inventory
+    status [dir]    Show installed vs available version and skill inventory
+    run             Process PBIs from a backlog file one at a time
 
 CONFIGURATION:
     ~/.agilar-coder/config.conf    Runtime config (model, max turns, user prompt)
@@ -535,27 +536,35 @@ main() {
     REPO_ROOT="$(resolve_repo_root)"
     VERSION="$(cat "$REPO_ROOT/VERSION" 2>/dev/null || echo "dev")"
 
-    # Handle subcommands and global flags first
+    # Handle subcommands and global flags
     case "${1:-}" in
-        init)
-            cmd_init "$REPO_ROOT"
+        init|upgrade|status)
+            local subcmd="$1"
+            local target_dir="${2:-.}"
+            if [[ ! -d "$target_dir" ]]; then
+                echo "Error: Directory not found: $target_dir"
+                exit 1
+            fi
+            cd "$target_dir"
+            "cmd_$subcmd" "$REPO_ROOT"
             exit 0
             ;;
-        upgrade)
-            cmd_upgrade "$REPO_ROOT"
-            exit 0
-            ;;
-        status)
-            cmd_status "$REPO_ROOT"
-            exit 0
+        run)
+            shift
             ;;
         --version)
             echo "agilar-coder v$VERSION"
             exit 0
             ;;
-        -h|--help)
+        -h|--help|"")
             show_help
             exit 0
+            ;;
+        *)
+            echo "Error: Unknown command '${1}'"
+            echo ""
+            show_help
+            exit 1
             ;;
     esac
 
@@ -567,7 +576,7 @@ main() {
     local count=""
     local args=()
 
-    # Parse flags first
+    # Parse flags
     for arg in "$@"; do
         case "$arg" in
             -h|--help)
@@ -586,16 +595,10 @@ main() {
         esac
     done
 
-    # Show help if no arguments (after removing flags)
-    if [[ ${#args[@]} -eq 0 && "$debug_mode" == false ]]; then
-        show_help
-        exit 0
-    fi
-
-    # Need at least backlog file in debug mode or normal mode
+    # Need at least backlog file
     if [[ ${#args[@]} -eq 0 ]]; then
         echo "Error: backlog-file is required"
-        echo "Run 'agilar-coder --help' for usage."
+        echo "Run 'agilar-coder run --help' for usage."
         exit 1
     fi
 

@@ -7,12 +7,12 @@ Agilar AI SDLC CLI — project setup, skill management, and unattended PBI proce
 ## Usage
 
 ```bash
-agilar-coder init                      # Set up a new project (scaffold wizard)
-agilar-coder upgrade                   # Update skills and docs to latest version
-agilar-coder status                    # Show installed version and skill status
-agilar-coder <backlog-file> [count]    # Process PBIs from a backlog (run mode)
-agilar-coder -h | --help               # Show help
-agilar-coder --version                 # Show version
+agilar-coder init [directory]              # Set up a new project (scaffold wizard)
+agilar-coder upgrade [directory]           # Update skills and docs to latest version
+agilar-coder status [directory]            # Show installed version and skill status
+agilar-coder run <backlog-file> [count]    # Process PBIs from a backlog
+agilar-coder -h | --help                   # Show help
+agilar-coder --version                     # Show version
 ```
 
 ## Self-Location
@@ -33,28 +33,36 @@ This allows the script to be symlinked into `$PATH` (e.g., `ln -s ~/projects/agi
 
 ## Subcommands
 
-### `init`
+### `init [directory]`
 
 Set up a new project with the Agilar AI SDLC methodology.
 
+**Arguments:**
+- `directory` — (Optional) Target project directory. Defaults to `.`
+
 **Behavior:**
-1. Runs the scaffold wizard (`scaffold` script from repo root)
-2. Scaffold handles all interactive prompts (project name, stack, team mode, etc.)
-3. After scaffold completes, writes `VERSION` to `.agilar-coder.version`
+1. Changes to the target directory
+2. Runs the scaffold wizard (`scaffold` script from repo root)
+3. Scaffold handles all interactive prompts (project name, stack, team mode, etc.)
+4. After scaffold completes, writes `VERSION` to `.agilar-coder.version`
 
 **Output:** Scaffold output + version confirmation
 
-**Exit code:** `0` on success, `1` if scaffold not found
+**Exit code:** `0` on success, `1` if scaffold not found or directory not found
 
-### `status`
+### `status [directory]`
 
 Show installed vs available version and skill inventory.
 
+**Arguments:**
+- `directory` — (Optional) Target project directory. Defaults to `.`
+
 **Behavior:**
-1. Reads `.agilar-coder.version` (if present) for installed version
-2. Reads `VERSION` from repo root for available version
-3. Compares installed vs available skills (`implementations/claude-code/` vs `.claude/skills/`)
-4. Reports missing skills (in repo but not installed) and extra skills (installed but not in repo)
+1. Changes to the target directory
+2. Reads `.agilar-coder.version` (if present) for installed version
+3. Reads `VERSION` from repo root for available version
+4. Compares installed vs available skills (`implementations/claude-code/` vs `.claude/skills/`)
+5. Reports missing skills (in repo but not installed) and extra skills (installed but not in repo)
 
 **Output:**
 
@@ -82,12 +90,16 @@ agilar-coder status
 
 **Exit code:** `0`
 
-### `upgrade`
+### `upgrade [directory]`
 
 Update installed skills and docs to the latest version.
 
+**Arguments:**
+- `directory` — (Optional) Target project directory. Defaults to `.`
+
 **Behavior:**
-1. Requires `.agilar-coder.version` to exist (must be initialized first)
+1. Changes to the target directory
+2. Requires `.agilar-coder.version` to exist (must be initialized first)
 2. Copies updated skills from `implementations/claude-code/` → `.claude/skills/` (only changed files)
 3. Detects skills in `.claude/skills/` that no longer exist in the repo; offers to remove them
 4. Updates `docs/skills/` (canonical copies) if the directory exists
@@ -97,6 +109,16 @@ Update installed skills and docs to the latest version.
 **Output:** List of added/updated/removed skills + version change summary
 
 **Exit code:** `0` on success, `1` if not initialized
+
+### `run <backlog-file> [count]`
+
+Process PBIs from a backlog file. This is the explicit form of the default behavior.
+
+**Arguments:**
+- `backlog-file` — Path to markdown file containing the Product Backlog
+- `count` — (Optional) Number of PBIs to process. If omitted, runs until backlog is empty.
+
+All subcommands are explicit — passing a filename without `run` will error.
 
 ## Execution Modes (Run Mode)
 
@@ -282,9 +304,10 @@ ERROR=Could not parse backlog format
                    ▼
 ┌─────────────────────────────────────────┐
 │ 1. Check for subcommand / global flag   │
-│    - init → cmd_init, exit              │
-│    - upgrade → cmd_upgrade, exit        │
-│    - status → cmd_status, exit          │
+│    - init [dir] → cd dir, cmd_init      │
+│    - upgrade [dir] → cd dir, cmd_upgrade│
+│    - status [dir] → cd dir, cmd_status  │
+│    - run → shift, fall through to run   │
 │    - --version → print version, exit    │
 │    - -h/--help → show help, exit        │
 └──────────────────┬──────────────────────┘

@@ -355,10 +355,13 @@ if [[ "$TEAM_MODE_CHOICE" == "2" ]]; then
   esac
 fi
 
-# --- Step 9: What are you building ---
+# --- Step 9: What are you building (greenfield only) ---
 
-echo ""
-read -rp "What type of software are you building and what does it do? (examples: a corporate website, a mobile app, a report...) " PROJECT_TYPE_DESC
+PROJECT_TYPE_DESC=""
+if [[ -z "$DETECTED_STACK" ]]; then
+  echo ""
+  read -rp "What type of software are you building and what does it do? (examples: a corporate website, a mobile app, a report...) " PROJECT_TYPE_DESC
+fi
 
 # --- Step 10: Architecture ---
 

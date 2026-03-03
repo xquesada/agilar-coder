@@ -291,7 +291,7 @@ cmd_upgrade() {
 
 show_help() {
     cat <<'EOF'
-agilar-coder - Agilar AI SDLC CLI
+agilar-coder - Agilar's opinionated way of doing AI-augmented Agile Software Development
 
 USAGE:
     agilar-coder init [directory]              Set up a new project (scaffold wizard)

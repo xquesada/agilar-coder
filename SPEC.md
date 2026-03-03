@@ -2,7 +2,7 @@
 
 ## Overview
 
-Agilar AI SDLC CLI — project setup, skill management, and unattended PBI processing via Claude Code.
+Agilar's opinionated way of doing AI-augmented Agile Software Development — project setup, skill management, and unattended PBI processing via Claude Code.
 
 ## Usage
 

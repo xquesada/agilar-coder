@@ -105,35 +105,12 @@ cmd_status() {
     local available_version
     available_version="$(cat "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
 
-    echo "agilar-coder status"
-    echo "═══════════════════"
-
-    # Installed version
-    if [[ -f .agilar-coder.version ]]; then
-        local installed_version
-        installed_version="$(cat .agilar-coder.version)"
-        echo "  Installed: $installed_version"
-        echo "  Available: $available_version"
-        if [[ "$installed_version" == "$available_version" ]]; then
-            echo "  Status:    up to date"
-        else
-            echo "  Status:    upgrade available"
-        fi
-    else
-        echo "  Installed: not initialized (run 'agilar-coder init')"
-        echo "  Available: $available_version"
-    fi
-
-    echo ""
-
-    # Skills inventory
-    echo "Skills:"
+    # Count skills first (needed for version section messaging)
     local installed_count=0
     local available_count=0
     local missing=()
     local extra=()
 
-    # Count available skills
     for skill_file in "$repo_root"/implementations/claude-code/*.md; do
         [[ -f "$skill_file" ]] || continue
         ((available_count++))
@@ -144,7 +121,6 @@ cmd_status() {
         fi
     done
 
-    # Count installed skills
     if [[ -d .claude/skills ]]; then
         for skill_file in .claude/skills/*.md; do
             [[ -f "$skill_file" ]] || continue
@@ -157,6 +133,33 @@ cmd_status() {
         done
     fi
 
+    echo "agilar-coder status"
+    echo "═══════════════════"
+
+    # Version
+    if [[ -f .agilar-coder.version ]]; then
+        local installed_version
+        installed_version="$(cat .agilar-coder.version)"
+        echo "  Installed: $installed_version"
+        echo "  Available: $available_version"
+        if [[ "$installed_version" == "$available_version" ]]; then
+            echo "  Status:    up to date"
+        else
+            echo "  Status:    upgrade available"
+        fi
+    elif [[ $installed_count -gt 0 ]]; then
+        echo "  Installed: not tracked (skills present, installed outside agilar-coder)"
+        echo "  Available: $available_version"
+        echo "  Tip:       run 'agilar-coder upgrade' to start tracking"
+    else
+        echo "  Installed: not initialized (run 'agilar-coder init')"
+        echo "  Available: $available_version"
+    fi
+
+    echo ""
+
+    # Skills inventory
+    echo "Skills:"
     echo "  Installed: $installed_count"
     echo "  Available: $available_count"
 
@@ -176,15 +179,16 @@ cmd_upgrade() {
     local available_version
     available_version="$(cat "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
 
-    if [[ ! -f .agilar-coder.version ]]; then
-        echo "Error: No .agilar-coder.version found."
-        echo "  This project hasn't been initialized with agilar-coder."
-        echo "  Run 'agilar-coder init' first, or create .agilar-coder.version manually."
+    local installed_version
+    if [[ -f .agilar-coder.version ]]; then
+        installed_version="$(cat .agilar-coder.version)"
+    elif [[ -d .claude/skills ]]; then
+        installed_version="unknown"
+    else
+        echo "Error: No .agilar-coder.version found and no skills installed."
+        echo "  Run 'agilar-coder init' first."
         exit 1
     fi
-
-    local installed_version
-    installed_version="$(cat .agilar-coder.version)"
 
     echo "agilar-coder upgrade"
     echo "═══════════════════"

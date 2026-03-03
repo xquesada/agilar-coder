@@ -645,8 +645,44 @@ COMMANDS
     echo "$VERSION" > .agilar-coder.version
     echo "  Created: .agilar-coder.version ($VERSION)"
 
+    # Create PBIs for anything fill-gaps cannot do automatically
+    local pbi_count=0
+    mkdir -p backlog/ready
+
+    if ! compgen -G ".github/workflows/*.yml" > /dev/null 2>&1 && \
+       ! compgen -G ".github/workflows/*.yaml" > /dev/null 2>&1 && \
+       [[ ! -f .gitlab-ci.yml ]] && \
+       [[ ! -f Jenkinsfile ]] && \
+       [[ ! -d .circleci ]] && \
+       [[ ! -f bitbucket-pipelines.yml ]]; then
+        cat > backlog/ready/setup-ci-pipeline.md << 'CI_PBI'
+# Set up CI/CD pipeline
+
+## Description
+Add a continuous integration pipeline so tests and linting run automatically on every push.
+
+## Steps
+1. Choose a CI provider (GitHub Actions recommended)
+2. Create a workflow file (e.g. `.github/workflows/ci.yml`)
+3. Configure it to run the test and lint commands from CLAUDE.md
+4. Verify the pipeline runs on the next push
+
+## Acceptance Criteria
+- CI runs on every push to main
+- Tests and linting execute automatically
+- Pipeline status is visible in the repository
+CI_PBI
+        echo "  Created: backlog/ready/setup-ci-pipeline.md"
+        ((pbi_count++))
+    fi
+
     echo ""
-    echo "Done. Run 'agilar-coder assess' to see updated compliance."
+    if [[ $pbi_count -gt 0 ]]; then
+        echo "Done. $pbi_count PBI(s) created in backlog/ready/ for the remaining gaps."
+        echo "Complete them to reach 100% compliance."
+    else
+        echo "Done. Run 'agilar-coder assess' to verify 100% compliance."
+    fi
 }
 
 has_methodology_signals() {

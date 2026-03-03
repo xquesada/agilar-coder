@@ -877,7 +877,9 @@ for skill_dir in "$SCRIPT_DIR"/skills/*/; do
 done
 echo -e "  ${GREEN}+${NC} docs/skills/ (canonical skill definitions)"
 
-# Create PBI for Entire setup if selected
+# Create PBIs for things the scaffold cannot do automatically
+PBI_COUNT=0
+
 if [[ "$ENTIRE_ENABLED" == "yes" ]]; then
   cat > "$PROJECT_DIR/backlog/ready/entire-audit-trail.md" << 'ENTIRE_PBI'
 # Install Entire audit trail
@@ -895,12 +897,45 @@ Set up the Entire open source tool to capture a git-native log of every AI agent
 - AI session transcripts are captured in git history
 ENTIRE_PBI
   echo -e "  ${GREEN}+${NC} backlog/ready/entire-audit-trail.md"
+  ((PBI_COUNT++))
+fi
+
+# CI/CD pipeline
+if ! compgen -G "$PROJECT_DIR/.github/workflows/*.yml" > /dev/null 2>&1 && \
+   ! compgen -G "$PROJECT_DIR/.github/workflows/*.yaml" > /dev/null 2>&1 && \
+   [[ ! -f "$PROJECT_DIR/.gitlab-ci.yml" ]] && \
+   [[ ! -f "$PROJECT_DIR/Jenkinsfile" ]] && \
+   [[ ! -d "$PROJECT_DIR/.circleci" ]] && \
+   [[ ! -f "$PROJECT_DIR/bitbucket-pipelines.yml" ]]; then
+  cat > "$PROJECT_DIR/backlog/ready/setup-ci-pipeline.md" << 'CI_PBI'
+# Set up CI/CD pipeline
+
+## Description
+Add a continuous integration pipeline so tests and linting run automatically on every push.
+
+## Steps
+1. Choose a CI provider (GitHub Actions recommended)
+2. Create a workflow file (e.g. `.github/workflows/ci.yml`)
+3. Configure it to run the test and lint commands from CLAUDE.md
+4. Verify the pipeline runs on the next push
+
+## Acceptance Criteria
+- CI runs on every push to main
+- Tests and linting execute automatically
+- Pipeline status is visible in the repository
+CI_PBI
+  echo -e "  ${GREEN}+${NC} backlog/ready/setup-ci-pipeline.md"
+  ((PBI_COUNT++))
 fi
 
 # Done
 echo ""
 echo -e "${BOLD}Done.${NC} Your project is ready."
 echo ""
+if [[ $PBI_COUNT -gt 0 ]]; then
+  echo "  $PBI_COUNT PBI(s) created in backlog/ready/ to reach 100% compliance."
+  echo ""
+fi
 if [[ -n "$DETECTED_STACK" ]]; then
   echo "  The Agilar methodology is now active. Start your AI coding tool"
   echo "  and continue where you left off — the skills will guide the process."

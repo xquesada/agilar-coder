@@ -91,6 +91,35 @@ cmd_init() {
     echo "agilar-coder v$VERSION — Project Setup"
     echo ""
 
+    # Check for existing skills with different content
+    if [[ -d .claude/skills ]]; then
+        local conflicts=()
+        for skill_file in "$repo_root"/implementations/claude-code/*.md; do
+            [[ -f "$skill_file" ]] || continue
+            local skill_name
+            skill_name="$(basename "$skill_file")"
+            if [[ -f ".claude/skills/$skill_name" ]] && ! diff -q "$skill_file" ".claude/skills/$skill_name" > /dev/null 2>&1; then
+                conflicts+=("$skill_name")
+            fi
+        done
+
+        if [[ ${#conflicts[@]} -gt 0 ]]; then
+            echo "Existing skills with different content detected:"
+            for c in "${conflicts[@]}"; do
+                echo ""
+                echo "  ── $c ──"
+                diff -u ".claude/skills/$c" "$repo_root/implementations/claude-code/$c" --label "installed/$c" --label "agilar-coder/$c" || true
+            done
+            echo ""
+            read -rp "Scaffold will overwrite these ${#conflicts[@]} skill(s). Continue? [Y/n] " answer
+            if [[ "$answer" =~ ^[Nn] ]]; then
+                echo "Aborted."
+                exit 0
+            fi
+            echo ""
+        fi
+    fi
+
     # Run scaffold (it handles all the interactive prompts)
     "$repo_root/scaffold"
 
@@ -109,6 +138,7 @@ cmd_status() {
     local installed_count=0
     local available_count=0
     local missing=()
+    local modified=()
     local extra=()
 
     for skill_file in "$repo_root"/implementations/claude-code/*.md; do
@@ -118,6 +148,8 @@ cmd_status() {
         skill_name="$(basename "$skill_file")"
         if [[ ! -f ".claude/skills/$skill_name" ]]; then
             missing+=("$skill_name")
+        elif ! diff -q "$skill_file" ".claude/skills/$skill_name" > /dev/null 2>&1; then
+            modified+=("$skill_name")
         fi
     done
 
@@ -163,13 +195,19 @@ cmd_status() {
     echo "  Installed: $installed_count"
     echo "  Available: $available_count"
 
+    if [[ ${#modified[@]} -gt 0 ]]; then
+        echo "  Modified:  ${#modified[@]} (content differs from agilar-coder version)"
+        for m in "${modified[@]}"; do
+            echo "    - $m"
+        done
+    fi
     if [[ ${#missing[@]} -gt 0 ]]; then
         echo "  Missing:   ${missing[*]}"
     fi
     if [[ ${#extra[@]} -gt 0 ]]; then
         echo "  Extra:     ${extra[*]} (project-specific or removed from agilar-coder)"
     fi
-    if [[ ${#missing[@]} -eq 0 && ${#extra[@]} -eq 0 && $installed_count -eq $available_count ]]; then
+    if [[ ${#missing[@]} -eq 0 && ${#modified[@]} -eq 0 && ${#extra[@]} -eq 0 && $installed_count -eq $available_count ]]; then
         echo "  Status:    all skills installed"
     fi
 }
@@ -203,6 +241,7 @@ cmd_upgrade() {
 
     # 1. Update skills (implementations/claude-code/ → .claude/skills/)
     local updated=0
+    local skipped=0
     local added=0
     if [[ -d .claude/skills ]]; then
         for skill_file in "$repo_root"/implementations/claude-code/*.md; do
@@ -211,14 +250,24 @@ cmd_upgrade() {
             skill_name="$(basename "$skill_file")"
             if [[ -f ".claude/skills/$skill_name" ]]; then
                 if ! diff -q "$skill_file" ".claude/skills/$skill_name" > /dev/null 2>&1; then
-                    cp "$skill_file" ".claude/skills/$skill_name"
-                    ((updated++))
-                    echo "  Updated: .claude/skills/$skill_name"
+                    echo ""
+                    echo "  ── $skill_name ──"
+                    diff -u ".claude/skills/$skill_name" "$skill_file" --label "installed/$skill_name" --label "agilar-coder/$skill_name" || true
+                    echo ""
+                    read -rp "  Apply this update? [Y/n] " answer
+                    if [[ ! "$answer" =~ ^[Nn] ]]; then
+                        cp "$skill_file" ".claude/skills/$skill_name"
+                        ((updated++))
+                        echo "  Updated: $skill_name"
+                    else
+                        ((skipped++))
+                        echo "  Skipped: $skill_name"
+                    fi
                 fi
             else
                 cp "$skill_file" ".claude/skills/$skill_name"
                 ((added++))
-                echo "  Added:   .claude/skills/$skill_name"
+                echo "  Added:   $skill_name"
             fi
         done
     else
@@ -284,7 +333,7 @@ cmd_upgrade() {
     echo "$available_version" > .agilar-coder.version
 
     echo ""
-    echo "Summary: $added added, $updated updated, ${#removed[@]} removed candidates"
+    echo "Summary: $added added, $updated updated, $skipped skipped, ${#removed[@]} removed candidates"
     echo "Version: $installed_version → $available_version"
     echo "Done."
 }

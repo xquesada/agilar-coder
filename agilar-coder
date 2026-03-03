@@ -5,7 +5,6 @@
 
 set -euo pipefail
 
-VERSION="1.0"
 CONFIG_DIR="$HOME/.agilar-coder"
 CONFIG_FILE="$CONFIG_DIR/config.conf"
 STATUS_FILE=".agilar-status"
@@ -43,49 +42,287 @@ If the backlog is invalid or you encounter an error, write:
 IMPORTANT: Work on exactly ONE PBI per execution. Do not continue to the next PBI.'
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Self-location
+# ─────────────────────────────────────────────────────────────────────────────
+
+resolve_repo_root() {
+    # Try resolving from script location
+    local script_path
+    script_path="$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")"
+    if [[ -L "$script_path" ]]; then
+        script_path="$(readlink "$script_path")"
+        # Handle relative symlinks
+        if [[ "$script_path" != /* ]]; then
+            script_path="$(cd "$(dirname "$0")" && cd "$(dirname "$script_path")" && pwd -P)/$(basename "$script_path")"
+        fi
+    fi
+    local repo_root
+    repo_root="$(dirname "$script_path")"
+
+    # Verify it's actually the agilar-coder repo (has skills/ and scaffold)
+    if [[ -d "$repo_root/skills" && -f "$repo_root/scaffold" ]]; then
+        echo "$repo_root"
+        return 0
+    fi
+
+    # Fall back to AGILAR_CODER_HOME
+    if [[ -n "${AGILAR_CODER_HOME:-}" && -d "$AGILAR_CODER_HOME/skills" ]]; then
+        echo "$AGILAR_CODER_HOME"
+        return 0
+    fi
+
+    echo "Error: Cannot find agilar-coder repo. Set AGILAR_CODER_HOME." >&2
+    return 1
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Subcommands
+# ─────────────────────────────────────────────────────────────────────────────
+
+cmd_init() {
+    local repo_root="$1"
+
+    # Run the scaffold wizard from the repo
+    if [[ ! -x "$repo_root/scaffold" ]]; then
+        echo "Error: scaffold not found at $repo_root/scaffold"
+        exit 1
+    fi
+
+    echo "agilar-coder v$VERSION — Project Setup"
+    echo ""
+
+    # Run scaffold (it handles all the interactive prompts)
+    "$repo_root/scaffold"
+
+    # Write version file to track what was installed
+    echo "$VERSION" > .agilar-coder.version
+    echo ""
+    echo "Version $VERSION recorded in .agilar-coder.version"
+}
+
+cmd_status() {
+    local repo_root="$1"
+    local available_version
+    available_version="$(cat "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
+
+    echo "agilar-coder status"
+    echo "═══════════════════"
+
+    # Installed version
+    if [[ -f .agilar-coder.version ]]; then
+        local installed_version
+        installed_version="$(cat .agilar-coder.version)"
+        echo "  Installed: $installed_version"
+        echo "  Available: $available_version"
+        if [[ "$installed_version" == "$available_version" ]]; then
+            echo "  Status:    up to date"
+        else
+            echo "  Status:    upgrade available"
+        fi
+    else
+        echo "  Installed: not initialized (run 'agilar-coder init')"
+        echo "  Available: $available_version"
+    fi
+
+    echo ""
+
+    # Skills inventory
+    echo "Skills:"
+    local installed_count=0
+    local available_count=0
+    local missing=()
+    local extra=()
+
+    # Count available skills
+    for skill_file in "$repo_root"/implementations/claude-code/*.md; do
+        [[ -f "$skill_file" ]] || continue
+        ((available_count++))
+        local skill_name
+        skill_name="$(basename "$skill_file")"
+        if [[ ! -f ".claude/skills/$skill_name" ]]; then
+            missing+=("$skill_name")
+        fi
+    done
+
+    # Count installed skills
+    if [[ -d .claude/skills ]]; then
+        for skill_file in .claude/skills/*.md; do
+            [[ -f "$skill_file" ]] || continue
+            ((installed_count++))
+            local skill_name
+            skill_name="$(basename "$skill_file")"
+            if [[ ! -f "$repo_root/implementations/claude-code/$skill_name" ]]; then
+                extra+=("$skill_name")
+            fi
+        done
+    fi
+
+    echo "  Installed: $installed_count"
+    echo "  Available: $available_count"
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "  Missing:   ${missing[*]}"
+    fi
+    if [[ ${#extra[@]} -gt 0 ]]; then
+        echo "  Extra:     ${extra[*]} (project-specific or removed from agilar-coder)"
+    fi
+    if [[ ${#missing[@]} -eq 0 && ${#extra[@]} -eq 0 && $installed_count -eq $available_count ]]; then
+        echo "  Status:    all skills installed"
+    fi
+}
+
+cmd_upgrade() {
+    local repo_root="$1"
+    local available_version
+    available_version="$(cat "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
+
+    if [[ ! -f .agilar-coder.version ]]; then
+        echo "Error: No .agilar-coder.version found."
+        echo "  This project hasn't been initialized with agilar-coder."
+        echo "  Run 'agilar-coder init' first, or create .agilar-coder.version manually."
+        exit 1
+    fi
+
+    local installed_version
+    installed_version="$(cat .agilar-coder.version)"
+
+    echo "agilar-coder upgrade"
+    echo "═══════════════════"
+    echo "  From: $installed_version"
+    echo "  To:   $available_version"
+    echo ""
+
+    if [[ "$installed_version" == "$available_version" ]]; then
+        echo "Already at latest version. Upgrading skills anyway..."
+        echo ""
+    fi
+
+    # 1. Update skills (implementations/claude-code/ → .claude/skills/)
+    local updated=0
+    local added=0
+    if [[ -d .claude/skills ]]; then
+        for skill_file in "$repo_root"/implementations/claude-code/*.md; do
+            [[ -f "$skill_file" ]] || continue
+            local skill_name
+            skill_name="$(basename "$skill_file")"
+            if [[ -f ".claude/skills/$skill_name" ]]; then
+                if ! diff -q "$skill_file" ".claude/skills/$skill_name" > /dev/null 2>&1; then
+                    cp "$skill_file" ".claude/skills/$skill_name"
+                    ((updated++))
+                    echo "  Updated: .claude/skills/$skill_name"
+                fi
+            else
+                cp "$skill_file" ".claude/skills/$skill_name"
+                ((added++))
+                echo "  Added:   .claude/skills/$skill_name"
+            fi
+        done
+    else
+        mkdir -p .claude/skills
+        cp "$repo_root"/implementations/claude-code/*.md .claude/skills/
+        added=$(find "$repo_root/implementations/claude-code" -name '*.md' -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+        echo "  Created .claude/skills/ with $added skills"
+    fi
+
+    # 2. Detect removed skills
+    local removed=()
+    if [[ -d .claude/skills ]]; then
+        for skill_file in .claude/skills/*.md; do
+            [[ -f "$skill_file" ]] || continue
+            local skill_name
+            skill_name="$(basename "$skill_file")"
+            if [[ ! -f "$repo_root/implementations/claude-code/$skill_name" ]]; then
+                removed+=("$skill_name")
+            fi
+        done
+    fi
+
+    if [[ ${#removed[@]} -gt 0 ]]; then
+        echo ""
+        echo "  Skills no longer in agilar-coder:"
+        for r in "${removed[@]}"; do
+            echo "    - $r"
+        done
+        read -rp "  Remove them? [y/N] " answer
+        if [[ "$answer" =~ ^[Yy] ]]; then
+            for r in "${removed[@]}"; do
+                rm ".claude/skills/$r"
+                echo "  Removed: .claude/skills/$r"
+            done
+        fi
+    fi
+
+    # 3. Update docs/skills/ (canonical copies)
+    if [[ -d docs/skills ]]; then
+        for skill_dir in "$repo_root"/skills/*/; do
+            [[ -d "$skill_dir" ]] || continue
+            local skill_name
+            skill_name="$(basename "$skill_dir")"
+            if [[ -f "$skill_dir/SKILL.md" ]]; then
+                cp "$skill_dir/SKILL.md" "docs/skills/$skill_name.md"
+            fi
+        done
+        echo "  Updated docs/skills/ (canonical references)"
+    fi
+
+    # 4. CLAUDE.md diff — show what's new in the template
+    echo ""
+    if [[ -f CLAUDE.md && -f "$repo_root/templates/CLAUDE.md.tmpl" ]]; then
+        echo "CLAUDE.md template changes:"
+        echo "  The CLAUDE.md template in agilar-coder may have new sections."
+        echo "  Your project's CLAUDE.md is customized and won't be overwritten."
+        echo "  Review the template at: $repo_root/templates/CLAUDE.md.tmpl"
+        echo ""
+        echo "  Tip: Run 'diff CLAUDE.md <(agilar-coder-scaffold-preview)' to see differences."
+    fi
+
+    # 5. Update version file
+    echo "$available_version" > .agilar-coder.version
+
+    echo ""
+    echo "Summary: $added added, $updated updated, ${#removed[@]} removed candidates"
+    echo "Version: $installed_version → $available_version"
+    echo "Done."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Functions
 # ─────────────────────────────────────────────────────────────────────────────
 
 show_help() {
     cat <<'EOF'
-agilar-coder - Run Claude Code unattended on a Product Backlog
+agilar-coder - Agilar AI SDLC CLI
 
 USAGE:
-    agilar-coder <backlog-file> [count]
-    agilar-coder -h | --help
-    agilar-coder [--debug] [--verbose] <backlog-file> [count]
+    agilar-coder init                      Set up a new project (scaffold wizard)
+    agilar-coder upgrade                   Update skills and docs to latest version
+    agilar-coder status                    Show installed version and skill status
+    agilar-coder <backlog-file> [count]    Process PBIs from a backlog
+    agilar-coder -h | --help               Show this help message
+    agilar-coder --version                 Show version
 
-ARGUMENTS:
-    backlog-file    Path to markdown file containing the Product Backlog
-    count           (Optional) Number of PBIs to process
-                    If omitted, runs until backlog is empty
-
-OPTIONS:
-    -h, --help      Show this help message
+OPTIONS (run mode):
     --debug         Show full command without executing
-    -v, --verbose   Enable verbose output (show Claude's tool calls)
+    -v, --verbose   Enable verbose output
+
+SUBCOMMANDS:
+    init            Run the scaffold wizard to set up methodology, skills,
+                    and CLAUDE.md in the current directory
+    upgrade         Update installed skills to the latest version.
+                    Shows what changed and handles removed/renamed skills.
+    status          Show installed vs available version and skill inventory
 
 CONFIGURATION:
-    ~/.agilar-coder/config.conf
-
-    Available settings:
-        USER_PROMPT   Custom instructions for Claude (git, CI, etc.)
-        MODEL         Claude model to use (default: opus)
-        MAX_TURNS     Max turns per PBI (default: 100)
-        VERBOSE       Enable verbose output (default: false)
-
-EXAMPLES:
-    agilar-coder backlog.md          Process all PBIs until done
-    agilar-coder backlog.md 3        Process exactly 3 PBIs
-    agilar-coder ./docs/sprint.md    Use backlog from subdirectory
+    ~/.agilar-coder/config.conf    Runtime config (model, max turns, user prompt)
+    .agilar-coder.version          Installed version marker (created by init)
 
 EXIT CODES:
     0    Success
-    1    Backlog file not found
+    1    Backlog file not found / bad arguments
     2    Claude Code failed
     3    Status file missing or invalid
     4    Status file indicates error
-    5    No project context (missing CLAUDE.md and no code files)
+    5    No project context
 EOF
 }
 
@@ -294,6 +531,36 @@ validate_project_context() {
 # ─────────────────────────────────────────────────────────────────────────────
 
 main() {
+    # Resolve repo root for all subcommands
+    REPO_ROOT="$(resolve_repo_root)"
+    VERSION="$(cat "$REPO_ROOT/VERSION" 2>/dev/null || echo "dev")"
+
+    # Handle subcommands and global flags first
+    case "${1:-}" in
+        init)
+            cmd_init "$REPO_ROOT"
+            exit 0
+            ;;
+        upgrade)
+            cmd_upgrade "$REPO_ROOT"
+            exit 0
+            ;;
+        status)
+            cmd_status "$REPO_ROOT"
+            exit 0
+            ;;
+        --version)
+            echo "agilar-coder v$VERSION"
+            exit 0
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+    esac
+
+    # ── Run mode (backlog processing) ──
+
     local debug_mode=false
     local verbose_flag=false
     local backlog_file=""

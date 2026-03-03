@@ -2,20 +2,103 @@
 
 ## Overview
 
-A bash script that runs Claude Code unattended, processing Product Backlog Items (PBIs) from a markdown file.
+Agilar AI SDLC CLI — project setup, skill management, and unattended PBI processing via Claude Code.
 
 ## Usage
 
 ```bash
-agilar-coder <backlog-file.md> [count]
-agilar-coder -h | --help
-agilar-coder --debug <backlog-file.md> [count]
+agilar-coder init                      # Set up a new project (scaffold wizard)
+agilar-coder upgrade                   # Update skills and docs to latest version
+agilar-coder status                    # Show installed version and skill status
+agilar-coder <backlog-file> [count]    # Process PBIs from a backlog (run mode)
+agilar-coder -h | --help               # Show help
+agilar-coder --version                 # Show version
 ```
 
-- `backlog-file.md` — Path to markdown file containing the Product Backlog
-- `count` — (Optional) Number of PBIs to process. If omitted, runs until backlog is empty.
+## Self-Location
 
-## Execution Modes
+The script resolves its own repo root to find skills, scaffold, and VERSION:
+
+1. Resolve `$0` via `readlink` (handles symlinks)
+2. Check that the resolved directory contains `skills/` and `scaffold`
+3. Fall back to `AGILAR_CODER_HOME` env var if step 2 fails
+
+This allows the script to be symlinked into `$PATH` (e.g., `ln -s ~/projects/agilar-coder/agilar-coder /usr/local/bin/agilar-coder`).
+
+## Version Tracking
+
+- **Source of truth:** `VERSION` file at repo root (semver, e.g., `1.1.0`)
+- **Project marker:** `.agilar-coder.version` in consumer project root (written by `init`, updated by `upgrade`)
+- The `--version` flag and all subcommands read from the `VERSION` file
+
+## Subcommands
+
+### `init`
+
+Set up a new project with the Agilar AI SDLC methodology.
+
+**Behavior:**
+1. Runs the scaffold wizard (`scaffold` script from repo root)
+2. Scaffold handles all interactive prompts (project name, stack, team mode, etc.)
+3. After scaffold completes, writes `VERSION` to `.agilar-coder.version`
+
+**Output:** Scaffold output + version confirmation
+
+**Exit code:** `0` on success, `1` if scaffold not found
+
+### `status`
+
+Show installed vs available version and skill inventory.
+
+**Behavior:**
+1. Reads `.agilar-coder.version` (if present) for installed version
+2. Reads `VERSION` from repo root for available version
+3. Compares installed vs available skills (`implementations/claude-code/` vs `.claude/skills/`)
+4. Reports missing skills (in repo but not installed) and extra skills (installed but not in repo)
+
+**Output:**
+
+```
+agilar-coder status
+═══════════════════
+  Installed: 1.0.0
+  Available: 1.1.0
+  Status:    upgrade available
+
+Skills:
+  Installed: 17
+  Available: 17
+  Status:    all skills installed
+```
+
+If not initialized:
+
+```
+agilar-coder status
+═══════════════════
+  Installed: not initialized (run 'agilar-coder init')
+  Available: 1.1.0
+```
+
+**Exit code:** `0`
+
+### `upgrade`
+
+Update installed skills and docs to the latest version.
+
+**Behavior:**
+1. Requires `.agilar-coder.version` to exist (must be initialized first)
+2. Copies updated skills from `implementations/claude-code/` → `.claude/skills/` (only changed files)
+3. Detects skills in `.claude/skills/` that no longer exist in the repo; offers to remove them
+4. Updates `docs/skills/` (canonical copies) if the directory exists
+5. Notes CLAUDE.md template changes (does not overwrite — project CLAUDE.md is customized)
+6. Updates `.agilar-coder.version` to current version
+
+**Output:** List of added/updated/removed skills + version change summary
+
+**Exit code:** `0` on success, `1` if not initialized
+
+## Execution Modes (Run Mode)
 
 | Mode | Trigger | Behavior |
 |------|---------|----------|
@@ -25,54 +108,6 @@ agilar-coder --debug <backlog-file.md> [count]
 ## Help & Usage
 
 **Triggers:** No arguments, `-h`, or `--help`
-
-```bash
-agilar-coder
-agilar-coder -h
-agilar-coder --help
-```
-
-**Output:**
-
-```
-agilar-coder - Run Claude Code unattended on a Product Backlog
-
-USAGE:
-    agilar-coder <backlog-file> [count]
-    agilar-coder -h | --help
-    agilar-coder --debug <backlog-file> [count]
-
-ARGUMENTS:
-    backlog-file    Path to markdown file containing the Product Backlog
-    count           (Optional) Number of PBIs to process
-                    If omitted, runs until backlog is empty
-
-OPTIONS:
-    -h, --help      Show this help message
-    --debug         Show full command without executing
-
-CONFIGURATION:
-    ~/.agilar-coder/config.conf
-
-    Available settings:
-        USER_PROMPT   Custom instructions for Claude (git, CI, etc.)
-        MODEL         Claude model to use (default: opus)
-        MAX_TURNS     Max turns per PBI (default: 100)
-        VERBOSE       Enable verbose output (default: false)
-
-EXAMPLES:
-    agilar-coder backlog.md          Process all PBIs until done
-    agilar-coder backlog.md 3        Process exactly 3 PBIs
-    agilar-coder ./docs/sprint.md    Use backlog from subdirectory
-
-EXIT CODES:
-    0    Success
-    1    Backlog file not found
-    2    Claude Code failed
-    3    Status file missing or invalid
-    4    Status file indicates error
-    5    No project context (missing CLAUDE.md and no code files)
-```
 
 **Exit code for help:** `0` (showing help is not an error)
 
@@ -240,62 +275,72 @@ ERROR=Could not parse backlog format
 
 ```
 ┌─────────────────────────────────────────┐
-│ 0. Check for flags                      │
-│    - No args, -h, --help → show help    │
-│    - --debug → set DEBUG=true           │
+│ 0. Resolve repo root + VERSION          │
+│    - Self-locate via $0 / symlink       │
+│    - Fall back to AGILAR_CODER_HOME     │
 └──────────────────┬──────────────────────┘
                    ▼
 ┌─────────────────────────────────────────┐
-│ 1. Parse arguments                      │
+│ 1. Check for subcommand / global flag   │
+│    - init → cmd_init, exit              │
+│    - upgrade → cmd_upgrade, exit        │
+│    - status → cmd_status, exit          │
+│    - --version → print version, exit    │
+│    - -h/--help → show help, exit        │
+└──────────────────┬──────────────────────┘
+                   ▼ (no subcommand matched → run mode)
+┌─────────────────────────────────────────┐
+│ 2. Parse run-mode flags + arguments     │
+│    - --debug, -v/--verbose              │
 │    - Validate backlog file exists       │
 │    - Store count if provided            │
 └──────────────────┬──────────────────────┘
                    ▼
 ┌─────────────────────────────────────────┐
-│ 2. Load config from ~/.agilar-coder/    │
+│ 3. Load config from ~/.agilar-coder/    │
 │    - Create with defaults if missing    │
 └──────────────────┬──────────────────────┘
                    ▼
 ┌─────────────────────────────────────────┐
-│ 3. Build prompt (fixed + user)          │
+│ 4. Build prompt (fixed + user)          │
 └──────────────────┬──────────────────────┘
                    ▼
 ┌─────────────────────────────────────────┐
-│ 4. If DEBUG=true:                       │
+│ 5. If DEBUG=true:                       │
 │    - Print config, command, prompt      │
 │    - Exit 0 (do not invoke Claude)      │
 └──────────────────┬──────────────────────┘
                    ▼
 ┌─────────────────────────────────────────┐
-│ 5. Validate project context             │
+│ 6. Validate project context             │
 │    - Check for CLAUDE.md, code files,   │
 │      project dirs, or manifest files    │
 │    - If none found: exit 5              │
 └──────────────────┬──────────────────────┘
                    ▼
 ┌─────────────────────────────────────────┐
-│ 6. Run Claude Code                      │◄──────────┐
+│ 7. Run Claude Code                      │◄──────────┐
 └──────────────────┬──────────────────────┘           │
                    ▼                                  │
 ┌─────────────────────────────────────────┐           │
-│ 7. Check Claude exit code               │           │
+│ 8. Check Claude exit code               │           │
 │    - If non-zero: ABORT                 │           │
 └──────────────────┬──────────────────────┘           │
                    ▼                                  │
 ┌─────────────────────────────────────────┐           │
-│ 8. Read .agilar-status                  │           │
+│ 9. Read .agilar-status                  │           │
 │    - If missing: ABORT                  │           │
 │    - If STATUS=error: ABORT             │           │
 └──────────────────┬──────────────────────┘           │
                    ▼                                  │
 ┌─────────────────────────────────────────┐           │
-│ 9. Print progress                       │           │
+│ 10. Print progress                      │           │
 │    "✓ Completed: <LAST_PBI>"            │           │
 │    "  Remaining: 7/12"                  │           │
 └──────────────────┬──────────────────────┘           │
                    ▼                                  │
 ┌─────────────────────────────────────────┐           │
-│ 10. Check exit conditions               │           │
+│ 11. Check exit conditions               │           │
 │     - REMAINING=0 → EXIT (done)         │           │
 │     - Bound mode & iterations=count     │           │
 │       → EXIT (quota reached)            │           │
@@ -308,7 +353,7 @@ ERROR=Could not parse backlog format
 **On start:**
 
 ```
-agilar-coder v1.0
+agilar-coder v1.1.0
 Backlog: ./product-backlog.md
 Mode: bound (3 PBIs)
 ─────────────────────────────
@@ -356,12 +401,15 @@ Starting iteration 2...
 
 ```
 ~/.agilar-coder/
-└── config.conf          # User configuration
+└── config.conf              # User configuration (run mode)
 
 <project-directory>/
-├── product-backlog.md   # Input: Product Backlog (user-provided)
-├── .agilar-status       # Output: Status after each run (created by Claude)
-└── CLAUDE.md            # Optional: Claude Code project config (read by Claude)
+├── .agilar-coder.version    # Installed version marker (created by init)
+├── .agilar-status           # Output: Status after each run (created by Claude)
+├── .claude/skills/          # Installed skill implementations (created by init/upgrade)
+├── docs/skills/             # Canonical skill references (created by scaffold)
+├── product-backlog.md       # Input: Product Backlog (user-provided)
+└── CLAUDE.md                # Project config (created by scaffold, customized by user)
 ```
 
 ## Error Handling

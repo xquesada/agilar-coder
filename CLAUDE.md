@@ -34,24 +34,41 @@ agilar-coder/
 
 ## The CLI (`agilar-coder`)
 
-Bash script that runs Claude Code unattended, processing PBIs from a markdown backlog file one at a time.
+Single entry point for the Agilar AI SDLC: project setup, skill management, and unattended PBI processing.
 
 ```bash
-./agilar-coder backlog.md        # Process all PBIs until done
-./agilar-coder backlog.md 3      # Process exactly 3 PBIs
-./agilar-coder --debug backlog.md  # Show command without executing
+./agilar-coder init                  # Set up a new project (scaffold wizard)
+./agilar-coder upgrade               # Update skills and docs to latest version
+./agilar-coder status                # Show installed version and skill status
+./agilar-coder backlog.md            # Process all PBIs until done
+./agilar-coder backlog.md 3          # Process exactly 3 PBIs
+./agilar-coder --debug backlog.md    # Show command without executing
+./agilar-coder --version             # Show version
 ```
+
+### Self-Location
+
+The script resolves its repo root from `$0` (follows symlinks), verifying `skills/` and `scaffold` exist. Falls back to `AGILAR_CODER_HOME` env var. This allows symlinking into `$PATH`.
+
+### Version Tracking
+
+- `VERSION` file at repo root — source of truth (semver)
+- `.agilar-coder.version` in consumer projects — written by `init`, updated by `upgrade`
 
 ### Architecture
 
-Single bash script (~415 lines), 10 functions:
+Single bash script, 14 functions:
 
+- `resolve_repo_root()` — self-locate the agilar-coder repo via `$0` or env var
+- `cmd_init()` — run scaffold wizard, write `.agilar-coder.version`
+- `cmd_status()` — show installed/available version, compare skill inventories
+- `cmd_upgrade()` — update skills, detect removals, bump version marker
 - `load_config()` / `create_default_config()` — manage `~/.agilar-coder/config.conf`
 - `validate_project_context()` — ensure working directory has code/CLAUDE.md
 - `build_prompt()` — assemble fixed prompt + user prompt + backlog path
 - `run_claude()` — invoke `claude` CLI with configured flags
 - `read_status_file()` — parse `.agilar-status` after each run
-- `main()` — loop: run Claude → check status → print progress → repeat or exit
+- `main()` — subcommand dispatch + run-mode loop
 
 ### Communication Protocol
 
@@ -62,7 +79,7 @@ Claude writes `.agilar-status` with `TOTAL`, `REMAINING`, `LAST_PBI`, `STATUS` (
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
-| 1 | Backlog file not found |
+| 1 | Backlog file not found / bad arguments |
 | 2 | Claude Code failed |
 | 3 | Status file missing/invalid |
 | 4 | Status file reports error |

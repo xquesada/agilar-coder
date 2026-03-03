@@ -59,13 +59,19 @@ Once the design is approved and committed:
    - Reference to the design doc in notes
    - Checklist items for discrete implementation steps
 
-2. Use **TaskCreate** to build the implementation plan as a tracked task list:
+2. Create or update the PBI file in `backlog/`:
+   - If no PBI file exists yet, create `backlog/pbi-NNN-short-description.md`
+   - Populate with: title (`# PBI #NNN: Title`), epic, description, acceptance criteria from the design
+   - Reference the design doc in the Notes section (e.g., `Design doc: docs/plans/YYYY-MM-DD-topic-design.md`)
+   - If a PBI file already exists (PBI was created earlier), update it with the new AC and design references
+
+3. Use **TaskCreate** to build the implementation plan as a tracked task list:
    - Break the design into ordered implementation steps
    - Each step should be independently testable
    - Include the TDD cycle: write test, make it pass, refactor
-   - Reference the writing-plans skill for detailed planning if the implementation is non-trivial
+   - Reference the sprint-planning skill for detailed planning if the implementation is non-trivial
 
-3. The design doc path and PBI number become the anchor for all subsequent work.
+4. The design doc path, PBI file, and PBI number become the anchor for all subsequent work.
 
 ## What NOT to Do
 

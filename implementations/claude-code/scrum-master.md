@@ -18,8 +18,9 @@ Unlike other skills that activate on demand, the Scrum Master skill is a backgro
 Check these gates automatically:
 
 1. **PBI exists?** If the user asks to build/fix/add something without referencing a PBI, suggest creating one via the backlog API.
-2. **DoR met?** If a PBI is being started, read its acceptance criteria and checklist. If missing, flag it and offer to help refine.
-3. **WIP check?** If another PBI is already `in_progress`, mention it and ask which to focus on.
+2. **PBI file exists?** Verify a PBI file exists in `backlog/` for the current work. If no file exists but an external tool has the PBI, create the file (`backlog/pbi-NNN-description.md` with title and description). If starting work, verify the file is in `backlog/in_progress/` (or move it there).
+3. **DoR met?** If a PBI is being started, read its acceptance criteria and checklist. If missing, flag it and offer to help refine.
+4. **WIP check?** If another PBI is already `in_progress`, mention it and ask which to focus on.
 
 ### During Work
 

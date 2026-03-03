@@ -92,6 +92,7 @@ The backlog is managed in the **product ownership layer**, which is separate fro
 | **YAML file in repo** | Direct file read — simplest, works offline, no external dependency |
 | **GitHub Issues** | `gh` CLI — agent reads issue body and labels |
 | **Other** | Agent needs a documented way to fetch PBI details — URL, API, or file path |
+| **Filesystem backlog** | PBI files in `backlog/` directory — coexists with any of the above as a parallel record (see Filesystem Backlog section below) |
 
 The scaffold wizard asks which tool you use and configures the project's CLAUDE.md with the access pattern. The agent must be able to:
 1. **List** available PBIs (status `ready`, filtered by project/epic)
@@ -322,6 +323,117 @@ The PBI is the contract between the PO and the developer. No contract, no work.
 
 ---
 
+## Filesystem Backlog
+
+Every project has a `backlog/` directory. Folders represent status columns. PBI files move through folders as they progress. This provides a filesystem-native backlog that works with or without external tools.
+
+### Folder Structure
+
+```
+backlog/
+├── pbi-042-email-validation.md         # status: backlog (unrefined)
+├── pbi-043-user-profile.md             # status: backlog
+├── ready/
+│   ├── pbi-044-search-feature.md       # refined, planned, approved for execution
+│   └── pbi-045-notification-api.md
+├── in_progress/
+│   └── pbi-046-login-page.md           # being worked on
+└── done/
+    ├── pbi-040-setup.md                # completed
+    └── pbi-041-homepage.md
+```
+
+### PBI File Naming
+
+`pbi-NNN-short-description.md` where NNN matches the PBI ID from the backlog tool (or is auto-assigned sequentially when no external tool exists).
+
+### PBI File Format
+
+A PBI file evolves through its lifecycle. Not all sections exist at creation — they accumulate as the PBI is refined and planned.
+
+**Required header:**
+
+```markdown
+# PBI #NNN: Title
+```
+
+**Optional sections** (added as the PBI matures):
+
+```markdown
+# PBI #42: Email Validation
+
+**Epic:** user-management
+
+## Description
+Add email validation to the user registration form.
+
+## Acceptance Criteria
+- [ ] validate_email returns False for invalid emails
+- [ ] validate_email returns True for valid emails
+- [ ] API returns 400 for invalid email on registration
+
+## Notes
+Design doc: docs/plans/2026-02-28-email-validation-design.md
+We discussed using regex — simple pattern matching, not RFC 5322 full compliance.
+
+## Checklist
+- [x] Write design doc
+- [ ] Implement validation function
+- [ ] Add API integration
+
+## Plan
+
+### Task 1: Create validation tests (red)
+**File(s):** tests/test_user_validation.py
+**What to do:** ...
+**Test:** ...
+**Pre-commit:** ...
+**Commit:** "test: add email validation tests (red)"
+
+### Task 2: Implement validation (green)
+**File(s):** src/user_validation.py
+**What to do:** ...
+```
+
+### PBI File Lifecycle
+
+```
+Work identified
+      │
+      v
+PBI file created → backlog/pbi-NNN-description.md (title + description)
+      │
+      v
+Refined → AC added, notes added, design decisions captured
+      │
+      v
+Planned → Plan section added (tasks from sprint-planning skill)
+      │
+      v
+Approved → moved to backlog/ready/
+      │
+      v
+Picked up → moved to backlog/in_progress/, external tool updated to in_progress
+      │
+      v
+Completed → moved to backlog/done/, external tool updated to done
+```
+
+### Sync Protocol (with external tools)
+
+When an external backlog tool is configured (Jira, API, YAML, GitHub Issues):
+
+1. **External tool = primary source of truth** for status and metadata
+2. **Filesystem = parallel record** that captures agent-generated content (plans, design decisions, refinement notes)
+3. **Agent workflow:** Edit file first → sync to external tool
+4. **Conflict detection:** When reading a PBI, compare file content with external tool. If they differ, warn user and offer to merge
+
+### Without External Tool
+
+When no external tool is configured, `backlog/` IS the backlog. Git history is the audit trail. No sync needed — the filesystem is the single source of truth.
+
+---
+
 ## Working Agreements
 
 The working agreements defined in the skills are not separate from the Agile framework — they are built into it. The DoD is the enforcement mechanism.
@@ -356,7 +468,7 @@ Not a DoD gate directly, but enforced by `skills/debugging/`. When a bug is foun
 
 > No design without exploring alternatives.
 
-Enforced during refinement. Before committing to a design, the human and agent explore alternatives via `skills/brainstorming/`. The PBI's design (captured in notes or a plan document via `skills/writing-plans/`) reflects that alternatives were considered.
+Enforced during refinement. Before committing to a design, the human and agent explore alternatives via `skills/brainstorming/`. The PBI's design (captured in notes or a plan document via `skills/sprint-planning/`) reflects that alternatives were considered.
 
 ---
 

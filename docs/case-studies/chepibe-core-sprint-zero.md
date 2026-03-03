@@ -99,7 +99,7 @@ The CLAUDE.md was then customized with chepibe-core-specific notes: references t
 | `brainstorming` | Explore alternatives before committing to a design |
 | `code-review` | Two-stage review: spec compliance first, then code quality |
 | `bdd` | Acceptance tests as executable Gherkin specifications |
-| `writing-plans` | Write implementation plans before touching code |
+| `sprint-planning` | Break PBIs into executable implementation tasks |
 | `executing-plans` | Execute plans with checkpoints and review gates |
 | `scrum-master` | Process conscience — nudges when working agreements are at risk |
 | `po-coach` | Product ownership guidance during refinement |
@@ -256,7 +256,7 @@ PBIs #136 (repo creation) and #137 (Sprint Zero itself) were marked `done`.
 
 ### What the methodology left to the project
 
-The methodology is deliberately silent on architecture decisions. It doesn't tell you to use SQLite or Postgres, microservices or monolith, Go or Python. Those decisions came from the design documents that Xavier and his agent wrote during PBI #130 (architecture research). The methodology provided the process for making those decisions (brainstorming skill, writing-plans skill), but the decisions themselves belong to the Product Owner.
+The methodology is deliberately silent on architecture decisions. It doesn't tell you to use SQLite or Postgres, microservices or monolith, Go or Python. Those decisions came from the design documents that Xavier and his agent wrote during PBI #130 (architecture research). The methodology provided the process for making those decisions (brainstorming skill, sprint-planning skill), but the decisions themselves belong to the Product Owner.
 
 The service conventions (config layout, logging format, health checks, audit trail) are project-specific. The methodology says "have structured logs" (DEVOPS.md, observability section) and "have an audit trail" (DEVOPS.md, agent observability). The service conventions doc defined exactly how.
 
@@ -325,7 +325,7 @@ The foundation packages (#141-#147) will be built as needed by the first service
 
 ### What the methodology does not do
 
-It does not make architecture decisions. The Go choice, the microservices pattern, the SQLite persistence, the service naming conventions — all came from the product vision and design discussions, not from the methodology. The methodology provided the process for having those discussions (brainstorming skill, writing-plans skill), but the decisions belong to the human.
+It does not make architecture decisions. The Go choice, the microservices pattern, the SQLite persistence, the service naming conventions — all came from the product vision and design discussions, not from the methodology. The methodology provided the process for having those discussions (brainstorming skill, sprint-planning skill), but the decisions belong to the human.
 
 It does not write code. Sprint Zero produced zero production code. The methodology is explicit about this: the PBI-first rule says work gets a PBI before starting. The Definition of Ready says acceptance criteria must be written before a PBI is pulled. Sprint Zero created the conditions for production code to be written correctly — in the next session, following TDD, with CI catching regressions, and a clear backlog of what to build.
 

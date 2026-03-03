@@ -66,6 +66,23 @@ Trunk-based. All commits on `main`. Run full test suite before every commit.
 
 Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
 
+## Filesystem Backlog
+
+PBI files live in `backlog/` and move through folders as they progress:
+
+| Folder | Status | Contains |
+|--------|--------|----------|
+| `backlog/` | Backlog | Unrefined PBI files |
+| `backlog/ready/` | Ready | Refined + planned PBIs, queued for execution |
+| `backlog/in_progress/` | In Progress | PBIs currently being worked on |
+| `backlog/done/` | Done | Completed PBIs (archive) |
+
+**Execute ready PBIs:**
+- "Build the next ready PBI" — picks oldest from ready/, executes, archives to done/
+- "Build all ready PBIs" — processes the queue
+
+**Sync:** `backlog.yaml` is the primary source of truth. The filesystem is a parallel record. Agent edits files first, then syncs. Inconsistencies trigger a warning.
+
 ## Product Backlog
 
 PBIs are tracked in `backlog.yaml` in this repo.
@@ -79,7 +96,7 @@ The following skills are active. The agent follows them as executable processes,
 ### Engineering Skills
 - `brainstorming` — explore alternatives before designing
 - `tdd` — red-green-refactor, every time
-- `writing-plans` — plan before building
+- `sprint-planning` — break PBIs into executable tasks
 - `executing-plans` — execute plans with checkpoints
 - `debugging` — root cause before fix
 - `code-review` — two-stage review (spec compliance + quality)

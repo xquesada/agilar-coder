@@ -4,13 +4,35 @@ Load an implementation plan, review it critically, execute tasks in batches, and
 
 ## Overview
 
-This skill is the counterpart to `skills/writing-plans/`. A plan defines WHAT to build. This skill defines HOW to execute it reliably. The executor — human, agent, or subagent — follows the plan step by step, never deviating without explicit consent.
+This skill is the counterpart to `skills/sprint-planning/`. A plan defines WHAT to build. This skill defines HOW to execute it reliably. The executor — human, agent, or subagent — follows the plan step by step, never deviating without explicit consent.
 
 Plans implement PBIs (see `SCRUM.md`). Completing a plan means delivering a PBI toward its Definition of Done. The executor is responsible for the mechanical execution; the human partner remains responsible for design decisions and final acceptance.
 
+## Picking Up Ready PBIs
+
+The ready queue is `backlog/ready/`. It contains PBI files with approved plans, waiting for execution.
+
+### "Build next ready PBI" flow
+
+1. Scan `backlog/ready/` for PBI files (`pbi-*.md`)
+2. Pick the first file in alphabetical order (lowest PBI number = highest priority)
+3. Move it to `backlog/in_progress/`
+4. If an external tool is configured, update its status to `in_progress`
+5. Proceed to Step 1 (load and review the plan from the PBI file)
+
+### "Build all ready PBIs" flow
+
+1. List all files in `backlog/ready/`
+2. Process sequentially (solo) or dispatch to parallel agents (multi-agent). Each PBI goes through the full skill.
+3. Priority: process in filename order (lowest PBI number first)
+
+### Priority
+
+Always process PBIs in filename order. `pbi-042-...` before `pbi-043-...`. This ensures the PO's priority order is respected.
+
 ## Step 1: Load and Review Plan
 
-Before writing a single line of code, read the entire plan and evaluate it critically.
+Before writing a single line of code, read the entire plan and evaluate it critically. The plan is the `## Plan` section of the PBI file. Acceptance criteria are in the same file.
 
 ### What to Check
 
@@ -118,6 +140,20 @@ The PBI is ready for code review (skills/code-review/) and final acceptance.
 ```
 
 The PBI is not done yet. The Definition of Done (`SCRUM.md`) requires code review and human acceptance. Completing the plan means the implementation is ready for review — not that the PBI is closed.
+
+## PBI Lifecycle Management
+
+The executing-plans skill manages PBI file movement as part of execution — this is lifecycle management, not part of the Definition of Done.
+
+### On pickup
+
+Move the PBI file from `backlog/ready/` to `backlog/in_progress/`. If an external tool is configured, sync the status to `in_progress` via the appropriate adapter (see `skills/po-coach/`).
+
+### On completion
+
+Move the PBI file from `backlog/in_progress/` to `backlog/done/`. If an external tool is configured, sync the status to `done`.
+
+The `backlog/done/` folder serves as an execution archive. The PBI still needs code review and human acceptance before it meets the Definition of Done — but the implementation work is complete and the file is archived.
 
 ## When to Stop and Ask for Help
 

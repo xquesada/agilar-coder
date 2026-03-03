@@ -88,7 +88,7 @@ The following skills are active. The agent follows them as executable processes,
 ### Engineering Skills
 - `brainstorming` — explore alternatives before designing
 - `tdd` — red-green-refactor, every time
-- `writing-plans` — plan before building
+- `sprint-planning` — break PBIs into executable tasks
 - `executing-plans` — execute plans with checkpoints
 - `debugging` — root cause before fix
 - `code-review` — two-stage review (spec compliance + quality)

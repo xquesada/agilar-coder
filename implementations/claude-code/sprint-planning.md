@@ -1,11 +1,11 @@
 ---
-name: writing-plans
+name: sprint-planning
 description: Use when you have a spec or requirements for a multi-step task, before touching code
 ---
 
-# Writing Plans — Claude Code Implementation
+# Sprint Planning — Claude Code Implementation
 
-This implements `skills/writing-plans/SKILL.md` for Claude Code.
+This implements `skills/sprint-planning/SKILL.md` for Claude Code.
 
 ## Entering Plan Mode
 
@@ -13,18 +13,21 @@ When the human asks you to plan (or when a PBI is complex enough to warrant a pl
 
 1. **Read the PBI.** Understand the goal, acceptance criteria, and any design decisions already made.
 2. **Explore the codebase.** Use Read, Grep, and Glob to understand existing patterns, conventions, file structure, and test infrastructure. The plan must fit the codebase as it is, not as you imagine it.
-3. **Draft the plan.** Follow the structure from `skills/writing-plans/SKILL.md` — header with Goal/Architecture/Tech Stack/Acceptance Criteria, then numbered tasks at 2-5 minute granularity.
-4. **Save the plan to a file.** Write it to `docs/plans/` or a location the human specifies. Plans are artifacts — they persist across sessions.
+3. **PBI size check.** Before drafting the plan, estimate the number of tasks. If you can already see the PBI would need more than 5-7 tasks (10-15 minutes of agent execution), stop and suggest splitting. Present the split options to the human — they decide whether to split or proceed as-is.
+4. **Draft the plan.** Follow the structure from `skills/sprint-planning/SKILL.md` — header with Goal/Architecture/Tech Stack/Acceptance Criteria, then numbered tasks at 2-5 minute granularity.
+5. **Save the plan to a file.** Write it to `docs/plans/` or a location the human specifies. Plans are artifacts — they persist across sessions.
 
 ## Plan File Convention
 
-Save plans as markdown files:
+Plans are written as the `## Plan` section of the PBI file:
 
 ```
-docs/plans/YYYY-MM-DD-pbi-NNN-short-description.md
+backlog/pbi-NNN-short-description.md
 ```
 
-Example: `docs/plans/2026-02-28-pbi-042-user-email-validation.md`
+Example: `backlog/pbi-042-email-validation.md` (or `backlog/ready/pbi-042-email-validation.md` if approved in the same session).
+
+Design docs (brainstorming output) still go to `docs/plans/YYYY-MM-DD-<topic>-design.md`. The PBI file references them in its Notes section.
 
 ## Task Tracking
 
@@ -82,20 +85,26 @@ Use Grep and Glob to answer these. Do not guess.
 
 ## Handoff to Execution
 
-Once the plan is written and the human approves it, the execution approach depends on team mode. **You decide — do not ask the user to choose between execution strategies.**
+Once the plan is written and the human approves it, move the PBI file to `backlog/ready/`:
+
+```bash
+mv backlog/pbi-NNN-*.md backlog/ready/
+```
+
+Then the execution approach depends on team mode. **You decide — do not ask the user to choose between execution strategies.**
 
 ### Solo Mode (default)
 
 Count the tasks in the plan and recommend accordingly:
 
-- **Up to ~8 tasks:** Execute in the current session. Just say: "Plan ready. Want me to start?" and switch to the executing-plans skill.
-- **9+ tasks:** Recommend a fresh session. Say: "This plan has N tasks. I recommend starting a fresh session to execute it — that way I won't lose context midway. The plan is saved at `docs/plans/...`. Open a new session and point me at it."
+- **Up to ~8 tasks:** Execute in the current session. Just say: "Plan ready. Want me to start?" Move the PBI to `backlog/ready/`, then switch to the executing-plans skill.
+- **9+ tasks:** Recommend a fresh session. Say: "This plan has N tasks. I recommend starting a fresh session to execute it — that way I won't lose context midway. The PBI file is at `backlog/ready/pbi-NNN-description.md`. Start a fresh session and tell it to build the next ready PBI."
 
 Do not mention sub-agents, context windows, or compaction to the user. Just make the recommendation.
 
 ### Multi-Agent Mode
 
-Dispatch independent task groups to parallel agents in worktrees. See `skills/parallel-agents/` and `skills/git-worktrees/`.
+Dispatch independent task groups to parallel agents in worktrees. Plans are queued in `backlog/ready/`. The orchestrator dispatches workers. See `skills/parallel-agents/` and `skills/git-worktrees/`.
 
 ### Multi-Human Mode
 
@@ -107,5 +116,5 @@ Assign task groups to developers. Each works in a feature branch and opens a PR 
 Human: Plan the implementation for PBI #42 (email validation for the user registration form)
 
 Agent: [Reads PBI #42, explores codebase, finds existing patterns]
-       [Writes plan to docs/plans/2026-02-28-pbi-042-email-validation.md]
+       [Creates/updates backlog/pbi-042-email-validation.md with description, AC, and Plan section]
        [Presents summary to human for review]

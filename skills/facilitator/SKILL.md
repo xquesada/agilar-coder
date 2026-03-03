@@ -175,7 +175,7 @@ The agent captures the answers and the chosen improvement. At the next retro, th
 | `skills/po-coach/` | PO Coach activates during refinement (acceptance criteria) and review (acceptance). |
 | `skills/scrum-master/` | Scrum Master enforces process between events. Facilitator manages events. |
 | `skills/brainstorming/` | Brainstorming may happen during refinement for complex PBIs. |
-| `skills/writing-plans/` | Implementation plans may be drafted during sprint planning breakdown. |
+| `skills/sprint-planning/` | Implementation plans may be drafted during sprint planning breakdown. |
 
 ## Anti-Patterns
 

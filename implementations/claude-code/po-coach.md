@@ -88,6 +88,29 @@ The CLAUDE.md section identifies the project/board. The `.claude/settings.json` 
 
 The exact tool names depend on the MCP server. For example, Jira MCP might expose `jira_search`, `jira_get_issue`, `jira_transition_issue`. Discover available tools and map them.
 
+### Adapter: Filesystem Backlog
+
+PBI files live in the `backlog/` directory and move through subfolders as they progress.
+
+| Operation | Command |
+|-----------|---------|
+| **List ready PBIs** | `ls backlog/ready/pbi-*.md` |
+| **Read PBI details** | Read `backlog/{status}/pbi-NNN-*.md` — the file contains description, AC, notes, checklist, and plan |
+| **Mark in_progress** | `mv backlog/ready/pbi-NNN-*.md backlog/in_progress/` |
+| **Mark done** | `mv backlog/in_progress/pbi-NNN-*.md backlog/done/` |
+| **Create PBI** | Write `backlog/pbi-NNN-description.md` with `# PBI #NNN: Title` header |
+| **Update content** | Edit `backlog/{status}/pbi-NNN-*.md` — add AC, notes, plan sections as PBI matures |
+
+### Sync Protocol
+
+When an external tool is configured (REST API, YAML, Jira, GitHub Issues), the filesystem adapter runs **in addition to** the primary adapter — not instead of it.
+
+- **Read:** Fetch from external tool → compare with PBI file → if they differ, warn user and offer to merge
+- **Write:** Edit the PBI file first → then sync the change to the external tool via the primary adapter
+- **Status changes:** Move the file between folders → then update the external tool's status field
+
+Without an external tool, the filesystem adapter is the only adapter. Git tracks history.
+
 ### What to Do at Session Start
 
 1. Read `## Product Backlog` from CLAUDE.md

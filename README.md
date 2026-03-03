@@ -95,7 +95,7 @@ agilar-ai-sdlc/
 ├── skills/                      # Canonical skill definitions (tool-agnostic)
 │   ├── brainstorming/SKILL.md
 │   ├── tdd/SKILL.md
-│   ├── writing-plans/SKILL.md
+│   ├── sprint-planning/SKILL.md
 │   ├── executing-plans/SKILL.md
 │   ├── debugging/SKILL.md
 │   ├── code-review/SKILL.md

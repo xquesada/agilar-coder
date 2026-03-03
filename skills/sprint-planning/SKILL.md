@@ -1,10 +1,12 @@
-# Writing Plans
+# Sprint Planning
 
-Write comprehensive implementation plans that any engineer — human or AI — can follow with zero prior codebase context.
+Take a refined PBI and break it into executable tasks that any engineer — human or AI — can follow with zero prior codebase context.
 
 ## Overview
 
-A plan is the bridge between a PBI and working code. The human designs (brainstorming, architecture decisions, acceptance criteria). The plan translates that design into a sequence of concrete, executable tasks. The agent then follows the plan mechanically (see `skills/executing-plans/`).
+This is Sprint Planning Part 2 — the activity where the team takes a refined PBI and decomposes it into a concrete implementation plan. The human designs (brainstorming, architecture decisions, acceptance criteria). Sprint planning translates that design into a sequence of concrete, executable tasks. The agent then follows the plan mechanically (see `skills/executing-plans/`).
+
+In classic Scrum, Sprint Planning Part 1 is about WHAT to build (the PO presents refined PBIs). Part 2 is about HOW to build it (the team breaks PBIs into tasks). This skill is Part 2. Part 1 happens during Product Backlog Refinement (see `SCRUM.md`).
 
 Plans are written AFTER the PBI meets the Definition of Ready (see `SCRUM.md`). If the PBI does not have acceptance criteria or an approved design, refine it first — do not plan unrefined work.
 
@@ -15,6 +17,24 @@ Plans are written AFTER the PBI meets the Definition of Ready (see `SCRUM.md`). 
 - You want to hand off execution to a separate session or agent
 
 If the PBI is small enough to implement in a single obvious step, skip the plan and just build it.
+
+## PBI Size Check
+
+Before writing the plan, estimate the total execution time. This check catches oversized PBIs early — before you invest time in detailed task breakdown.
+
+**Heuristic:** Count the expected tasks at 2-5 minutes each. If the plan would exceed ~5-7 tasks (10-15 minutes of agent execution), the PBI is too large for a single plan.
+
+**What to do when a PBI is too large:**
+
+1. Stop before writing the plan
+2. Suggest splitting the PBI into 2+ smaller PBIs, each independently deliverable
+3. Explain what the natural split points are (e.g., "the API layer and the UI layer are independent deliverables")
+4. The PO decides whether to split — the agent suggests, the human decides
+5. If the PO decides to proceed without splitting, write the plan as-is (their call)
+
+This check happens BEFORE writing the plan, not after. A plan that is too large is not a sign of a thorough plan — it is a sign of a PBI that was not broken down enough during refinement.
+
+**Why this matters:** Large plans exhaust the agent's context window during execution. Beyond ~8 tasks, earlier task details get compressed, degrading quality. Smaller PBIs produce better plans, better execution, and more frequent delivery.
 
 ## Plan Document Structure
 
@@ -31,6 +51,14 @@ Acceptance Criteria: [Copy from PBI — these are the success conditions]
 ```
 
 The header exists so the executor never needs to go elsewhere for context. Everything needed to understand the "why" and "what" is right here.
+
+## Plan Placement
+
+The implementation plan is written as a `## Plan` section inside the PBI file at `backlog/pbi-NNN-short-description.md`. The plan follows the same task structure described below (Task N with File(s), What to do, Code, Test, Pre-commit, Commit).
+
+The PBI file header (title, description, acceptance criteria) replaces the standalone plan header — it is already in the file. Do not duplicate the Goal, Architecture, Tech Stack, and AC in a separate `## Plan` header. The `## Plan` section starts directly with task definitions.
+
+Design docs remain in `docs/plans/` as reference material (brainstorming output, cross-PBI architecture). PBI files reference them in their Notes section.
 
 ## Task Structure
 
@@ -130,6 +158,8 @@ Before handing off the plan, verify:
 - [ ] Tasks are ordered by dependency
 - [ ] The plan header contains the Goal, Architecture, Tech Stack, and Acceptance Criteria
 - [ ] A final task verifies ALL acceptance criteria end-to-end
+- [ ] Plan written in PBI file (`backlog/pbi-NNN-description.md`)
+- [ ] PBI file moved to `backlog/ready/` after approval
 
 ## Execution Handoff
 
@@ -142,15 +172,17 @@ The agent picks based on plan size:
 | Plan size | Approach | What the agent says |
 |-----------|----------|---------------------|
 | **Small (up to ~8 tasks)** | Same session, sequential | "Plan ready. Want me to start?" |
-| **Large (9+ tasks)** | Fresh session with executing-plans skill | "This plan has N tasks. I recommend starting a fresh session to execute it — that way I won't lose context midway. The plan is saved at `docs/plans/...`. Open a new session and point me at it." |
+| **Large (9+ tasks)** | Fresh session with executing-plans skill | "This plan has N tasks. I recommend starting a fresh session to execute it — that way I won't lose context midway. The plan is in `backlog/ready/pbi-NNN-description.md`. Start a fresh session and tell it to build the next ready PBI." |
 
 **Why 8 tasks:** Each task involves reading files, writing code, running tests, and producing output. Beyond ~8 tasks, context pressure causes compaction (earlier task details are summarized and compressed), which degrades quality. A fresh session gives the executor a clean context window dedicated to execution.
 
 The agent may use sub-agents internally for isolated subtasks (e.g., writing a test file in parallel with a config file), but that is an implementation detail — not something the user decides.
 
+After the plan is written and approved, the PBI file is moved to `backlog/ready/`. This signals to any executor (same session, fresh session, or sub-agent) that the PBI is ready for implementation.
+
 ### Multi-Agent Mode
 
-Independent task groups are assigned to separate agents working in isolated worktrees. Each agent gets its assigned tasks from the plan. The lead agent coordinates via the task list and merges results. See `skills/parallel-agents/` and `skills/git-worktrees/`.
+Independent task groups are assigned to separate agents working in isolated worktrees. Each agent gets its assigned tasks from the plan. The lead agent coordinates via the task list and merges results. The orchestrator picks from `backlog/ready/`. See `skills/parallel-agents/` and `skills/git-worktrees/`.
 
 ### Multi-Human Mode
 

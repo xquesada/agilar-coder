@@ -131,6 +131,8 @@ esac
 
 echo ""
 echo -e "${BOLD}Where do you manage requirements (Product Backlog)?${NC}"
+echo -e "${DIM}Note: A filesystem backlog (backlog/ directory) is always created regardless of your choice.${NC}"
+echo -e "${DIM}It serves as a parallel record maintained by agents alongside your primary tool.${NC}"
 echo "  1) Agilar PO Companion (API-based)        — recommended"
 echo "  2) YAML file in this repo                  — simplest, works offline"
 echo "  3) Jira"
@@ -333,6 +335,11 @@ fi
 
 echo ""
 echo -e "${CYAN}Generating project files...${NC}"
+
+# Create backlog directories (always, regardless of external tool)
+mkdir -p "$PROJECT_DIR/backlog/ready" "$PROJECT_DIR/backlog/in_progress" "$PROJECT_DIR/backlog/done"
+touch "$PROJECT_DIR/backlog/.gitkeep" "$PROJECT_DIR/backlog/ready/.gitkeep" "$PROJECT_DIR/backlog/in_progress/.gitkeep" "$PROJECT_DIR/backlog/done/.gitkeep"
+echo -e "  ${GREEN}+${NC} backlog/ (filesystem backlog: ready/, in_progress/, done/)"
 
 # Create .claude/skills/ directory for Claude Code
 if [[ "$TOOL_NAME" == "claude-code" ]]; then
@@ -593,6 +600,21 @@ $BRANCH_SECTION$(if [[ -n "$ENTIRE_SECTION" ]]; then printf '\n\n%s' "$ENTIRE_SE
 
 Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
 
+## Filesystem Backlog
+
+PBI files live in \`backlog/\` and move through folders as they progress:
+
+| Folder | Status | Contains |
+|--------|--------|----------|
+| \`backlog/\` | Backlog | Unrefined PBI files |
+| \`backlog/ready/\` | Ready | Refined + planned PBIs, queued for execution |
+| \`backlog/in_progress/\` | In Progress | PBIs currently being worked on |
+| \`backlog/done/\` | Done | Completed PBIs (archive) |
+
+**Execute ready PBIs:**
+- "Build the next ready PBI" — picks oldest from ready/, executes, archives to done/
+- "Build all ready PBIs" — processes the queue
+
 $BACKLOG_SECTION$(if [[ -n "$DEPLOY_SECTION" ]]; then printf '\n\n%s' "$DEPLOY_SECTION"; fi)
 
 ## Skills
@@ -602,7 +624,7 @@ The following skills are active. The agent follows them as executable processes,
 ### Engineering Skills
 - \`brainstorming\` — explore alternatives before designing
 - \`tdd\` — red-green-refactor, every time
-- \`writing-plans\` — plan before building
+- \`sprint-planning\` — break PBIs into executable tasks
 - \`executing-plans\` — execute plans with checkpoints
 - \`debugging\` — root cause before fix
 - \`code-review\` — two-stage review (spec compliance + quality)
@@ -684,6 +706,7 @@ echo -e "${BOLD}Done.${NC} Project scaffolded at ${CYAN}$PROJECT_DIR${NC}"
 echo ""
 echo -e "${BOLD}What was created:${NC}"
 echo "  CLAUDE.md                  — Working agreements, DoR, DoD, skills"
+echo "  backlog/                   — Filesystem backlog (ready/, in_progress/, done/)"
 if [[ "$TOOL_NAME" == "claude-code" ]]; then
   echo "  .claude/skills/*.md        — Claude Code skill implementations"
 fi

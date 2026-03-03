@@ -2,7 +2,7 @@
 
 Execute an implementation plan by dispatching independent tasks to worker agents, with mandatory two-stage review between each task. The orchestrator coordinates, workers implement, reviewers verify.
 
-This skill is the execution engine for plans produced by `skills/writing-plans/`. It bridges the gap between "we have a plan" and "the plan is done" — with quality gates at every step.
+This skill is the execution engine for plans produced by `skills/sprint-planning/`. It bridges the gap between "we have a plan" and "the plan is done" — with quality gates at every step.
 
 ## Working Agreement
 
@@ -13,12 +13,12 @@ This skill is the execution engine for plans produced by `skills/writing-plans/`
 - You have an approved implementation plan with discrete, ordered tasks
 - Tasks are largely independent (each can be implemented and tested without waiting for others)
 - You want same-session execution with built-in quality control
-- The plan was produced by `skills/writing-plans/` or has equivalent structure
+- The plan was produced by `skills/sprint-planning/` or has equivalent structure
 
 ## When NOT to Use
 
 - You are still in the design phase (use `skills/brainstorming/`)
-- You do not have a plan yet (use `skills/writing-plans/`)
+- You do not have a plan yet (use `skills/sprint-planning/`)
 - Tasks require deep exploration or research (use `skills/parallel-agents/` for investigation)
 - The work is a single, indivisible change (just implement it directly with TDD)
 
@@ -251,11 +251,37 @@ REPORT BACK:
 - **More than 3 review cycles** — if a worker cannot satisfy a reviewer in 3 attempts, something is wrong with the task spec, the review criteria, or both. Escalate to the human partner.
 - **Orchestrator implementing directly** — the orchestrator coordinates. If you find yourself writing code as the orchestrator, you have left the process.
 
+## Batch Execution from Ready Queue
+
+When told "work on ready PBIs" or "build all ready plans", the orchestrator:
+
+1. **List** all PBI files in `backlog/ready/` (sorted by filename = PBI number order)
+2. **Move** each to `backlog/in_progress/` and sync status to external tool (if configured)
+3. **Evaluate independence:** Can PBIs execute in parallel? Check for shared files or dependencies between PBIs. If PBI A modifies `src/auth.go` and PBI B also modifies `src/auth.go`, they are dependent.
+4. **Dispatch workers:**
+   - **Independent PBIs** — dispatch workers in parallel (one PBI per worker, each in its own worktree)
+   - **Dependent PBIs** — execute sequentially (finish PBI A before starting PBI B)
+5. **Each worker** follows the full subagent-driven process for its PBI (dispatch → spec review → quality review)
+6. **After each PBI completes:** move to `backlog/done/` and sync status to external tool
+
+### Safety
+
+If PBIs share files or dependencies, execute them sequentially — never in parallel. The cost of a merge conflict is higher than the cost of sequential execution.
+
+### Reporting
+
+The orchestrator reports completion of each PBI before starting the next:
+
+```
+PBI #42 (email validation) — complete. 5 tasks, all reviews passed.
+PBI #43 (user profile) — starting now.
+```
+
 ## Connection to Other Skills
 
 | Skill | Relationship |
 |-------|-------------|
-| `skills/writing-plans/` | Produces the implementation plans this skill executes |
+| `skills/sprint-planning/` | Produces the implementation plans this skill executes |
 | `skills/tdd/` | Workers follow TDD — tests before code, always |
 | `skills/code-review/` | Quality reviewer follows code review principles |
 | `skills/verification/` | Final verification evidence before PBI completion |

@@ -7,11 +7,37 @@ description: Use when you have a written implementation plan to execute in a sep
 
 This implements `skills/executing-plans/SKILL.md` for Claude Code.
 
+## Picking Up Ready PBIs
+
+Before executing, check if the user pointed you at a specific plan or if you need to pick from the ready queue.
+
+### Ready queue pickup
+
+```bash
+ls backlog/ready/pbi-*.md
+```
+
+Read the first file (alphabetical = lowest PBI number = highest priority). Extract the PBI ID from the header (`# PBI #NNN: ...`).
+
+Move it to in_progress:
+
+```bash
+mv backlog/ready/pbi-NNN-*.md backlog/in_progress/
+```
+
+If an external tool is configured (see PO Coach adapters), also update its status to `in_progress` via the appropriate adapter.
+
+Load the `## Plan` section from the PBI file for execution.
+
+### Direct plan execution
+
+If the user points you at a specific PBI file (e.g., "execute `backlog/ready/pbi-042-email-validation.md`"), use that file directly. Still move it to `backlog/in_progress/` before starting.
+
 ## Prerequisites
 
 Before executing any plan:
 
-1. **Read the plan file.** Use Read to load the full plan document.
+1. **Read the PBI file.** Use Read to load the full PBI file. The plan is in the `## Plan` section.
 2. **Set up the working environment.** If the plan specifies worktree execution, create a worktree before the first task:
    - Use EnterWorktree to create an isolated worktree
    - This gives you a clean branch based on HEAD, isolated from other work
@@ -37,9 +63,9 @@ This gives the human partner visibility into progress without needing to ask.
 ### 1. Load and Review
 
 ```
-Human: Execute the plan at docs/plans/2026-02-28-pbi-042-email-validation.md
+Human: Execute backlog/in_progress/pbi-042-email-validation.md
 
-Agent: [Read the plan file]
+Agent: [Read the PBI file, load the ## Plan section]
        [Explore codebase to verify plan accuracy]
        [Report any concerns or confirm ready to start]
 ```
@@ -113,13 +139,26 @@ For plans with independent task groups, the orchestrator session can spawn subag
 3. **Spawn via TaskCreate.** Pass the plan file path and the specific task numbers to execute.
 4. **Merge results.** The orchestrator merges each worktree branch to main, running the full test suite after each merge.
 
+## PBI Lifecycle Management
+
+After all tasks complete and the completion report is presented:
+
+```bash
+mv backlog/in_progress/pbi-NNN-*.md backlog/done/
+git add backlog/ && git commit -m "backlog: complete pbi-NNN description"
+```
+
+If an external tool is configured, sync the status to `done` via the appropriate adapter.
+
 ## Example Session
 
 ```
-Human: Execute docs/plans/2026-02-28-pbi-042-email-validation.md
+Human: Build the next ready PBI
 
-Agent: [Reads plan, reviews 7 tasks, verifies codebase]
+Agent: [Runs ls backlog/ready/pbi-*.md, finds pbi-042-email-validation.md]
+       [Moves to backlog/in_progress/]
+       [Reads PBI file, reviews 7 tasks in Plan section, verifies codebase]
 
-       I've reviewed the plan. 7 tasks for PBI #42 (email validation).
-       File paths verified. Test framework confirmed (pytest).
+       I've picked up PBI #42 (email validation) from the ready queue.
+       7 tasks. File paths verified. Test framework confirmed (pytest).
        No concerns. Ready to start batch 1 (tasks 1-3)?

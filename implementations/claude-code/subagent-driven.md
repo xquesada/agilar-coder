@@ -168,6 +168,55 @@ Then re-dispatch the same reviewer to verify the fixes.
 
 4. **After all tasks:** Run full test suite, compile summary, provide verification evidence to the user.
 
+## Batch Ready Queue Execution
+
+When told to process the ready queue ("build all ready PBIs", "work on ready PBIs"):
+
+### 1. List ready PBIs
+
+```bash
+ls backlog/ready/pbi-*.md
+```
+
+### 2. For each PBI file
+
+```
+[Read file, extract PBI number from # PBI #NNN: header]
+mv backlog/ready/pbi-NNN-*.md backlog/in_progress/
+[If external tool: sync status to in_progress]
+```
+
+### 3. Dispatch worker
+
+Pass the `## Plan` section from the PBI file as part of the worker prompt. Include the PBI's acceptance criteria from the same file.
+
+### 4. After completion
+
+```
+mv backlog/in_progress/pbi-NNN-*.md backlog/done/
+git add backlog/ && git commit -m "backlog: complete pbi-NNN description"
+[If external tool: sync status to done]
+```
+
+### Example orchestrator flow
+
+```
+Agent: [ls backlog/ready/pbi-*.md → finds pbi-042, pbi-043, pbi-044]
+       [Reads all three, checks for shared files]
+       [pbi-042 and pbi-043 are independent; pbi-044 depends on pbi-043]
+
+       3 PBIs in the ready queue. #42 and #43 can run in parallel.
+       #44 depends on #43 (shared API handler file).
+
+       Dispatching workers for #42 and #43 in parallel...
+       [Moves both to in_progress, dispatches workers in worktrees]
+       [After both complete, moves to done]
+       [Dispatches worker for #44]
+       [After completion, moves to done]
+
+       All 3 PBIs complete. Ready queue is empty.
+```
+
 ## What NOT to Do
 
 - Do not write implementation code yourself — dispatch workers via **Agent**. You are the orchestrator.

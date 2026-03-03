@@ -85,7 +85,7 @@ The approved design feeds directly into implementation planning:
 - The acceptance criteria from the design become the PBI's acceptance criteria
 - The design doc is referenced in the PBI
 - The PBI meets Definition of Ready: it has a clear goal, acceptance criteria, and an approved design
-- Next step: create an implementation plan (see the writing-plans skill)
+- Next step: create an implementation plan (see the sprint-planning skill)
 
 ## Connection to Definition of Ready
 

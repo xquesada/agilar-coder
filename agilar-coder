@@ -574,7 +574,7 @@ session_hooks = hooks.setdefault('SessionStart', [])
 for group in session_hooks:
     for h in group.get('hooks', []):
         if 'agilar-coder' in h.get('command', ''):
-            sys.exit(0)  # already registered
+            sys.exit(1)  # already registered, skip
 
 # Append new hook group
 session_hooks.append({
@@ -874,6 +874,7 @@ cmd_install() {
             overall_pct=$(( ASSESS_TOTAL_SCORE * 100 / ASSESS_TOTAL_MAX ))
         fi
         if [[ $overall_pct -eq 100 ]]; then
+            register_claude_hook
             echo ""
             echo "This project is fully Agilar-compliant. Nothing to install."
             echo "Run 'agilar-coder config$(if [[ "${2:-.}" != "." ]]; then echo " ${2:-.}"; fi)' to reconfigure parameters."

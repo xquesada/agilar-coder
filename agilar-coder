@@ -551,7 +551,7 @@ normalize_agent_guidance() {
 # Merges with existing hooks (e.g. Entire) without overwriting them.
 register_claude_hook() {
     local settings_file=".claude/settings.json"
-    local hook_cmd='test -f .agilar-coder.version && printf "agilar-coder v%s activated\n" "$(cat .agilar-coder.version)" >&2'
+    local hook_cmd='test -f .agilar-coder.version && printf "{\"systemMessage\":\"agilar-coder v%s activated\"}\n" "$(cat .agilar-coder.version)"'
 
     mkdir -p .claude
 

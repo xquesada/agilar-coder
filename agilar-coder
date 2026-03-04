@@ -547,6 +547,47 @@ normalize_agent_guidance() {
     fi
 }
 
+# Register agilar-coder SessionStart hook in .claude/settings.json
+# Merges with existing hooks (e.g. Entire) without overwriting them.
+register_claude_hook() {
+    local settings_file=".claude/settings.json"
+    local hook_cmd='test -f .agilar-coder.version && printf "agilar-coder v%s activated\n" "$(cat .agilar-coder.version)"'
+
+    mkdir -p .claude
+
+    python3 -c "
+import json, sys, os
+
+settings_file = '$settings_file'
+hook_cmd = '''$hook_cmd'''
+
+# Load existing or create empty
+settings = {}
+if os.path.exists(settings_file):
+    with open(settings_file) as f:
+        settings = json.load(f)
+
+hooks = settings.setdefault('hooks', {})
+session_hooks = hooks.setdefault('SessionStart', [])
+
+# Check if already registered
+for group in session_hooks:
+    for h in group.get('hooks', []):
+        if 'agilar-coder' in h.get('command', ''):
+            sys.exit(0)  # already registered
+
+# Append new hook group
+session_hooks.append({
+    'matcher': '',
+    'hooks': [{'type': 'command', 'command': hook_cmd}]
+})
+
+with open(settings_file, 'w') as f:
+    json.dump(settings, f, indent=2)
+    f.write('\n')
+" 2>/dev/null && echo "  Registered: SessionStart hook in .claude/settings.json"
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Subcommands
 # ─────────────────────────────────────────────────────────────────────────────
@@ -752,6 +793,9 @@ COMMANDS
     echo "$VERSION" > .agilar-coder.version
     echo "  Created: .agilar-coder.version ($VERSION)"
 
+    # Claude Code startup hook
+    register_claude_hook
+
     # Create PBIs for anything fill-gaps cannot do automatically
     local pbi_count=0
     mkdir -p backlog/ready
@@ -916,6 +960,9 @@ run_full_scaffold() {
     echo "$VERSION" > .agilar-coder.version
     echo ""
     echo "Version $VERSION recorded in .agilar-coder.version"
+
+    # Claude Code startup hook
+    register_claude_hook
 }
 
 cmd_status() {

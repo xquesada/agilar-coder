@@ -902,6 +902,24 @@ Set up the Entire open source tool to capture a git-native log of every AI agent
 ENTIRE_PBI
   echo -e "  ${GREEN}+${NC} backlog/ready/entire-audit-trail.md"
   ((PBI_COUNT++))
+
+  # Entire session-start hook wrapper (shortens verbose message to one line)
+  mkdir -p "$PROJECT_DIR/.claude/hooks"
+  cat > "$PROJECT_DIR/.claude/hooks/entire-session-start.sh" << 'ENTIRE_HOOK'
+#!/bin/sh
+entire hooks claude-code session-start 2>/dev/null | python3 -c "
+import sys, json, subprocess
+try:
+    data = json.load(sys.stdin)
+    ver = subprocess.run(['entire', 'version'], capture_output=True, text=True).stdout.split()[2]
+    data['systemMessage'] = f'Entire v{ver} active'
+    json.dump(data, sys.stdout)
+except:
+    pass
+" || exit 0
+ENTIRE_HOOK
+  chmod +x "$PROJECT_DIR/.claude/hooks/entire-session-start.sh"
+  echo -e "  ${GREEN}+${NC} .claude/hooks/entire-session-start.sh"
 fi
 
 # CI/CD pipeline

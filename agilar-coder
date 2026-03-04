@@ -548,18 +548,40 @@ normalize_agent_guidance() {
 }
 
 # Register agilar-coder SessionStart hook in .claude/settings.json
-# Merges with existing hooks (e.g. Entire) without overwriting them.
+# Also patches Entire's hook to use a wrapper that shortens its message.
+# Merges with existing hooks without overwriting them.
 register_claude_hook() {
     local settings_file=".claude/settings.json"
     local hook_cmd='test -f .agilar-coder.version && printf "{\"systemMessage\":\"agilar-coder v%s activated\"}\n" "$(tr -d \"\\r\\n\" < .agilar-coder.version)"'
 
     mkdir -p .claude
 
+    # Install Entire wrapper if Entire is present and wrapper doesn't exist
+    if command -v entire &>/dev/null && [[ ! -f .claude/hooks/entire-session-start.sh ]]; then
+        mkdir -p .claude/hooks
+        cat > .claude/hooks/entire-session-start.sh << 'ENTIRE_HOOK'
+#!/bin/sh
+entire hooks claude-code session-start 2>/dev/null | python3 -c "
+import sys, json, subprocess
+try:
+    data = json.load(sys.stdin)
+    ver = subprocess.run(['entire', 'version'], capture_output=True, text=True).stdout.split()[2]
+    data['systemMessage'] = f'Entire v{ver} active'
+    json.dump(data, sys.stdout)
+except:
+    pass
+" || exit 0
+ENTIRE_HOOK
+        chmod +x .claude/hooks/entire-session-start.sh
+        echo "  Created: .claude/hooks/entire-session-start.sh"
+    fi
+
     python3 -c "
 import json, sys, os
 
 settings_file = '$settings_file'
 hook_cmd = '''$hook_cmd'''
+changed = False
 
 # Load existing or create empty
 settings = {}
@@ -570,21 +592,38 @@ if os.path.exists(settings_file):
 hooks = settings.setdefault('hooks', {})
 session_hooks = hooks.setdefault('SessionStart', [])
 
-# Check if already registered
+# Patch Entire's direct hook to use wrapper (if wrapper exists)
+if os.path.exists('.claude/hooks/entire-session-start.sh'):
+    for group in session_hooks:
+        for h in group.get('hooks', []):
+            if h.get('command') == 'entire hooks claude-code session-start':
+                h['command'] = '.claude/hooks/entire-session-start.sh'
+                changed = True
+
+# Check if agilar-coder hook already registered
 for group in session_hooks:
     for h in group.get('hooks', []):
         if 'agilar-coder' in h.get('command', ''):
-            sys.exit(1)  # already registered, skip
+            if not changed:
+                sys.exit(1)  # nothing to do
+            break
+    else:
+        continue
+    break
+else:
+    # Not registered — append
+    session_hooks.append({
+        'matcher': '',
+        'hooks': [{'type': 'command', 'command': hook_cmd}]
+    })
+    changed = True
 
-# Append new hook group
-session_hooks.append({
-    'matcher': '',
-    'hooks': [{'type': 'command', 'command': hook_cmd}]
-})
-
-with open(settings_file, 'w') as f:
-    json.dump(settings, f, indent=2)
-    f.write('\n')
+if changed:
+    with open(settings_file, 'w') as f:
+        json.dump(settings, f, indent=2)
+        f.write('\n')
+else:
+    sys.exit(1)
 " 2>/dev/null && echo "  Registered: SessionStart hook in .claude/settings.json"
 }
 

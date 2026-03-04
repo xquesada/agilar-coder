@@ -605,7 +605,7 @@ for group in session_hooks:
     for h in group.get('hooks', []):
         if 'agilar-coder' in h.get('command', ''):
             if not changed:
-                sys.exit(1)  # nothing to do
+                sys.exit(0)  # already registered, nothing to do
             break
     else:
         continue
@@ -622,9 +622,8 @@ if changed:
     with open(settings_file, 'w') as f:
         json.dump(settings, f, indent=2)
         f.write('\n')
-else:
-    sys.exit(1)
-" 2>/dev/null && echo "  Registered: SessionStart hook in .claude/settings.json"
+    print('  Registered: SessionStart hook in .claude/settings.json')
+" 2>/dev/null || true
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -792,6 +791,29 @@ COMMANDS
             fi
         fi
 
+        # Filesystem backlog section — add if backlog/ exists but CLAUDE.md doesn't mention it
+        if [[ -d backlog ]] && ! grep -qiE 'backlog/ready|backlog/in_progress|backlog/done|filesystem backlog' CLAUDE.md 2>/dev/null; then
+            cat >> CLAUDE.md << 'BACKLOG_SECTION'
+
+## Filesystem Backlog
+
+PBI files live in `backlog/` and move through folders as they progress:
+
+| Folder | Status | Contains |
+|--------|--------|----------|
+| `backlog/` | Backlog | Unrefined PBI files |
+| `backlog/ready/` | Ready | Refined + planned PBIs, queued for execution |
+| `backlog/in_progress/` | In Progress | PBIs currently being worked on |
+| `backlog/done/` | Done | Completed PBIs (archive) |
+
+**Execute ready PBIs:**
+- "Build the next ready PBI" — picks oldest from ready/, executes, archives to done/
+- "Build all ready PBIs" — processes the queue
+BACKLOG_SECTION
+            echo "  Appended: Filesystem Backlog to CLAUDE.md"
+            ((claude_appended++))
+        fi
+
         [[ $claude_appended -eq 0 ]] && true  # no-op to avoid set -e
     fi
 
@@ -913,9 +935,11 @@ cmd_install() {
             overall_pct=$(( ASSESS_TOTAL_SCORE * 100 / ASSESS_TOTAL_MAX ))
         fi
         if [[ $overall_pct -eq 100 ]]; then
+            # Still run fill_gaps — assess checks structure, not CLAUDE.md content completeness
+            fill_gaps "$repo_root"
             register_claude_hook
             echo ""
-            echo "This project is fully Agilar-compliant. Nothing to install."
+            echo "This project is fully Agilar-compliant."
             echo "Run 'agilar-coder config$(if [[ "${2:-.}" != "." ]]; then echo " ${2:-.}"; fi)' to reconfigure parameters."
             exit 0
         fi

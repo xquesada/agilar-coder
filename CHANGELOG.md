@@ -6,6 +6,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow 
 
 Breaking changes include a **Migration** section with required manual steps.
 
+## [1.3.3] - 2026-03-07
+
+### Added
+- CHANGELOG.md with version history and migration notes format
+- `upgrade` command shows what changed between versions (CHANGELOG diff)
+- `upgrade` command highlights manual migration steps for breaking changes
+- `upgrade` detects missing CLAUDE.md template sections, explains each, and offers to append
+- `fill-gaps` detects missing Product Backlog section in CLAUDE.md and prompts for backlog tool
+- Upgrade workflow documented in README
+
+### Fixed
+- Strip `\r` from version files — prevents garbled upgrade output and failed version matching
+- CLAUDE.md upgrade message replaced vague template review with actionable per-section prompts
+
 ## [1.3.2] - 2026-03-07
 
 ### Added

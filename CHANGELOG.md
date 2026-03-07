@@ -6,6 +6,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow 
 
 Breaking changes include a **Migration** section with required manual steps.
 
+## [1.3.4] - 2026-03-07
+
+### Added
+- Version management as core methodology: scaffold and fill-gaps generate VERSION + CHANGELOG.md
+- Versioning section in CLAUDE.md template (semver convention, version impact classification)
+- CHANGELOG update added to Definition of Done (SCRUM.md + CLAUDE.md template)
+- Version impact classification in brainstorming skill (major/minor/patch during design)
+- Version bump suggestion at PBI completion in using-agilar-coder skill (human confirms)
+- assess checks for VERSION + CHANGELOG in Framework Tracking dimension
+- fill-gaps detects and adds missing Product Backlog section in CLAUDE.md
+
 ## [1.3.3] - 2026-03-07
 
 ### Added

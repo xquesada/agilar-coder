@@ -1897,7 +1897,7 @@ cmd_upgrade() {
             local generated
             generated="$(generate_section_content "$section")"
             local real_content
-            real_content="$(echo "$generated" | grep -v '^[[:space:]]*$' | grep -v '<!-- TODO')"
+            real_content="$(echo "$generated" | grep -v '^[[:space:]]*$' | grep -v '<!-- TODO' || true)"
             [[ -z "$real_content" ]] && continue
             if ! grep -q "^## .*${section}" CLAUDE.md 2>/dev/null; then
                 actionable_sections+=("$section|missing")

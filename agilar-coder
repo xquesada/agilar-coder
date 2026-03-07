@@ -814,7 +814,7 @@ Every piece of work follows this lifecycle (scale ceremony to complexity, but th
 
 1. **Capture** — Create a PBI before starting any work (PBI-first rule)
 2. **Refine** — Write acceptance criteria, explore approaches, get design approval
-3. **Plan** — Break into ordered, testable implementation tasks
+3. **Plan** — Break into ordered, testable implementation tasks (write the plan as a `## Plan` section inside the PBI file — never in `docs/plans/`)
 4. **Implement** — Execute with TDD (red-green-refactor per task)
 5. **Review** — Code review for spec compliance and quality
 6. **Verify** — Run full test suite, prove acceptance criteria met with fresh evidence

@@ -11,6 +11,7 @@ Breaking changes include a **Migration** section with required manual steps.
 ### Fixed
 - `upgrade` silently aborted before writing `.agilar-coder.version` when no skills changed — arithmetic `((0 += 0))` returned exit code 1 under `set -e`
 - `upgrade` silently aborted during CLAUDE.md section scan when `grep -v` filtered all lines — bare assignment exposed exit code 1 to `set -e`
+- Plans written to `docs/plans/` instead of PBI files — template and generated content now explicitly say "write as `## Plan` inside the PBI file, never in `docs/plans/`"
 
 ## [1.5.1] - 2026-03-07
 

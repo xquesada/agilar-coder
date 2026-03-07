@@ -644,6 +644,10 @@ if [[ -L "$PROJECT_DIR/CLAUDE.md" ]]; then
     rm "$PROJECT_DIR/CLAUDE.md"
 fi
 CLAUDEMD="$PROJECT_DIR/CLAUDE.md"
+if [[ -f "$CLAUDEMD" ]]; then
+    cp "$CLAUDEMD" "${CLAUDEMD}.bak"
+    echo -e "  ${YELLOW}!${NC} Backed up existing CLAUDE.md → CLAUDE.md.bak"
+fi
 
 # Build the branching section
 if [[ "$TEAM_MODE_CHOICE" == "1" ]]; then

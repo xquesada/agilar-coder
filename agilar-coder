@@ -750,6 +750,352 @@ PYEOF
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# CLAUDE.md section helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Detect project settings from project files and existing CLAUDE.md.
+# Sets PROJ_* globals used by generate_section_content.
+detect_project_settings() {
+    [[ -n "${PROJ_SETTINGS_LOADED:-}" ]] && return 0
+
+    # Stack detection
+    PROJ_TEST_CMD="" PROJ_LINT_CMD="" PROJ_BUILD_CMD="" PROJ_STACK_LABEL=""
+    if [[ -f package.json ]]; then
+        PROJ_TEST_CMD="npm test"; PROJ_LINT_CMD="npx eslint . && npx tsc --noEmit"
+        PROJ_BUILD_CMD="npm run build"; PROJ_STACK_LABEL="Node.js / TypeScript"
+    elif [[ -f go.mod ]]; then
+        PROJ_TEST_CMD="go test ./..."; PROJ_LINT_CMD="go vet ./... && golangci-lint run ./..."
+        PROJ_BUILD_CMD="go build ./cmd/..."; PROJ_STACK_LABEL="Go"
+    elif [[ -f pyproject.toml || -f setup.py || -f requirements.txt ]]; then
+        PROJ_TEST_CMD="pytest"; PROJ_LINT_CMD="ruff check . && mypy src/"
+        PROJ_BUILD_CMD="python -m build"; PROJ_STACK_LABEL="Python"
+    elif [[ -f mix.exs ]]; then
+        PROJ_TEST_CMD="mix test"; PROJ_LINT_CMD="mix format --check-formatted && mix credo --strict"
+        PROJ_BUILD_CMD="MIX_ENV=prod mix release"; PROJ_STACK_LABEL="Elixir"
+    fi
+
+    # Team mode from existing CLAUDE.md
+    PROJ_TEAM_MODE="solo" PROJ_CODE_REVIEW="no" PROJ_SIZE_UNIT="working session"
+    if [[ -f CLAUDE.md ]]; then
+        if grep -q 'Multi-agent' CLAUDE.md 2>/dev/null; then
+            PROJ_TEAM_MODE="multi-agent"
+        elif grep -q 'Multi-human' CLAUDE.md 2>/dev/null; then
+            PROJ_TEAM_MODE="multi-human"
+            PROJ_SIZE_UNIT="sprint"
+        fi
+        if grep -qE 'No merge without code review' CLAUDE.md 2>/dev/null; then
+            PROJ_CODE_REVIEW="yes"
+        fi
+    fi
+
+    PROJ_SETTINGS_LOADED=1
+}
+
+# Generate content for a CLAUDE.md section (without the ## header).
+# Usage: content="$(generate_section_content "Working Agreements")"
+generate_section_content() {
+    local section="$1"
+    detect_project_settings
+
+    case "$section" in
+        "Methodology")
+            cat << 'SECTION_EOF'
+This project follows the **Agilar Agentic Coding methodology** (`agilar-coder`). The terms "methodology", "method", and "framework" all refer to the same thing: the Agilar Agentic Coding methodology.
+
+### Core Principles
+
+1. **Human Designs, AI Executes** — The human is always the Product Owner. The AI is a skilled developer. Humans make decisions, AI follows process rigorously.
+2. **Working Agreements** — Non-negotiable quality gates (see below). Not guidelines — commitments the team enforces.
+3. **Opinionated by Default** — Concrete choices, not open-ended guidance. Start with defaults, adapt only when needed.
+
+### Development Lifecycle
+
+Every piece of work follows this lifecycle (scale ceremony to complexity, but the default is all steps):
+
+1. **Capture** — Create a PBI before starting any work (PBI-first rule)
+2. **Refine** — Write acceptance criteria, explore approaches, get design approval
+3. **Plan** — Break into ordered, testable implementation tasks
+4. **Implement** — Execute with TDD (red-green-refactor per task)
+5. **Review** — Code review for spec compliance and quality
+6. **Verify** — Run full test suite, prove acceptance criteria met with fresh evidence
+7. **Finish** — Merge, clean up branches/worktrees
+8. **Deploy** — Ship to production, verify health
+9. **Close** — Mark done, update CHANGELOG, suggest version bump
+
+Shortcuts exist for simple work (bug fixes, config changes, research) — the scrum-master skill guides when steps can be skipped.
+SECTION_EOF
+            ;;
+
+        "Team Mode")
+            case "$PROJ_TEAM_MODE" in
+                multi-agent) echo '**Multi-agent** — 1 human + agent team. Kanban. Worktrees from main.' ;;
+                multi-human) echo '**Multi-human** — PO + developers. Full Scrum. Feature branches + PRs.' ;;
+                *)           echo '**Solo** — 1 human + 1 agent. Kanban. Trunk-based development.' ;;
+            esac
+            ;;
+
+        "Working Agreements")
+            echo 'These are non-negotiable. The agent enforces them.'
+            echo ''
+            echo '- **No production code without a failing test first** (TDD)'
+            echo '- **No fix without root cause investigation** (Debugging)'
+            echo '- **No completion claim without fresh verification evidence** (Verification)'
+            echo '- **No design without exploring alternatives** (Brainstorming)'
+            if [[ "$PROJ_CODE_REVIEW" == "yes" ]]; then
+                echo '- **No merge without code review** (Code Review)'
+            else
+                echo '- Code review: **disabled** (relying on TDD + verification + automated quality checks)'
+            fi
+            ;;
+
+        "Definition of Ready")
+            cat << SECTION_EOF
+A PBI is ready when:
+- Small enough for a single $PROJ_SIZE_UNIT
+- Acceptance criteria written (specific, testable)
+- Design approved
+- No blockers
+- Checklist populated (if multi-step)
+SECTION_EOF
+            ;;
+
+        "Definition of Done")
+            echo 'A PBI is done when:'
+            echo '- Acceptance criteria met (verified, not assumed)'
+            echo '- Tests pass (TDD — written before implementation)'
+            echo '- Verified with evidence (fresh test output after final change)'
+            [[ "$PROJ_CODE_REVIEW" == "yes" ]] && echo '- Code reviewed'
+            echo '- CHANGELOG.md updated (entry under current version or Unreleased)'
+            echo '- Docs updated (if user-facing changes)'
+            ;;
+
+        "Tech Stack")
+            if [[ -n "$PROJ_STACK_LABEL" ]]; then
+                echo "$PROJ_STACK_LABEL"
+            else
+                echo '<!-- TODO: specify your tech stack -->'
+            fi
+            ;;
+
+        "Test Commands")
+            if [[ -n "$PROJ_TEST_CMD" ]]; then
+                printf '```bash\n%s\n```' "$PROJ_TEST_CMD"
+            else
+                printf '```bash\n# TODO: add your test command\n```'
+            fi
+            ;;
+
+        "Lint Commands")
+            if [[ -n "$PROJ_LINT_CMD" ]]; then
+                printf '```bash\n%s\n```' "$PROJ_LINT_CMD"
+            else
+                printf '```bash\n# TODO: add your lint command\n```'
+            fi
+            ;;
+
+        "Build Commands")
+            if [[ -n "$PROJ_BUILD_CMD" ]]; then
+                printf '```bash\n%s\n```' "$PROJ_BUILD_CMD"
+            else
+                printf '```bash\n# TODO: add your build command\n```'
+            fi
+            ;;
+
+        "Branching")
+            case "$PROJ_TEAM_MODE" in
+                multi-agent) echo 'Worktrees from `main`. Each agent works in isolation. Self-merge after tests pass.' ;;
+                multi-human) echo 'Feature branches. PRs required. CI must pass before merge. Code review mandatory.' ;;
+                *)           echo 'Trunk-based. All commits on `main`. Run full test suite before every commit.' ;;
+            esac
+            ;;
+
+        "PBI-First Rule")
+            cat << 'SECTION_EOF'
+Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
+
+### Creating a PBI
+
+1. **Check `backlog/`** — Search existing PBI files for a match
+2. **If none exists, create a new PBI file** — `backlog/pbi-<NNN>-<short-description>.md` (use the next available number)
+3. **Write acceptance criteria** before starting implementation
+SECTION_EOF
+            ;;
+
+        "Versioning")
+            cat << 'SECTION_EOF'
+This project uses [Semantic Versioning](https://semver.org/) (`major.minor.patch`).
+
+- **VERSION** file at project root — source of truth
+- **CHANGELOG.md** — documents what changed per version ([Keep a Changelog](https://keepachangelog.com/) format)
+
+Version impact classification:
+- **Major** — breaking changes (API changes, removed features, changed behavior that affects consumers)
+- **Minor** — new features, new capabilities (backwards-compatible)
+- **Patch** — bug fixes, documentation, refactoring (no behavior change)
+
+The agent classifies version impact during PBI design, suggests a bump at completion, and the human confirms.
+SECTION_EOF
+            ;;
+
+        "Filesystem Backlog")
+            cat << 'SECTION_EOF'
+PBI files live in `backlog/` and move through folders as they progress:
+
+| Folder | Status | Contains |
+|--------|--------|----------|
+| `backlog/` | Backlog | Unrefined PBI files |
+| `backlog/ready/` | Ready | Refined + planned PBIs, queued for execution |
+| `backlog/in_progress/` | In Progress | PBIs currently being worked on |
+| `backlog/done/` | Done | Completed PBIs (archive) |
+
+**Execute ready PBIs:**
+- "Build the next ready PBI" — picks oldest from ready/, executes, archives to done/
+- "Build all ready PBIs" — processes the queue
+SECTION_EOF
+            ;;
+
+        "Skills")
+            cat << 'SECTION_EOF'
+The following skills are active. The agent follows them as executable processes, not guidelines.
+
+### Engineering Skills
+- `brainstorming` — explore alternatives before designing
+- `tdd` — red-green-refactor, every time
+- `sprint-planning` — break PBIs into executable tasks
+- `executing-plans` — execute plans with checkpoints
+- `debugging` — root cause before fix
+- `code-review` — two-stage review (spec compliance + quality)
+- `requesting-code-review` — when and how to request review
+- `receiving-code-review` — responding to review feedback
+- `verification` — evidence before claims
+- `bdd` — acceptance tests as executable specifications
+SECTION_EOF
+            echo ''
+            echo '### Coordination Skills'
+            case "$PROJ_TEAM_MODE" in
+                multi-agent)
+                    echo '- `subagent-driven` — orchestrate sub-agents for independent tasks'
+                    echo '- `parallel-agents` — dispatch parallel work'
+                    echo '- `git-worktrees` — agent isolation via worktrees'
+                    echo '- `finishing-a-development-branch` — clean branch completion'
+                    ;;
+                multi-human)
+                    echo '- `git-worktrees` — optional, for developer isolation'
+                    ;;
+            esac
+            cat << 'SECTION_EOF'
+
+### Coaching Skills
+- `scrum-master` — process conscience (always active)
+- `po-coach` — product ownership guidance (during refinement)
+- `facilitator` — Scrum event facilitation
+SECTION_EOF
+            ;;
+
+        "Project-Specific Notes")
+            echo '<!-- Add project-specific conventions, constraints, and notes here -->'
+            ;;
+
+        *)
+            echo '<!-- TODO: fill in -->'
+            ;;
+    esac
+}
+
+# Check if a section in a file exists but has only blank lines and/or TODO comments.
+section_is_empty() {
+    local name="$1"
+    local file="$2"
+
+    local content
+    content="$(awk -v section="$name" '
+        /^## / {
+            h = $0; sub(/^## /, "", h); gsub(/[[:space:]]+$/, "", h)
+            if (h == section) { found = 1; next }
+            else if (found) { exit }
+        }
+        found { print }
+    ' "$file" | grep -v '^[[:space:]]*$' | grep -v '<!-- TODO')"
+
+    [[ -z "$content" ]]
+}
+
+# Remove a section that has only TODO/empty content (header + blank lines + TODO line).
+# The section is deleted so it can be re-appended with real content.
+remove_empty_section() {
+    local name="$1"
+    local file="$2"
+
+    local tmpfile
+    tmpfile="$(mktemp)"
+    awk -v section="$name" '
+        /^## / {
+            h = $0; sub(/^## /, "", h); gsub(/[[:space:]]+$/, "", h)
+            if (h == section) { removing = 1; next }
+            else { removing = 0 }
+        }
+        removing && /^[[:space:]]*$/ { next }
+        removing && /<!-- TODO/ { next }
+        removing { removing = 0 }
+        { print }
+    ' "$file" > "$tmpfile"
+    mv "$tmpfile" "$file"
+}
+
+# Add or populate a CLAUDE.md section.
+# - If keyword_pattern matches in CLAUDE.md -> content exists (possibly under a different header), skip
+# - If section header exists but is empty/TODO -> replace with generated content
+# - If section header is missing -> append with generated content
+# Returns 0 if content was added/replaced, 1 if skipped.
+ensure_section() {
+    local name="$1"
+    local keyword_pattern="$2"
+
+    # Skip if content already exists (detected by keyword, possibly under a different header)
+    if [[ -n "$keyword_pattern" ]] && grep -qiE "$keyword_pattern" CLAUDE.md 2>/dev/null; then
+        return 1
+    fi
+
+    local content
+    content="$(generate_section_content "$name")"
+
+    if grep -q "^## $name" CLAUDE.md 2>/dev/null; then
+        if section_is_empty "$name" CLAUDE.md; then
+            remove_empty_section "$name" CLAUDE.md
+            printf '\n## %s\n\n%s\n' "$name" "$content" >> CLAUDE.md
+            return 0
+        fi
+        return 1
+    fi
+
+    printf '\n## %s\n\n%s\n' "$name" "$content" >> CLAUDE.md
+    return 0
+}
+
+# Describe a CLAUDE.md section (for preview in upgrade prompts).
+describe_section() {
+    local section="$1"
+    case "$section" in
+        "Methodology")              echo "core principles + development lifecycle" ;;
+        "Team Mode")                echo "solo, multi-agent, or multi-human setup" ;;
+        "Working Agreements")       echo "non-negotiable quality gates (TDD, verification, etc.)" ;;
+        "Definition of Ready")      echo "criteria for a PBI to be workable" ;;
+        "Definition of Done")       echo "criteria for a PBI to be complete" ;;
+        "Tech Stack")               echo "languages, frameworks, and tools" ;;
+        "Test Commands")            echo "how to run your test suite" ;;
+        "Lint Commands")            echo "how to run your linter" ;;
+        "Build Commands")           echo "how to build your project" ;;
+        "Branching")                echo "branching strategy and merge workflow" ;;
+        "PBI-First Rule")           echo "any new work gets a PBI before starting" ;;
+        "Versioning")               echo "semver convention, VERSION file, CHANGELOG.md" ;;
+        "Filesystem Backlog")       echo "backlog/ folder structure for PBI lifecycle" ;;
+        "Skills")                   echo "active skills the agent follows as executable processes" ;;
+        "Project-Specific Notes")   echo "custom notes, conventions, and constraints" ;;
+        *)                          echo "new section from the latest template" ;;
+    esac
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Subcommands
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -832,122 +1178,66 @@ CLAUDE_EOF
         echo "  Created: backlog/ directory structure"
     fi
 
-    # Append missing sections to CLAUDE.md (if it exists)
+    # Ensure essential CLAUDE.md sections exist with real content
     if [[ -f CLAUDE.md ]]; then
         local claude_appended=0
+        detect_project_settings
 
-        # Working agreements (check each keyword)
-        if ! grep -qiE 'tdd|test.driven|write tests first' CLAUDE.md 2>/dev/null; then
-            cat >> CLAUDE.md << 'AGREEMENTS'
-
-## Working Agreements
-
-These are non-negotiable. The agent enforces them.
-
-- **No production code without a failing test first** (TDD)
-- **No fix without root cause investigation** (Debugging)
-- **No completion claim without fresh verification evidence** (Verification)
-- **No design without exploring alternatives** (Brainstorming)
-- **No merge without code review** (Code Review)
-AGREEMENTS
-            echo "  Appended: Working Agreements to CLAUDE.md"
-            ((claude_appended++))
+        # Each call handles: missing headers, empty TODO stubs, and content under different headers
+        if ensure_section "Methodology" 'agilar.*methodology|core principles|development lifecycle'; then
+            echo "  Added: Methodology to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Team Mode" 'team mode.*\*\*'; then
+            echo "  Added: Team Mode to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Working Agreements" 'tdd|test.driven|write tests first'; then
+            echo "  Added: Working Agreements to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Definition of Ready" 'definition of ready|ready when'; then
+            echo "  Added: Definition of Ready to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Definition of Done" 'definition of done|done when'; then
+            echo "  Added: Definition of Done to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Tech Stack" 'tech.stack|toolchain'; then
+            echo "  Added: Tech Stack to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Test Commands" 'test command|npm test|go test|pytest|mix test|cargo test'; then
+            echo "  Added: Test Commands to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Lint Commands" 'lint command|eslint|golangci|ruff|pylint|rubocop|credo|mix format'; then
+            echo "  Added: Lint Commands to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Build Commands" 'build command|npm run build|go build|python -m build|mix release'; then
+            echo "  Added: Build Commands to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Branching" 'all commits on.*main|feature branch.*PR|worktree.*isolation|self-merge after|## Branching'; then
+            echo "  Added: Branching to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "PBI-First Rule" 'pbi-first|pbi.first|any new work gets a pbi'; then
+            echo "  Added: PBI-First Rule to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Versioning" 'versioning|semantic versioning|semver.*major'; then
+            echo "  Added: Versioning to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Filesystem Backlog" 'backlog/ready|backlog/in_progress|backlog/done|filesystem backlog'; then
+            echo "  Added: Filesystem Backlog to CLAUDE.md"; ((claude_appended++))
+        fi
+        if ensure_section "Skills" 'skills.*active|engineering skills'; then
+            echo "  Added: Skills to CLAUDE.md"; ((claude_appended++))
         fi
 
-        # Detect stack commands once
-        local test_cmd="" lint_cmd="" build_cmd=""
-        if [[ -f package.json ]]; then
-            test_cmd="npm test"; lint_cmd="npx eslint . && npx tsc --noEmit"; build_cmd="npm run build"
-        elif [[ -f go.mod ]]; then
-            test_cmd="go test ./..."; lint_cmd="go vet ./... && golangci-lint run ./..."; build_cmd="go build ./cmd/..."
-        elif [[ -f pyproject.toml || -f setup.py || -f requirements.txt ]]; then
-            test_cmd="pytest"; lint_cmd="ruff check . && mypy src/"; build_cmd="python -m build"
-        elif [[ -f mix.exs ]]; then
-            test_cmd="mix test"; lint_cmd="mix format --check-formatted && mix credo --strict"; build_cmd="MIX_ENV=prod mix release"
-        fi
-
-        # Test command — add if missing
-        if [[ -n "$test_cmd" ]] && ! grep -qiE 'test command|npm test|go test|pytest|mix test|cargo test' CLAUDE.md 2>/dev/null; then
-            cat >> CLAUDE.md << COMMANDS
-
-## Test Commands
-
-\`\`\`bash
-$test_cmd
-\`\`\`
-COMMANDS
-            echo "  Appended: Test Commands to CLAUDE.md"
-            ((claude_appended++))
-        fi
-
-        # Lint command — add if missing (independent of test check)
-        if [[ -n "$lint_cmd" ]] && ! grep -qiE 'lint command|eslint|golangci|ruff|pylint|rubocop|credo|mix format' CLAUDE.md 2>/dev/null; then
-            cat >> CLAUDE.md << COMMANDS
-
-## Lint Commands
-
-\`\`\`bash
-$lint_cmd
-\`\`\`
-COMMANDS
-            echo "  Appended: Lint Commands to CLAUDE.md"
-            ((claude_appended++))
-        fi
-
-        # Build command — add if missing
-        if [[ -n "$build_cmd" ]] && ! grep -qiE 'build command|npm run build|go build|python -m build|mix release' CLAUDE.md 2>/dev/null; then
-            cat >> CLAUDE.md << COMMANDS
-
-## Build Commands
-
-\`\`\`bash
-$build_cmd
-\`\`\`
-COMMANDS
-            echo "  Appended: Build Commands to CLAUDE.md"
-            ((claude_appended++))
-        fi
-
-        # Tech stack section
-        if ! grep -qiE 'tech.stack|toolchain|stack' CLAUDE.md 2>/dev/null; then
-            local stack_label=""
-            if [[ -f package.json ]]; then stack_label="Node.js / TypeScript"
-            elif [[ -f go.mod ]]; then stack_label="Go"
-            elif [[ -f pyproject.toml || -f setup.py ]]; then stack_label="Python"
-            elif [[ -f mix.exs ]]; then stack_label="Elixir"
+        # Product Backlog — interactive (needs user input for backlog tool choice)
+        local needs_backlog=false
+        if grep -q '^## Product Backlog' CLAUDE.md 2>/dev/null; then
+            if section_is_empty "Product Backlog" CLAUDE.md; then
+                remove_empty_section "Product Backlog" CLAUDE.md
+                needs_backlog=true
             fi
-            if [[ -n "$stack_label" ]]; then
-                printf '\n## Tech Stack\n\n%s\n' "$stack_label" >> CLAUDE.md
-                echo "  Appended: Tech Stack to CLAUDE.md"
-                ((claude_appended++))
-            fi
+        elif ! grep -qiE 'backlog api|backlog.*managed|where.*requirements' CLAUDE.md 2>/dev/null; then
+            needs_backlog=true
         fi
-
-        # Filesystem backlog section — add if backlog/ exists but CLAUDE.md doesn't mention it
-        if [[ -d backlog ]] && ! grep -qiE 'backlog/ready|backlog/in_progress|backlog/done|filesystem backlog' CLAUDE.md 2>/dev/null; then
-            cat >> CLAUDE.md << 'BACKLOG_SECTION'
-
-## Filesystem Backlog
-
-PBI files live in `backlog/` and move through folders as they progress:
-
-| Folder | Status | Contains |
-|--------|--------|----------|
-| `backlog/` | Backlog | Unrefined PBI files |
-| `backlog/ready/` | Ready | Refined + planned PBIs, queued for execution |
-| `backlog/in_progress/` | In Progress | PBIs currently being worked on |
-| `backlog/done/` | Done | Completed PBIs (archive) |
-
-**Execute ready PBIs:**
-- "Build the next ready PBI" — picks oldest from ready/, executes, archives to done/
-- "Build all ready PBIs" — processes the queue
-BACKLOG_SECTION
-            echo "  Appended: Filesystem Backlog to CLAUDE.md"
-            ((claude_appended++))
-        fi
-
-        # Product Backlog section — add if CLAUDE.md doesn't mention how to access the backlog
-        if ! grep -qiE 'product backlog|backlog api|backlog.*managed|where.*requirements' CLAUDE.md 2>/dev/null; then
+        if [[ "$needs_backlog" == true ]]; then
             echo ""
             echo "  Where do you manage requirements (Product Backlog)?"
             echo "  1) Agilar PO Companion (enterprise product management)"
@@ -1593,47 +1883,86 @@ cmd_upgrade() {
         echo "  Updated docs/skills/ (canonical references)"
     fi
 
-    # 4. CLAUDE.md — detect and offer to add missing template sections
+    # 4. CLAUDE.md — detect missing and empty sections, offer to populate with real content
     if [[ -f CLAUDE.md && -f "$repo_root/templates/CLAUDE.md.tmpl" ]]; then
-        local missing_sections=()
-        while IFS= read -r section; do
-            section="$(echo "$section" | tr -d '\r' | sed 's/{{[^}]*}}//g' | sed 's/^## //' | xargs)"
+        detect_project_settings
+        local actionable_sections=()
+
+        # Check template sections: missing or present-but-empty (TODO stubs)
+        while IFS= read -r line; do
+            local section
+            section="$(echo "$line" | tr -d '\r' | sed 's/{{[^}]*}}//g' | sed 's/^## //' | xargs)"
             [[ -z "$section" ]] && continue
             if ! grep -q "^## .*${section}" CLAUDE.md 2>/dev/null; then
-                missing_sections+=("$section")
+                actionable_sections+=("$section|missing")
+            elif section_is_empty "$section" CLAUDE.md; then
+                actionable_sections+=("$section|empty")
             fi
         done < <(grep '^## ' "$repo_root/templates/CLAUDE.md.tmpl")
 
-        if [[ ${#missing_sections[@]} -gt 0 ]]; then
+        if [[ ${#actionable_sections[@]} -gt 0 ]]; then
             echo ""
-            echo "CLAUDE.md — new sections available:"
-            for s in "${missing_sections[@]}"; do
-                local desc=""
-                case "$s" in
-                    "Project")                desc="project name and description" ;;
-                    "Team Mode")              desc="solo, multi-agent, or multi-human setup" ;;
-                    "Working Agreements")      desc="non-negotiable quality gates (TDD, verification, etc.)" ;;
-                    "Definition of Ready")     desc="criteria for a PBI to be workable" ;;
-                    "Definition of Done")      desc="criteria for a PBI to be complete" ;;
-                    "Tech Stack")              desc="languages, frameworks, and tools" ;;
-                    "Test Commands")           desc="how to run your test suite" ;;
-                    "Lint Commands")           desc="how to run your linter" ;;
-                    "Build Commands")          desc="how to build your project" ;;
-                    "Branching")               desc="branching strategy and merge workflow" ;;
-                    "PBI-First Rule")          desc="any new work gets a PBI before starting" ;;
-                    "Versioning")              desc="semver convention, VERSION file, CHANGELOG.md, version impact classification" ;;
-                    "Filesystem Backlog")      desc="backlog/ folder structure for PBI lifecycle" ;;
-                    "Skills")                  desc="active skills the agent follows as executable processes" ;;
-                    "Project-Specific Notes")  desc="custom notes, conventions, and constraints for this project" ;;
-                    *)                         desc="new section from the latest agilar-coder template" ;;
-                esac
-                echo "  - $s — $desc"
-                read -rp "    Add to CLAUDE.md? [y/N] " answer
-                if [[ "$answer" =~ ^[Yy] ]]; then
-                    printf '\n## %s\n\n<!-- TODO: fill in -->\n' "$s" >> CLAUDE.md
-                    echo "    Appended: ## $s"
+            echo "CLAUDE.md — ${#actionable_sections[@]} section(s) to update:"
+            for entry in "${actionable_sections[@]}"; do
+                local s="${entry%%|*}"
+                local status="${entry##*|}"
+                local desc
+                desc="$(describe_section "$s")"
+                if [[ "$status" == "empty" ]]; then
+                    echo "  - $s (exists but empty) — $desc"
+                else
+                    echo "  - $s — $desc"
                 fi
             done
+
+            echo ""
+            echo "  [1] Add all with real content (recommended)"
+            echo "  [2] Choose individually"
+            echo "  [3] Skip CLAUDE.md updates"
+            read -rp "  Choice [1]: " section_choice
+            section_choice="${section_choice:-1}"
+
+            case "$section_choice" in
+                1)
+                    for entry in "${actionable_sections[@]}"; do
+                        local s="${entry%%|*}"
+                        local status="${entry##*|}"
+                        local content
+                        content="$(generate_section_content "$s")"
+                        if [[ "$status" == "empty" ]]; then
+                            remove_empty_section "$s" CLAUDE.md
+                        fi
+                        printf '\n## %s\n\n%s\n' "$s" "$content" >> CLAUDE.md
+                        echo "    Added: $s"
+                    done
+                    ;;
+                2)
+                    for entry in "${actionable_sections[@]}"; do
+                        local s="${entry%%|*}"
+                        local status="${entry##*|}"
+                        local content
+                        content="$(generate_section_content "$s")"
+
+                        echo ""
+                        echo "  ── $s ──"
+                        echo "$content" | head -3 | sed 's/^/  /'
+                        if [[ $(echo "$content" | wc -l) -gt 3 ]]; then
+                            echo "  ..."
+                        fi
+                        read -rp "    Add to CLAUDE.md? [Y/n] " answer
+                        if [[ ! "$answer" =~ ^[Nn] ]]; then
+                            if [[ "$status" == "empty" ]]; then
+                                remove_empty_section "$s" CLAUDE.md
+                            fi
+                            printf '\n## %s\n\n%s\n' "$s" "$content" >> CLAUDE.md
+                            echo "    Added: $s"
+                        fi
+                    done
+                    ;;
+                3|*)
+                    echo "  Skipped CLAUDE.md updates."
+                    ;;
+            esac
         fi
     fi
 

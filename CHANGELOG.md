@@ -6,6 +6,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow 
 
 Breaking changes include a **Migration** section with required manual steps.
 
+## [1.5.0] - 2026-03-07
+
+### Added
+- Smart CLAUDE.md section management: `ensure_section` handles missing headers, empty TODO stubs, and content under different headers
+- Content generation for all 15 CLAUDE.md sections — auto-detects stack, team mode, and code review settings
+- TODO stub detection: `section_is_empty` identifies sections with only `<!-- TODO -->` placeholders
+- Scaffold backup: existing CLAUDE.md is saved to CLAUDE.md.bak before overwriting
+
+### Changed
+- `fill_gaps` now covers all 15 methodology sections (was 6), populates with real content instead of skipping
+- `upgrade` CLAUDE.md handling: batched prompt with 3 options (add all / choose individually / skip) instead of per-section y/N prompts
+- `upgrade` default changed from No to "add all with real content" — user ran upgrade, so adding content is the expected action
+- `upgrade` individual mode shows 3-line content preview and defaults to Yes instead of No
+- `upgrade` detects and offers to populate empty TODO sections (not just missing ones)
+- `fill_gaps` no longer creates duplicate sections when a header exists but has empty content
+
 ## [1.4.1] - 2026-03-07
 
 ### Changed

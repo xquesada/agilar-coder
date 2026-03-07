@@ -6,6 +6,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow 
 
 Breaking changes include a **Migration** section with required manual steps.
 
+## [1.3.2] - 2026-03-07
+
+### Added
+- CHANGELOG.md with retroactive entries from 1.0.0 through 1.3.1
+- `upgrade` command shows what changed between installed and current version (from CHANGELOG)
+- `upgrade` command highlights manual migration steps for breaking changes
+- Upgrade workflow documented in README
+
+### Fixed
+- Strip `\r` from version files — prevents garbled upgrade output
+- CLAUDE.md upgrade message now explains each missing section and offers to append it (replaces vague template review message)
+
 ## [1.3.1] - 2026-03-07
 
 ### Fixed

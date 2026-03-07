@@ -1223,6 +1223,31 @@ cmd_status() {
     echo -e "  $skills_line"
 }
 
+check_pending_migrations() {
+    local pending=()
+
+    # 1.3.0: docs/decisions/ should be docs/architecture/
+    if [[ -d docs/decisions ]]; then
+        pending+=("Rename docs/decisions/ to docs/architecture/ (ADRs location changed in 1.3.0)")
+    fi
+
+    # 1.3.0: docs/plans/ files should move into PBI files as ## Design sections
+    if [[ -d docs/plans ]] && find docs/plans -name '*.md' -maxdepth 1 2>/dev/null | grep -q .; then
+        pending+=("Move designs from docs/plans/ into their PBI files under a ## Design section (design-in-PBI change from 1.3.0)")
+    fi
+
+    if [[ ${#pending[@]} -gt 0 ]]; then
+        echo ""
+        echo "Pending manual actions:"
+        echo "────────────────────────────────────────"
+        local i=1
+        for p in "${pending[@]}"; do
+            echo "  $i. $p"
+            ((i++))
+        done
+    fi
+}
+
 show_changelog_diff() {
     local changelog="$1"
     local from_version="$2"
@@ -1233,8 +1258,6 @@ show_changelog_diff() {
     echo "────────────────────────────────────────"
 
     local in_range=false
-    local in_migration=false
-    local migration_lines=""
 
     while IFS= read -r line; do
         if [[ "$line" =~ ^##\ \[([0-9]+\.[0-9]+\.[0-9]+)\] ]]; then
@@ -1243,36 +1266,17 @@ show_changelog_diff() {
                 in_range=false
                 continue
             fi
-            if [[ "$in_range" == true ]]; then
-                in_migration=false
-            elif [[ "$ver" == "$to_version" ]]; then
+            if [[ "$in_range" != true && "$ver" == "$to_version" ]]; then
                 in_range=true
-            else
-                continue
             fi
         fi
 
         if [[ "$in_range" == true ]]; then
             echo "  $line"
-            if [[ "$line" == "### Migration" ]]; then
-                in_migration=true
-            elif [[ "$line" =~ ^### ]]; then
-                in_migration=false
-            fi
-            if [[ "$in_migration" == true && "$line" =~ ^[0-9]+\. ]]; then
-                migration_lines+="  $line
-"
-            fi
         fi
     done < "$changelog"
 
     echo ""
-
-    if [[ -n "$migration_lines" ]]; then
-        echo "⚠  MANUAL STEPS REQUIRED:"
-        echo "────────────────────────────────────────"
-        printf "%s" "$migration_lines"
-    fi
 }
 
 cmd_upgrade() {
@@ -1440,7 +1444,10 @@ cmd_upgrade() {
         show_changelog_diff "$repo_root/CHANGELOG.md" "$installed_version" "$available_version"
     fi
 
-    # 6. Update version file
+    # 6. Check for pending migration actions
+    check_pending_migrations
+
+    # 7. Update version file
     echo "$available_version" > .agilar-coder.version
 
     echo ""

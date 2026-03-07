@@ -1254,11 +1254,10 @@ cmd_upgrade() {
         echo "  Updated docs/skills/ (canonical references)"
     fi
 
-    # 4. CLAUDE.md — detect new template sections missing from project
+    # 4. CLAUDE.md — detect and offer to add missing template sections
     if [[ -f CLAUDE.md && -f "$repo_root/templates/CLAUDE.md.tmpl" ]]; then
         local missing_sections=()
         while IFS= read -r section; do
-            # Strip template conditionals and normalize
             section="$(echo "$section" | sed 's/{{[^}]*}}//g' | sed 's/^## //' | xargs)"
             [[ -z "$section" ]] && continue
             if ! grep -q "^## .*${section}" CLAUDE.md 2>/dev/null; then
@@ -1270,11 +1269,31 @@ cmd_upgrade() {
             echo ""
             echo "CLAUDE.md — new sections available:"
             for s in "${missing_sections[@]}"; do
-                echo "  - $s"
+                local desc=""
+                case "$s" in
+                    "Project")                desc="project name and description" ;;
+                    "Team Mode")              desc="solo, multi-agent, or multi-human setup" ;;
+                    "Working Agreements")      desc="non-negotiable quality gates (TDD, verification, etc.)" ;;
+                    "Definition of Ready")     desc="criteria for a PBI to be workable" ;;
+                    "Definition of Done")      desc="criteria for a PBI to be complete" ;;
+                    "Tech Stack")              desc="languages, frameworks, and tools" ;;
+                    "Test Commands")           desc="how to run your test suite" ;;
+                    "Lint Commands")           desc="how to run your linter" ;;
+                    "Build Commands")          desc="how to build your project" ;;
+                    "Branching")               desc="branching strategy and merge workflow" ;;
+                    "PBI-First Rule")          desc="any new work gets a PBI before starting" ;;
+                    "Filesystem Backlog")      desc="backlog/ folder structure for PBI lifecycle" ;;
+                    "Skills")                  desc="active skills the agent follows as executable processes" ;;
+                    "Project-Specific Notes")  desc="custom notes, conventions, and constraints for this project" ;;
+                    *)                         desc="(new template section)" ;;
+                esac
+                echo "  - $s — $desc"
+                read -rp "    Add to CLAUDE.md? [y/N] " answer
+                if [[ "$answer" =~ ^[Yy] ]]; then
+                    printf '\n## %s\n\n<!-- TODO: fill in -->\n' "$s" >> CLAUDE.md
+                    echo "    Appended: ## $s"
+                fi
             done
-            echo ""
-            echo "  These sections exist in the latest template but not in your CLAUDE.md."
-            echo "  Add them manually or re-run 'agilar-coder install' to regenerate."
         fi
     fi
 

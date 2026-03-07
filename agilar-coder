@@ -89,6 +89,92 @@ resolve_repo_root() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tool detection
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Detect which AI coding tools are available
+# Sets DETECTED_TOOLS as a space-separated list (e.g., "claude-code codex")
+detect_tools() {
+    DETECTED_TOOLS=""
+    if command -v claude &>/dev/null; then
+        DETECTED_TOOLS="claude-code"
+    fi
+    if command -v codex &>/dev/null; then
+        DETECTED_TOOLS="$DETECTED_TOOLS codex"
+    fi
+    DETECTED_TOOLS="$(echo "$DETECTED_TOOLS" | xargs)"  # trim
+}
+
+# Also detect by project signals (e.g., .claude/ dir exists even if CLI isn't on PATH)
+detect_tools_from_project() {
+    detect_tools
+    if [[ -d .claude/skills ]] && [[ ! "$DETECTED_TOOLS" =~ claude-code ]]; then
+        DETECTED_TOOLS="claude-code $DETECTED_TOOLS"
+        DETECTED_TOOLS="$(echo "$DETECTED_TOOLS" | xargs)"
+    fi
+    local codex_skills_dir="${CODEX_HOME:-$HOME/.codex}/skills"
+    if [[ -d "$codex_skills_dir" ]] && [[ ! "$DETECTED_TOOLS" =~ codex ]]; then
+        DETECTED_TOOLS="codex $DETECTED_TOOLS"
+        DETECTED_TOOLS="$(echo "$DETECTED_TOOLS" | xargs)"
+    fi
+}
+
+# Get the skill install target directory for a tool
+tool_skill_target() {
+    local tool="$1"
+    case "$tool" in
+        claude-code) echo ".claude/skills" ;;
+        codex)       echo "${CODEX_HOME:-$HOME/.codex}/skills" ;;
+    esac
+}
+
+# Install a single skill file for a given tool
+# Claude Code: flat copy (source.md → target/source.md)
+# Codex: wrap in folder (source.md → target/skill-name/SKILL.md)
+install_skill_for_tool() {
+    local tool="$1"
+    local source_file="$2"
+    local target_dir="$3"
+
+    local skill_name
+    skill_name="$(basename "$source_file" .md)"
+
+    case "$tool" in
+        claude-code)
+            cp "$source_file" "$target_dir/$skill_name.md"
+            ;;
+        codex)
+            mkdir -p "$target_dir/$skill_name"
+            cp "$source_file" "$target_dir/$skill_name/SKILL.md"
+            ;;
+    esac
+}
+
+# Check if a skill is installed for a given tool
+skill_is_installed() {
+    local tool="$1"
+    local skill_name="$2"
+    local target_dir="$3"
+
+    case "$tool" in
+        claude-code) [[ -f "$target_dir/$skill_name.md" ]] ;;
+        codex)       [[ -f "$target_dir/$skill_name/SKILL.md" ]] ;;
+    esac
+}
+
+# Get the installed skill file path for comparison
+installed_skill_path() {
+    local tool="$1"
+    local skill_name="$2"
+    local target_dir="$3"
+
+    case "$tool" in
+        claude-code) echo "$target_dir/$skill_name.md" ;;
+        codex)       echo "$target_dir/$skill_name/SKILL.md" ;;
+    esac
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Prerequisite check
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -204,10 +290,14 @@ assess_working_agreements() {
         doc_text="$(find docs -name '*.md' -maxdepth 3 -print0 2>/dev/null | xargs -0 head -q -n 200 2>/dev/null || true)"
         corpus="$corpus $doc_text"
     fi
-    # Also check .claude/skills/ for skill names
+    # Also check installed skills for skill names (all tools)
     local skills_list=""
     if [[ -d .claude/skills ]]; then
         skills_list="$(ls .claude/skills/ 2>/dev/null)"
+    fi
+    local codex_skills_dir="${CODEX_HOME:-$HOME/.codex}/skills"
+    if [[ -d "$codex_skills_dir" ]]; then
+        skills_list="$skills_list $(ls "$codex_skills_dir/" 2>/dev/null)"
     fi
 
     # TDD
@@ -307,36 +397,48 @@ assess_quality_gates() {
 
 assess_skills_library() {
     local repo_root="$1"
-    local installed=0
-    local available=0
+    local total_installed=0
+    local total_available=0
 
-    # Count available skills from agilar-coder repo
-    for skill_file in "$repo_root"/implementations/claude-code/*.md; do
-        [[ -f "$skill_file" ]] || continue
-        ((available++))
+    detect_tools_from_project
+
+    for tool in $DETECTED_TOOLS; do
+        local impl_dir="$repo_root/implementations/$tool"
+        [[ -d "$impl_dir" ]] || continue
+
+        local target_dir
+        target_dir="$(tool_skill_target "$tool")"
+
+        local installed=0
+        local available=0
+
+        for skill_file in "$impl_dir"/*.md; do
+            [[ -f "$skill_file" ]] || continue
+            ((available++))
+            local skill_name
+            skill_name="$(basename "$skill_file" .md)"
+            if skill_is_installed "$tool" "$skill_name" "$target_dir"; then
+                ((installed++))
+            fi
+        done
+
+        ((total_installed += installed))
+        ((total_available += available))
     done
 
-    # Count installed skills
-    if [[ -d .claude/skills ]]; then
-        for skill_file in .claude/skills/*.md; do
-            [[ -f "$skill_file" ]] || continue
-            ((installed++))
-        done
-    fi
-
     local pct=0
-    if [[ $available -gt 0 ]]; then
-        pct=$(( installed * 100 / available ))
+    if [[ $total_available -gt 0 ]]; then
+        pct=$(( total_installed * 100 / total_available ))
     fi
 
-    print_dimension "Skills Library" "$pct" "$installed of $available skills"
+    local tools_label
+    tools_label="$(echo "$DETECTED_TOOLS" | tr ' ' '+')"
+    print_dimension "Skills Library" "$pct" "$total_installed of $total_available skills ($tools_label)"
 
-    # For scoring: use the ratio as a proportion of 10 points
-    # This gives skills appropriate weight in the overall score
-    ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + installed ))
-    ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + available ))
+    ASSESS_TOTAL_SCORE=$(( ASSESS_TOTAL_SCORE + total_installed ))
+    ASSESS_TOTAL_MAX=$(( ASSESS_TOTAL_MAX + total_available ))
 
-    local missing=$(( available - installed ))
+    local missing=$(( total_available - total_installed ))
     if [[ $missing -gt 0 ]]; then
         ASSESS_RECOMMENDATIONS+=("Install $missing missing skills               agilar-coder install")
     fi
@@ -658,20 +760,29 @@ fill_gaps() {
     echo "Filling methodology gaps..."
     echo ""
 
-    # Skills: install only missing ones
-    local added=0
-    mkdir -p .claude/skills
-    for skill_file in "$repo_root"/implementations/claude-code/*.md; do
-        [[ -f "$skill_file" ]] || continue
-        local skill_name
-        skill_name="$(basename "$skill_file")"
-        if [[ ! -f ".claude/skills/$skill_name" ]]; then
-            cp "$skill_file" ".claude/skills/$skill_name"
-            echo "  Added skill: $skill_name"
-            ((added++))
-        fi
+    # Skills: install only missing ones, for all detected tools
+    detect_tools_from_project
+    for tool in $DETECTED_TOOLS; do
+        local impl_dir="$repo_root/implementations/$tool"
+        [[ -d "$impl_dir" ]] || continue
+
+        local target_dir
+        target_dir="$(tool_skill_target "$tool")"
+        mkdir -p "$target_dir"
+
+        local added=0
+        for skill_file in "$impl_dir"/*.md; do
+            [[ -f "$skill_file" ]] || continue
+            local skill_name
+            skill_name="$(basename "$skill_file" .md)"
+            if ! skill_is_installed "$tool" "$skill_name" "$target_dir"; then
+                install_skill_for_tool "$tool" "$skill_file" "$target_dir"
+                echo "  Added skill ($tool): $skill_name"
+                ((added++))
+            fi
+        done
+        [[ $added -eq 0 ]] && echo "  Skills ($tool): all present"
     done
-    [[ $added -eq 0 ]] && echo "  Skills: all present"
 
     # Normalize symlink direction (CLAUDE.md must be the real file)
     normalize_agent_guidance
@@ -1116,33 +1227,49 @@ cmd_config() {
 run_full_scaffold() {
     local repo_root="$1"
 
-    # Check for existing skills with different content
-    if [[ -d .claude/skills ]]; then
+    # Check for existing skills with different content (all detected tools)
+    detect_tools_from_project
+    local total_conflicts=0
+    for tool in $DETECTED_TOOLS; do
+        local impl_dir="$repo_root/implementations/$tool"
+        [[ -d "$impl_dir" ]] || continue
+        local target_dir
+        target_dir="$(tool_skill_target "$tool")"
+        [[ -d "$target_dir" ]] || continue
+
         local conflicts=()
-        for skill_file in "$repo_root"/implementations/claude-code/*.md; do
+        for skill_file in "$impl_dir"/*.md; do
             [[ -f "$skill_file" ]] || continue
             local skill_name
-            skill_name="$(basename "$skill_file")"
-            if [[ -f ".claude/skills/$skill_name" ]] && ! diff -q "$skill_file" ".claude/skills/$skill_name" > /dev/null 2>&1; then
+            skill_name="$(basename "$skill_file" .md)"
+            local installed_path
+            installed_path="$(installed_skill_path "$tool" "$skill_name" "$target_dir")"
+            if [[ -f "$installed_path" ]] && ! diff -q "$skill_file" "$installed_path" > /dev/null 2>&1; then
                 conflicts+=("$skill_name")
             fi
         done
 
         if [[ ${#conflicts[@]} -gt 0 ]]; then
-            echo "Existing skills with different content detected:"
+            echo "Existing $tool skills with different content detected:"
             for c in "${conflicts[@]}"; do
+                local installed_path
+                installed_path="$(installed_skill_path "$tool" "$c" "$target_dir")"
                 echo ""
-                echo "  ── $c ──"
-                diff -u ".claude/skills/$c" "$repo_root/implementations/claude-code/$c" --label "installed/$c" --label "agilar-coder/$c" || true
+                echo "  ── $c ($tool) ──"
+                diff -u "$installed_path" "$impl_dir/$c.md" --label "installed/$c" --label "agilar-coder/$c" || true
             done
-            echo ""
-            read -rp "Scaffold will overwrite these ${#conflicts[@]} skill(s). Continue? [Y/n] " answer
-            if [[ "$answer" =~ ^[Nn] ]]; then
-                echo "Aborted."
-                exit 0
-            fi
-            echo ""
+            ((total_conflicts += ${#conflicts[@]}))
         fi
+    done
+
+    if [[ $total_conflicts -gt 0 ]]; then
+        echo ""
+        read -rp "Scaffold will overwrite these $total_conflicts skill(s). Continue? [Y/n] " answer
+        if [[ "$answer" =~ ^[Nn] ]]; then
+            echo "Aborted."
+            exit 0
+        fi
+        echo ""
     fi
 
     # Run scaffold (it handles all the interactive prompts)
@@ -1161,30 +1288,6 @@ cmd_status() {
     local repo_root="$1"
     local available_version
     available_version="$(tr -d '\r' < "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
-
-    # Count skills
-    local installed_count=0
-    local available_count=0
-    local modified_count=0
-
-    for skill_file in "$repo_root"/implementations/claude-code/*.md; do
-        [[ -f "$skill_file" ]] || continue
-        ((available_count++))
-        local skill_name
-        skill_name="$(basename "$skill_file")"
-        if [[ -f ".claude/skills/$skill_name" ]]; then
-            if ! diff -q "$skill_file" ".claude/skills/$skill_name" > /dev/null 2>&1; then
-                ((modified_count++))
-            fi
-        fi
-    done
-
-    if [[ -d .claude/skills ]]; then
-        for skill_file in .claude/skills/*.md; do
-            [[ -f "$skill_file" ]] || continue
-            ((installed_count++))
-        done
-    fi
 
     echo "agilar-coder status"
     echo "═══════════════════"
@@ -1207,20 +1310,71 @@ cmd_status() {
 
     echo ""
 
-    # Skills — single line, color-coded
-    local skills_color
-    if [[ $installed_count -eq $available_count ]]; then
-        skills_color="$GREEN"
-    elif [[ $installed_count -eq 0 ]]; then
-        skills_color="$RED"
-    else
-        skills_color="$YELLOW"
+    # Skills per tool
+    detect_tools_from_project
+    for tool in $DETECTED_TOOLS; do
+        local impl_dir="$repo_root/implementations/$tool"
+        [[ -d "$impl_dir" ]] || continue
+
+        local target_dir
+        target_dir="$(tool_skill_target "$tool")"
+
+        local installed_count=0
+        local available_count=0
+        local modified_count=0
+
+        for skill_file in "$impl_dir"/*.md; do
+            [[ -f "$skill_file" ]] || continue
+            ((available_count++))
+            local skill_name
+            skill_name="$(basename "$skill_file" .md)"
+            local installed_path
+            installed_path="$(installed_skill_path "$tool" "$skill_name" "$target_dir")"
+            if [[ -f "$installed_path" ]]; then
+                if ! diff -q "$skill_file" "$installed_path" > /dev/null 2>&1; then
+                    ((modified_count++))
+                fi
+            fi
+        done
+
+        # Count installed skills
+        case "$tool" in
+            claude-code)
+                if [[ -d "$target_dir" ]]; then
+                    for sf in "$target_dir"/*.md; do
+                        [[ -f "$sf" ]] || continue
+                        ((installed_count++))
+                    done
+                fi
+                ;;
+            codex)
+                if [[ -d "$target_dir" ]]; then
+                    for sd in "$target_dir"/*/; do
+                        [[ -f "$sd/SKILL.md" ]] || continue
+                        ((installed_count++))
+                    done
+                fi
+                ;;
+        esac
+
+        local skills_color
+        if [[ $installed_count -eq $available_count ]]; then
+            skills_color="$GREEN"
+        elif [[ $installed_count -eq 0 ]]; then
+            skills_color="$RED"
+        else
+            skills_color="$YELLOW"
+        fi
+        local skills_line="Skills ($tool): ${skills_color}$installed_count of $available_count available${NC}"
+        if [[ $modified_count -gt 0 ]]; then
+            skills_line="$skills_line, ${RED}$modified_count skill(s) need to be upgraded${NC}"
+        fi
+        echo -e "  $skills_line"
+    done
+
+    if [[ -z "$DETECTED_TOOLS" ]]; then
+        echo -e "  ${YELLOW}No AI coding tools detected (claude, codex)${NC}"
     fi
-    local skills_line="Skills: ${skills_color}$installed_count of $available_count available${NC}"
-    if [[ $modified_count -gt 0 ]]; then
-        skills_line="$skills_line, ${RED}$modified_count skill(s) need to be upgraded${NC}"
-    fi
-    echo -e "  $skills_line"
 }
 
 check_pending_migrations() {
@@ -1287,7 +1441,7 @@ cmd_upgrade() {
     local installed_version
     if [[ -f .agilar-coder.version ]]; then
         installed_version="$(tr -d '\r' < .agilar-coder.version)"
-    elif [[ -d .claude/skills ]]; then
+    elif [[ -d .claude/skills ]] || [[ -d "${CODEX_HOME:-$HOME/.codex}/skills" ]]; then
         installed_version="unknown"
     else
         echo "Error: No .agilar-coder.version found and no skills installed."
@@ -1306,81 +1460,125 @@ cmd_upgrade() {
         echo ""
     fi
 
-    # 1. Update skills (implementations/claude-code/ → .claude/skills/)
-    local updated=0
-    local skipped=0
-    local added=0
-    local changed_skills=()
-    if [[ -d .claude/skills ]]; then
-        # Collect new and changed skills
-        for skill_file in "$repo_root"/implementations/claude-code/*.md; do
-            [[ -f "$skill_file" ]] || continue
-            local skill_name
-            skill_name="$(basename "$skill_file")"
-            if [[ -f ".claude/skills/$skill_name" ]]; then
-                if ! diff -q "$skill_file" ".claude/skills/$skill_name" > /dev/null 2>&1; then
-                    changed_skills+=("$skill_name")
+    # 1. Update skills for all detected tools
+    detect_tools_from_project
+    local total_updated=0
+    local total_skipped=0
+    local total_added=0
+    local total_removed_candidates=0
+
+    for tool in $DETECTED_TOOLS; do
+        local impl_dir="$repo_root/implementations/$tool"
+        [[ -d "$impl_dir" ]] || continue
+
+        local target_dir
+        target_dir="$(tool_skill_target "$tool")"
+
+        echo "  ── $tool ──"
+
+        local updated=0
+        local skipped=0
+        local added=0
+        local changed_skills=()
+
+        if [[ -d "$target_dir" ]]; then
+            # Collect new and changed skills
+            for skill_file in "$impl_dir"/*.md; do
+                [[ -f "$skill_file" ]] || continue
+                local skill_name
+                skill_name="$(basename "$skill_file" .md)"
+                local installed_path
+                installed_path="$(installed_skill_path "$tool" "$skill_name" "$target_dir")"
+                if [[ -f "$installed_path" ]]; then
+                    if ! diff -q "$skill_file" "$installed_path" > /dev/null 2>&1; then
+                        changed_skills+=("$skill_name")
+                    fi
+                else
+                    install_skill_for_tool "$tool" "$skill_file" "$target_dir"
+                    ((added++))
+                    echo "    Added: $skill_name"
                 fi
-            else
-                cp "$skill_file" ".claude/skills/$skill_name"
-                ((added++))
-                echo "  Added: $skill_name"
-            fi
-        done
-
-        # Prompt once for all changed skills
-        if [[ ${#changed_skills[@]} -gt 0 ]]; then
-            echo "  Skills with updates:"
-            for s in "${changed_skills[@]}"; do
-                echo "    - ${s%.md}"
             done
-            echo ""
-            read -rp "  Apply all skill updates? [Y/n] " answer
-            if [[ ! "$answer" =~ ^[Nn] ]]; then
+
+            # Prompt once for all changed skills
+            if [[ ${#changed_skills[@]} -gt 0 ]]; then
+                echo "    Skills with updates:"
                 for s in "${changed_skills[@]}"; do
-                    cp "$repo_root/implementations/claude-code/$s" ".claude/skills/$s"
-                    ((updated++))
+                    echo "      - $s"
                 done
-                echo "  Updated $updated skill(s)"
-            else
-                skipped=${#changed_skills[@]}
-                echo "  Skipped $skipped skill(s)"
+                echo ""
+                read -rp "    Apply all $tool skill updates? [Y/n] " answer
+                if [[ ! "$answer" =~ ^[Nn] ]]; then
+                    for s in "${changed_skills[@]}"; do
+                        install_skill_for_tool "$tool" "$impl_dir/$s.md" "$target_dir"
+                        ((updated++))
+                    done
+                    echo "    Updated $updated skill(s)"
+                else
+                    skipped=${#changed_skills[@]}
+                    echo "    Skipped $skipped skill(s)"
+                fi
             fi
-        fi
-    else
-        mkdir -p .claude/skills
-        cp "$repo_root"/implementations/claude-code/*.md .claude/skills/
-        added=$(find "$repo_root/implementations/claude-code" -name '*.md' -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
-        echo "  Created .claude/skills/ with $added skills"
-    fi
-
-    # 2. Detect removed skills
-    local removed=()
-    if [[ -d .claude/skills ]]; then
-        for skill_file in .claude/skills/*.md; do
-            [[ -f "$skill_file" ]] || continue
-            local skill_name
-            skill_name="$(basename "$skill_file")"
-            if [[ ! -f "$repo_root/implementations/claude-code/$skill_name" ]]; then
-                removed+=("$skill_name")
-            fi
-        done
-    fi
-
-    if [[ ${#removed[@]} -gt 0 ]]; then
-        echo ""
-        echo "  Skills no longer in agilar-coder:"
-        for r in "${removed[@]}"; do
-            echo "    - $r"
-        done
-        read -rp "  Remove them? [y/N] " answer
-        if [[ "$answer" =~ ^[Yy] ]]; then
-            for r in "${removed[@]}"; do
-                rm ".claude/skills/$r"
-                echo "  Removed: .claude/skills/$r"
+        else
+            mkdir -p "$target_dir"
+            for skill_file in "$impl_dir"/*.md; do
+                [[ -f "$skill_file" ]] || continue
+                install_skill_for_tool "$tool" "$skill_file" "$target_dir"
+                ((added++))
             done
+            echo "    Created $target_dir with $added skills"
         fi
-    fi
+
+        # Detect removed skills
+        local removed=()
+        case "$tool" in
+            claude-code)
+                for skill_file in "$target_dir"/*.md; do
+                    [[ -f "$skill_file" ]] || continue
+                    local sname
+                    sname="$(basename "$skill_file" .md)"
+                    if [[ ! -f "$impl_dir/$sname.md" ]]; then
+                        removed+=("$sname")
+                    fi
+                done
+                ;;
+            codex)
+                for skill_dir_entry in "$target_dir"/*/; do
+                    [[ -f "$skill_dir_entry/SKILL.md" ]] || continue
+                    local sname
+                    sname="$(basename "$skill_dir_entry")"
+                    # Skip system skills
+                    [[ "$sname" == .* ]] && continue
+                    if [[ ! -f "$impl_dir/$sname.md" ]]; then
+                        removed+=("$sname")
+                    fi
+                done
+                ;;
+        esac
+
+        if [[ ${#removed[@]} -gt 0 ]]; then
+            echo ""
+            echo "    Skills no longer in agilar-coder:"
+            for r in "${removed[@]}"; do
+                echo "      - $r"
+            done
+            read -rp "    Remove them? [y/N] " answer
+            if [[ "$answer" =~ ^[Yy] ]]; then
+                for r in "${removed[@]}"; do
+                    case "$tool" in
+                        claude-code) rm "$target_dir/$r.md" ;;
+                        codex)       rm -rf "${target_dir:?}/${r:?}" ;;
+                    esac
+                    echo "    Removed: $r"
+                done
+            fi
+        fi
+
+        ((total_updated += updated))
+        ((total_skipped += skipped))
+        ((total_added += added))
+        ((total_removed_candidates += ${#removed[@]}))
+    done
 
     # 3. Update docs/skills/ (canonical copies)
     if [[ -d docs/skills ]]; then
@@ -1451,7 +1649,7 @@ cmd_upgrade() {
     echo "$available_version" > .agilar-coder.version
 
     echo ""
-    echo "Summary: $added added, $updated updated, $skipped skipped, ${#removed[@]} removed candidates"
+    echo "Summary: $total_added added, $total_updated updated, $total_skipped skipped, $total_removed_candidates removed candidates"
     echo "Version: $installed_version → $available_version"
     echo "Done."
 }

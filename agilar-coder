@@ -815,6 +815,88 @@ BACKLOG_SECTION
             ((claude_appended++))
         fi
 
+        # Product Backlog section — add if CLAUDE.md doesn't mention how to access the backlog
+        if ! grep -qiE 'product backlog|backlog api|backlog.*managed|where.*requirements' CLAUDE.md 2>/dev/null; then
+            echo ""
+            echo "  Where do you manage requirements (Product Backlog)?"
+            echo "  1) Agilar PO Companion (enterprise product management)"
+            echo "  2) Agilar Chepibe (solo / small projects)"
+            echo "  3) Jira"
+            echo "  4) Filesystem backlog only (built-in)"
+            echo "  5) Other system"
+            read -rp "  Choose [4]: " backlog_choice
+            backlog_choice="${backlog_choice:-4}"
+
+            local backlog_section=""
+            case "$backlog_choice" in
+                1)
+                    read -rp "  PO Companion API URL: " backlog_url
+                    backlog_section="## Product Backlog
+
+PBIs are managed in Agilar PO Companion (PO layer). This repo is the development layer.
+
+**Backlog API:** \`$backlog_url\`
+
+- List PBIs: \`GET $backlog_url\`
+- Update status: \`PATCH $backlog_url/:id\`
+
+**At session start:** query the API for PBIs with status \`ready\`. Read notes, acceptance criteria, and checklist before starting work. Mark \`in_progress\` when you begin."
+                    ;;
+                2)
+                    read -rp "  Chepibe API URL: " backlog_url
+                    backlog_section="## Product Backlog
+
+PBIs are managed via the Chepibe Backlog Board API.
+
+**Backlog API:** \`$backlog_url\`
+
+- List PBIs: \`GET $backlog_url\`
+- Create: \`POST $backlog_url\` with \`{ title, status, epic, notes, checklist }\`
+- Update: \`PATCH $backlog_url/:id\` with fields to change
+- Reorder: \`PATCH $backlog_url/reorder\` with \`{ items: [{ id, status, priority }] }\`
+- Delete: \`DELETE $backlog_url/:id\`
+
+**IMPORTANT:** Always use the API — never edit the backlog file directly.
+
+**At session start:** query the API for PBIs with status \`ready\`. Read notes, acceptance criteria, and checklist before starting work. Mark \`in_progress\` when you begin."
+                    ;;
+                3)
+                    read -rp "  Jira project URL: " backlog_url
+                    backlog_section="## Product Backlog
+
+PBIs are managed in Jira. This repo is the development layer.
+
+**Jira project:** \`$backlog_url\`
+
+**At session start:** use the Jira MCP or API to find tickets in the Ready column. Read description, acceptance criteria, and subtasks before starting work."
+                    ;;
+                4)
+                    backlog_section="## Product Backlog
+
+PBIs are managed as files in the \`backlog/\` directory. No external tool required.
+
+**At session start:** check \`backlog/ready/\` for PBIs to work on. Read the PBI file for acceptance criteria and checklist. Move to \`backlog/in_progress/\` when you begin."
+                    ;;
+                5)
+                    read -rp "  System name (e.g. Linear, Shortcut): " other_name
+                    read -rp "  API URL or MCP package: " other_url
+                    backlog_section="## Product Backlog
+
+PBIs are managed in $other_name. This repo is the development layer.
+
+**Access:** \`$other_url\`
+
+**At session start:** query for PBIs that are ready. Read acceptance criteria and checklist before starting work."
+                    ;;
+            esac
+
+            if [[ -n "$backlog_section" ]]; then
+                printf '\n%s\n' "$backlog_section" >> CLAUDE.md
+                echo "  Appended: Product Backlog to CLAUDE.md"
+                ((claude_appended++))
+            fi
+        fi
+
         [[ $claude_appended -eq 0 ]] && true  # no-op to avoid set -e
     fi
 

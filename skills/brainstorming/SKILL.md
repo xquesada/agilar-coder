@@ -74,6 +74,16 @@ Before writing the design, scan this checklist and mark each concern as relevant
 
 Not every concern applies to every PBI. A simple CLI flag needs none of these. A new service needs most of them. The scan takes 30 seconds — skipping it costs hours when a concern surfaces during implementation.
 
+#### Version Impact
+
+Classify the expected version impact of this PBI:
+
+- **Major** — breaking changes (API changes, removed features, changed behavior that affects consumers)
+- **Minor** — new features, new capabilities (backwards-compatible)
+- **Patch** — bug fixes, documentation, refactoring (no behavior change)
+
+State the classification and reasoning in the design: `**Version impact:** patch — bug fix, no API changes`. This informs the version bump at PBI completion.
+
 #### 4b: Elaborate the Design
 
 For each concern marked relevant, include a section in the design. Scale depth to complexity — a sentence for simple concerns, a paragraph or diagram for complex ones. Do not pad irrelevant sections with boilerplate.

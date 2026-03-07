@@ -452,7 +452,7 @@ assess_backlog() {
 assess_framework_tracking() {
     local repo_root="$1"
     local score=0
-    local max=2
+    local max=4
     local details=""
 
     if [[ -f .agilar-coder.version ]]; then
@@ -463,13 +463,27 @@ assess_framework_tracking() {
         details+=".agilar-coder.version ✓"
         ((score++))
         if [[ "$installed_version" == "$current_version" ]]; then
-            details+=" (current)"
+            details+=" (current)  "
             ((score++))
         else
-            details+=" (outdated: $installed_version → $current_version)"
+            details+=" (outdated: $installed_version → $current_version)  "
         fi
     else
-        details="Not tracked by agilar-coder"
+        details="Not tracked  "
+    fi
+
+    if [[ -f VERSION ]]; then
+        details+="VERSION ✓  "
+        ((score++))
+    else
+        details+="VERSION ✗  "
+    fi
+
+    if [[ -f CHANGELOG.md ]]; then
+        details+="CHANGELOG ✓"
+        ((score++))
+    else
+        details+="CHANGELOG ✗"
     fi
 
     local pct=$(( score * 100 / max ))
@@ -480,8 +494,14 @@ assess_framework_tracking() {
 
     if [[ ! -f .agilar-coder.version ]]; then
         ASSESS_RECOMMENDATIONS+=("Track with agilar-coder               agilar-coder install (creates .agilar-coder.version)")
-    elif [[ $score -eq 1 ]]; then
+    elif [[ $score -le 2 ]]; then
         ASSESS_RECOMMENDATIONS+=("Upgrade agilar-coder                  agilar-coder upgrade")
+    fi
+    if [[ ! -f VERSION ]]; then
+        ASSESS_RECOMMENDATIONS+=("Add VERSION file                      echo '1.0.0' > VERSION")
+    fi
+    if [[ ! -f CHANGELOG.md ]]; then
+        ASSESS_RECOMMENDATIONS+=("Add CHANGELOG.md                      track changes per version (Keep a Changelog format)")
     fi
 }
 
@@ -898,6 +918,31 @@ PBIs are managed in $other_name. This repo is the development layer.
         fi
 
         [[ $claude_appended -eq 0 ]] && true  # no-op to avoid set -e
+    fi
+
+    # VERSION file
+    if [[ ! -f VERSION ]]; then
+        printf '1.0.0\n' > VERSION
+        echo "  Created: VERSION (1.0.0)"
+    fi
+
+    # CHANGELOG.md
+    if [[ ! -f CHANGELOG.md ]]; then
+        cat > CHANGELOG.md << CHANGELOG_EOF
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+## [1.0.0] - $(date +%Y-%m-%d)
+
+### Added
+- Initial release
+CHANGELOG_EOF
+        echo "  Created: CHANGELOG.md"
     fi
 
     # Stack reference doc

@@ -105,9 +105,11 @@ If the project has a deployment target, deploy the merged code. Verify the servi
 - **How:** Follow the project's deploy workflow in CLAUDE.md
 - **Verify:** Health check, smoke test, or manual confirmation from the human partner
 
-### Step 9: Close — mark done and capture knowledge
-Move the PBI to done. Update any documentation that changed: CLAUDE.md, architecture docs, API docs, memory files. If the implementation revealed something future sessions need to know, write it down now.
+### Step 9: Close — mark done, update changelog, capture knowledge
+Move the PBI to done. Update CHANGELOG.md with what changed. Suggest a version bump based on the version impact classification from the design phase. The human confirms or overrides before the bump happens.
 - **Skill:** scrum-master (DoD gate — all criteria met before marking done)
+- **CHANGELOG:** Add entry under current version or `[Unreleased]` (Added/Changed/Fixed/Removed)
+- **Version bump:** Suggest major/minor/patch based on design classification. Human confirms.
 - **Update:** CLAUDE.md, project docs, memory files as needed
 
 ### Shortcut Paths

@@ -148,6 +148,7 @@ A PBI is done when ALL of these are true:
 - **Tests pass** — all tests green, including new tests written via TDD (working agreement: `skills/tdd/`)
 - **Code reviewed** — human has reviewed agent-written code (working agreement: `skills/code-review/`). *Optional for non-technical solo users — see scaffold onboarding.*
 - **Verified with evidence** — fresh test runs, screenshots, or logs proving it works. Not "I think it works" — evidence (working agreement: `skills/verification/`)
+- **CHANGELOG updated** — entry added under current version or `[Unreleased]` section
 - **Deployed to staging** — if a staging environment exists, the change runs there before production
 - **Docs updated** — if the change affects APIs, configuration, or user-facing behavior, documentation reflects it
 

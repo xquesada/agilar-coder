@@ -43,6 +43,8 @@ Follow the canonical process. Two sub-phases:
 
 Use **Grep/Glob/Read** to inform the scan — check existing schemas, API patterns, and architecture before declaring something irrelevant.
 
+**Version Impact.** Classify the PBI as major, minor, or patch. State it in the design: `**Version impact:** patch — bug fix, no API changes`. This informs the version bump at completion.
+
 **4b: Elaborate the Design.** Write design sections for relevant concerns only. For the NFR checkpoint, state assumptions explicitly even when the answer is "not applicable."
 
 **Hard gate.** Do not create any tasks, write any code, or transition to implementation until the user approves the design. "Looks good" counts. Silence does not.

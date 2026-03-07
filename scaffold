@@ -572,6 +572,29 @@ mkdir -p "$PROJECT_DIR/backlog/ready" "$PROJECT_DIR/backlog/in_progress" "$PROJE
 touch "$PROJECT_DIR/backlog/.gitkeep" "$PROJECT_DIR/backlog/ready/.gitkeep" "$PROJECT_DIR/backlog/in_progress/.gitkeep" "$PROJECT_DIR/backlog/done/.gitkeep"
 echo -e "  ${GREEN}+${NC} backlog/ (filesystem backlog: ready/, in_progress/, done/)"
 
+# Create VERSION and CHANGELOG.md
+if [[ ! -f "$PROJECT_DIR/VERSION" ]]; then
+  printf '1.0.0\n' > "$PROJECT_DIR/VERSION"
+  echo -e "  ${GREEN}+${NC} VERSION (1.0.0)"
+fi
+if [[ ! -f "$PROJECT_DIR/CHANGELOG.md" ]]; then
+  cat > "$PROJECT_DIR/CHANGELOG.md" << CHANGELOG_EOF
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+## [1.0.0] - $(date +%Y-%m-%d)
+
+### Added
+- Initial release
+CHANGELOG_EOF
+  echo -e "  ${GREEN}+${NC} CHANGELOG.md"
+fi
+
 # Create .claude/skills/ directory for Claude Code
 if [[ "$TOOL_NAME" == "claude-code" ]]; then
   SKILLS_DIR="$PROJECT_DIR/.claude/skills"
@@ -731,6 +754,7 @@ A PBI is done when:
 - Tests pass (TDD — written before implementation)
 - Verified with evidence (fresh test output after final change)
 $CR_DOD
+- CHANGELOG.md updated (entry under current version or Unreleased)
 - Docs updated (if user-facing changes)
 
 ## Tech Stack

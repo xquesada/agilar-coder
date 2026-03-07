@@ -35,6 +35,7 @@ A PBI is done when:
 - Tests pass (TDD — written before implementation)
 - Verified with evidence (fresh test output after final change)
 {{#if CODE_REVIEW_ENABLED}}- Code reviewed{{/if}}
+- CHANGELOG.md updated (entry under current version or Unreleased)
 - Docs updated (if user-facing changes)
 
 ## Tech Stack
@@ -89,6 +90,20 @@ A PBI is done when:
 ## PBI-First Rule
 
 Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
+
+## Versioning
+
+This project uses [Semantic Versioning](https://semver.org/) (`major.minor.patch`).
+
+- **VERSION** file at project root — source of truth
+- **CHANGELOG.md** — documents what changed per version ([Keep a Changelog](https://keepachangelog.com/) format)
+
+Version impact classification:
+- **Major** — breaking changes (API changes, removed features, changed behavior that affects consumers)
+- **Minor** — new features, new capabilities (backwards-compatible)
+- **Patch** — bug fixes, documentation, refactoring (no behavior change)
+
+The agent classifies version impact during PBI design, suggests a bump at completion, and the human confirms.
 
 ## Filesystem Backlog
 

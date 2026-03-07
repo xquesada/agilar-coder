@@ -17,7 +17,7 @@ Use these tools to explore before asking questions:
 - **Grep/Glob** to find related code, patterns, and conventions
 - **Agent** tool to delegate codebase exploration if the search space is large (e.g., "find all files related to authentication and summarize the current approach")
 - Check `backlog.yaml` or the backlog API for related PBIs and prior design work
-- Read any existing design docs in `docs/plans/` that touch the same area
+- Read any existing PBI files in `backlog/` and ADRs in `docs/architecture/` that touch the same area
 
 Do not ask the user things you can discover by reading files.
 
@@ -35,43 +35,40 @@ If an approach requires understanding feasibility, use the **Agent** tool to inv
 
 ### Phase 4: Present the Design
 
-Follow the canonical process. Get explicit user approval before proceeding.
+Follow the canonical process. Two sub-phases:
+
+**4a: Design Concerns Scan.** Before writing the design, scan the concerns checklist from the canonical skill. Present the scan as a quick summary so the user can correct it:
+
+> "Scanning design concerns: Architecture (relevant — new service), Data model (relevant — new table), Security (not relevant — internal tool), Performance (not relevant), UI (not relevant — backend only)..."
+
+Use **Grep/Glob/Read** to inform the scan — check existing schemas, API patterns, and architecture before declaring something irrelevant.
+
+**4b: Elaborate the Design.** Write design sections for relevant concerns only. For the NFR checkpoint, state assumptions explicitly even when the answer is "not applicable."
 
 **Hard gate.** Do not create any tasks, write any code, or transition to implementation until the user approves the design. "Looks good" counts. Silence does not.
 
-### Phase 5: Write the Design Doc
+### Phase 5: Write the Design Into the PBI File
 
-Save the approved design:
+The design goes INTO the PBI file, not into a separate document. Follow the sync workflow:
 
-```
-docs/plans/YYYY-MM-DD-<topic>-design.md
-```
+1. **Check the backlog tool** — does a PBI already exist for this work?
+2. **Create in the tool first** if no PBI exists. Get the PBI number.
+3. **Create or update the PBI file** (`backlog/pbi-NNN-description.md`):
+   - Add `## Design` section with the approved design from Phase 4b
+   - Add `## Acceptance Criteria` section with testable criteria
+4. **Reference the file from the tool** — update the PBI's notes field with the file path.
 
-Commit the design doc immediately after writing it. This is the contract for implementation.
+Use **Write** or **Edit** tools to update the PBI file. Commit it immediately.
+
+**Exception:** Cross-cutting architecture decisions that affect multiple PBIs → write to `docs/architecture/ADR-*.md` and reference from each PBI.
 
 ### Phase 6: Transition to Implementation
 
-Once the design is approved and committed:
+Once the design is approved and written to the PBI file:
 
-1. Create a PBI via the backlog API if one does not already exist. Include:
-   - Title and description from the design goal
-   - Acceptance criteria from Phase 4
-   - Reference to the design doc in notes
-   - Checklist items for discrete implementation steps
-
-2. Create or update the PBI file in `backlog/`:
-   - If no PBI file exists yet, create `backlog/pbi-NNN-short-description.md`
-   - Populate with: title (`# PBI #NNN: Title`), epic, description, acceptance criteria from the design
-   - Reference the design doc in the Notes section (e.g., `Design doc: docs/plans/YYYY-MM-DD-topic-design.md`)
-   - If a PBI file already exists (PBI was created earlier), update it with the new AC and design references
-
-3. Use **TaskCreate** to build the implementation plan as a tracked task list:
-   - Break the design into ordered implementation steps
-   - Each step should be independently testable
-   - Include the TDD cycle: write test, make it pass, refactor
-   - Reference the sprint-planning skill for detailed planning if the implementation is non-trivial
-
-4. The design doc path, PBI file, and PBI number become the anchor for all subsequent work.
+1. The PBI file now has: Description, Design, and Acceptance Criteria — it meets Definition of Ready
+2. Next step: invoke the **sprint-planning** skill to add a `## Plan` section to the same PBI file
+3. The PBI file and PBI number are the single anchor for all subsequent work
 
 ## What NOT to Do
 

@@ -357,7 +357,7 @@ A PBI file evolves through its lifecycle. Not all sections exist at creation —
 # PBI #NNN: Title
 ```
 
-**Optional sections** (added as the PBI matures):
+**Optional sections** (added as the PBI matures through the lifecycle):
 
 ```markdown
 # PBI #42: Email Validation
@@ -367,21 +367,30 @@ A PBI file evolves through its lifecycle. Not all sections exist at creation —
 ## Description
 Add email validation to the user registration form.
 
+## Design
+(Added during brainstorming — Phase 4 output lives here, not in a separate file)
+
+**Goal:** Validate email format on registration to reduce bad data.
+
+**Approach:** Simple regex pattern matching, not RFC 5322 full compliance.
+
+**Design concerns scan:** Architecture (not relevant), Data model (not relevant),
+API (relevant — new validation on POST /users), Security (relevant — input validation),
+Performance (not relevant), UI (not relevant — backend only).
+
+**API:** POST /users returns 400 with `{"error": "invalid_email"}` when format fails.
+
+**NFR checkpoint:** Security — validates input before processing. No other NFRs relevant.
+
+**Out of scope:** Email deliverability checks, MX record validation.
+
 ## Acceptance Criteria
 - [ ] validate_email returns False for invalid emails
 - [ ] validate_email returns True for valid emails
 - [ ] API returns 400 for invalid email on registration
 
-## Notes
-Design doc: docs/plans/2026-02-28-email-validation-design.md
-We discussed using regex — simple pattern matching, not RFC 5322 full compliance.
-
-## Checklist
-- [x] Write design doc
-- [ ] Implement validation function
-- [ ] Add API integration
-
 ## Plan
+(Added during sprint-planning — task breakdown)
 
 ### Task 1: Create validation tests (red)
 **File(s):** tests/test_user_validation.py
@@ -393,7 +402,23 @@ We discussed using regex — simple pattern matching, not RFC 5322 full complian
 ### Task 2: Implement validation (green)
 **File(s):** src/user_validation.py
 **What to do:** ...
+
+## Notes
+(Context, decisions, discoveries during implementation)
+We discussed using regex — simple pattern matching, not RFC 5322 full compliance.
 ```
+
+The PBI file is a **living document** that grows through the lifecycle. Each step in the happy path appends to it:
+
+| Step | Section added |
+|------|--------------|
+| Capture | `# PBI #NNN: Title` + `## Description` |
+| Refine (brainstorming) | `## Design` + `## Acceptance Criteria` |
+| Plan (sprint-planning) | `## Plan` |
+| Implement | `## Notes` (decisions, discoveries) |
+| Close | Final state archived in `backlog/done/` |
+
+**Design lives in the PBI file, not in a separate document.** Cross-cutting architecture decisions that span multiple PBIs belong in `docs/architecture/` as ADRs.
 
 ### PBI File Lifecycle
 
@@ -401,36 +426,77 @@ We discussed using regex — simple pattern matching, not RFC 5322 full complian
 Work identified
       │
       v
+PBI created in backlog tool → get PBI number
+      │
+      v
 PBI file created → backlog/pbi-NNN-description.md (title + description)
       │
       v
-Refined → AC added, notes added, design decisions captured
+Tool updated → reference to file path added in notes
       │
       v
-Planned → Plan section added (tasks from sprint-planning skill)
+Refined → ## Design + ## Acceptance Criteria added to file
       │
       v
-Approved → moved to backlog/ready/
+Planned → ## Plan section added (tasks from sprint-planning skill)
       │
       v
-Picked up → moved to backlog/in_progress/, external tool updated to in_progress
+Approved → file moved to backlog/ready/, tool status updated
       │
       v
-Completed → moved to backlog/done/, external tool updated to done
+Picked up → file moved to backlog/in_progress/, tool status updated
+      │
+      v
+Completed → file moved to backlog/done/, tool status updated
 ```
 
 ### Sync Protocol (with external tools)
 
-When an external backlog tool is configured (Jira, API, YAML, GitHub Issues):
+When an external backlog tool is configured, it is the **primary source of truth**. The filesystem is the **detailed record**. Two sources, clear roles:
 
-1. **External tool = primary source of truth** for status and metadata
-2. **Filesystem = parallel record** that captures agent-generated content (plans, design decisions, refinement notes)
-3. **Agent workflow:** Edit file first → sync to external tool
-4. **Conflict detection:** When reading a PBI, compare file content with external tool. If they differ, warn user and offer to merge
+| Source | Role | Contains |
+|--------|------|----------|
+| **Backlog tool** | Primary — status, priority, metadata | Title, status, epic, short notes, checklist |
+| **PBI file** (`backlog/`) | Detail — the full living document | Description, design, plan, AC, implementation notes |
+
+#### The Sync Workflow
+
+Every PBI interaction follows this order:
+
+1. **Check the tool first.** Before creating a file, query the backlog tool. Does a PBI already exist for this work?
+2. **Create in the tool first.** If no PBI exists, create it in the backlog tool. Get the PBI number.
+3. **Create the file.** Create `backlog/pbi-NNN-description.md` using the PBI number from the tool.
+4. **Reference the file from the tool.** Update the PBI in the tool with a reference to the file path (in the notes field).
+5. **The file links back automatically.** The filename contains the PBI number (`pbi-NNN-*`), so the link is always there.
+
+#### Conflict Resolution
+
+- **If tool and file disagree, the tool wins.** The agent updates the file to match.
+- **If a PBI number changes in the tool**, the file must be renamed to match.
+- **If a PBI is deleted in the tool**, the file should be moved to `backlog/done/` or removed.
+
+#### Compatible Backlog Tools
+
+A "compatible" backlog tool is one that is **agilar-coder aware** — it understands the filesystem backlog exists and proactively keeps it in sync.
+
+A compatible tool:
+- Notifies the agent (via webhook, file watch, or API) when a PBI is created, updated, renamed, or deleted
+- Propagates PBI number changes to the corresponding file (rename `pbi-NNN-*` → `pbi-MMM-*`)
+- Propagates status changes to the file's folder location (`backlog/` → `ready/` → `in_progress/` → `done/`)
+- Propagates deletion (moves file to `done/` or removes it)
+
+A non-compatible tool works fine — the agent handles sync manually using the workflow above. Compatible tools simply automate what the agent would do anyway.
+
+| Tool | Compatible | Notes |
+|------|-----------|-------|
+| **Agilar PO Companion** | Yes (planned) | Native integration with filesystem backlog |
+| **Jira** | No | Agent syncs manually via REST API |
+| **GitHub Issues** | No | Agent syncs manually via `gh` CLI |
+| **YAML file in repo** | N/A | File IS the tool — no sync needed |
 
 ### Without External Tool
 
-When no external tool is configured, `backlog/` IS the backlog. Git history is the audit trail. No sync needed — the filesystem is the single source of truth.
+When no external tool is configured, `backlog/` IS the backlog. Git history is the audit trail. No sync needed — the filesystem is the single source of truth. PBI numbers are auto-assigned sequentially.
 
 ---
 
@@ -468,7 +534,7 @@ Not a DoD gate directly, but enforced by `skills/debugging/`. When a bug is foun
 
 > No design without exploring alternatives.
 
-Enforced during refinement. Before committing to a design, the human and agent explore alternatives via `skills/brainstorming/`. The PBI's design (captured in notes or a plan document via `skills/sprint-planning/`) reflects that alternatives were considered.
+Enforced during refinement. Before committing to a design, the human and agent explore alternatives via `skills/brainstorming/`. The PBI's `## Design` section reflects that alternatives were considered.
 
 ---
 

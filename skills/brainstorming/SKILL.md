@@ -53,39 +53,65 @@ Always include your recommendation and explain why. The human partner makes the 
 
 ### Phase 4: Present the Design
 
-Once the approach is chosen, present the full design. Scale each section to its actual complexity — a simple feature gets a short design, a complex system gets a detailed one. Do not pad simple designs with ceremony.
+Once the approach is chosen, present the full design. This phase has two parts: scan for relevant concerns, then elaborate the relevant ones.
 
-A design includes whatever subset of these sections is relevant:
+#### 4a: Design Concerns Scan
+
+Before writing the design, scan this checklist and mark each concern as relevant or not relevant. Present the scan to the human partner so they can catch anything you missed.
+
+| Concern | Relevant when... |
+|---------|-----------------|
+| **Architecture** | New component, service, or significant structural change |
+| **Data model** | Persistent state, new tables/schemas, migrations, relationships |
+| **API / Interface** | Boundaries between components, external contracts, versioning |
+| **UI / UX** | User-facing changes: layout, flows, responsive behavior, accessibility |
+| **Security** | Auth, input validation, secrets handling, network exposure, OWASP concerns |
+| **Performance** | Latency-sensitive paths, large data sets, resource constraints, caching |
+| **Scalability** | Growth assumptions, concurrency, bottlenecks |
+| **Observability** | Logging, monitoring, alerting, debugging in production |
+| **Edge cases** | Failure modes, race conditions, invalid input, recovery |
+| **Migration / Rollback** | Changing existing data or behavior, backwards compatibility |
+
+Not every concern applies to every PBI. A simple CLI flag needs none of these. A new service needs most of them. The scan takes 30 seconds — skipping it costs hours when a concern surfaces during implementation.
+
+#### 4b: Elaborate the Design
+
+For each concern marked relevant, include a section in the design. Scale depth to complexity — a sentence for simple concerns, a paragraph or diagram for complex ones. Do not pad irrelevant sections with boilerplate.
+
+The design sections:
 
 - **Goal** — one sentence on what this achieves
 - **Approach** — what we are building and how
-- **Components** — what pieces exist, how they interact
-- **Data model** — if there is persistent state
-- **API/Interface** — if there are boundaries between components
+- **Architecture** — components, boundaries, integration points, where this fits in the existing system
+- **Data model** — schemas, relationships, migrations, storage choices
+- **API / Interface** — contracts, endpoints, error responses, versioning
+- **UI / UX** — wireframes or descriptions of layout, user flows, responsive behavior
+- **NFR checkpoint** — for each relevant non-functional requirement (security, performance, scalability, observability), state the requirement and how the design addresses it. Even "not applicable — internal tool, single user" is a valid entry. The point is to make the assumption explicit.
 - **Edge cases** — what could go wrong, how we handle it
+- **Migration / Rollback** — how to get from current state to new state, how to roll back if needed
 - **Out of scope** — what we are explicitly not doing
 - **Acceptance criteria** — concrete, testable conditions for "done"
 
 **Get explicit approval.** Do not proceed until the human partner says some variant of "yes, build this." Silence is not approval. "Looks good" is approval. "I think so" needs a follow-up question.
 
-### Phase 5: Write the Design Doc
+### Phase 5: Write the Design Into the PBI File
 
-Save the approved design to a file:
+The approved design goes INTO the PBI file — not into a separate design document. The PBI file is the single living document that grows through the lifecycle.
 
-```
-docs/plans/YYYY-MM-DD-<topic>-design.md
-```
+Add a `## Design` section to the PBI file (`backlog/pbi-NNN-description.md`) with the approved design content from Phase 4b. If the PBI file does not exist yet, create it now (following the sync workflow: check tool → create in tool → create file → reference file from tool).
 
-This document is the contract. It is what the implementation phase builds against. It is what code review checks against. Commit it to version control.
+The `## Design` section is the contract. It is what the implementation phase builds against. It is what code review checks against.
+
+**Exception:** Cross-cutting architecture decisions that span multiple PBIs belong in `docs/architecture/` as ADRs, not in a single PBI file. If the design affects the whole system, write an ADR and reference it from each affected PBI.
 
 ### Phase 6: Transition to Implementation
 
 The approved design feeds directly into implementation planning:
 
-- The acceptance criteria from the design become the PBI's acceptance criteria
-- The design doc is referenced in the PBI
+- The acceptance criteria from the design become the PBI's `## Acceptance Criteria` section
+- The PBI file now has: Description, Design, and Acceptance Criteria
 - The PBI meets Definition of Ready: it has a clear goal, acceptance criteria, and an approved design
-- Next step: create an implementation plan (see the sprint-planning skill)
+- Next step: create an implementation plan (see the sprint-planning skill), which adds a `## Plan` section to the same PBI file
 
 ## Connection to Definition of Ready
 

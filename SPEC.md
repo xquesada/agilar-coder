@@ -112,7 +112,10 @@ Update the framework to the latest version.
 5. Notes CLAUDE.md template changes (does not overwrite — project CLAUDE.md is customized)
 6. Updates `.agilar-coder.version` to current version
 
-**Output:** List of added/updated/removed skills + version change summary
+6. Shows CHANGELOG diff between installed and available version (what's new)
+7. Prints manual migration steps if any version in the range has breaking changes
+
+**Output:** List of added/updated/removed skills + CHANGELOG diff + migration steps (if any) + version change summary
 
 **Exit code:** `0` on success, `1` if not initialized
 

@@ -1096,6 +1096,58 @@ cmd_status() {
     echo -e "  $skills_line"
 }
 
+show_changelog_diff() {
+    local changelog="$1"
+    local from_version="$2"
+    local to_version="$3"
+
+    echo ""
+    echo "What's new ($from_version → $to_version):"
+    echo "────────────────────────────────────────"
+
+    local in_range=false
+    local in_migration=false
+    local migration_lines=""
+
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^##\ \[([0-9]+\.[0-9]+\.[0-9]+)\] ]]; then
+            local ver="${BASH_REMATCH[1]}"
+            if [[ "$ver" == "$from_version" ]]; then
+                in_range=false
+                continue
+            fi
+            if [[ "$in_range" == true ]]; then
+                in_migration=false
+            elif [[ "$ver" == "$to_version" ]]; then
+                in_range=true
+            else
+                continue
+            fi
+        fi
+
+        if [[ "$in_range" == true ]]; then
+            echo "  $line"
+            if [[ "$line" == "### Migration" ]]; then
+                in_migration=true
+            elif [[ "$line" =~ ^### ]]; then
+                in_migration=false
+            fi
+            if [[ "$in_migration" == true && "$line" =~ ^[0-9]+\. ]]; then
+                migration_lines+="  $line
+"
+            fi
+        fi
+    done < "$changelog"
+
+    echo ""
+
+    if [[ -n "$migration_lines" ]]; then
+        echo "⚠  MANUAL STEPS REQUIRED:"
+        echo "────────────────────────────────────────"
+        printf "%s" "$migration_lines"
+    fi
+}
+
 cmd_upgrade() {
     local repo_root="$1"
     local available_version
@@ -1213,7 +1265,12 @@ cmd_upgrade() {
         echo "  Tip: Run 'diff CLAUDE.md <(agilar-coder-scaffold-preview)' to see differences."
     fi
 
-    # 5. Update version file
+    # 5. Show what changed (CHANGELOG diff between versions)
+    if [[ -f "$repo_root/CHANGELOG.md" && "$installed_version" != "$available_version" ]]; then
+        show_changelog_diff "$repo_root/CHANGELOG.md" "$installed_version" "$available_version"
+    fi
+
+    # 6. Update version file
     echo "$available_version" > .agilar-coder.version
 
     echo ""

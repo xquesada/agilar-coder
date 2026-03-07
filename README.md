@@ -97,6 +97,25 @@ Skills are in `skills/`. Each has a `SKILL.md` with the tool-agnostic process de
 - `implementations/cursor/` — `.cursorrules` format for Cursor (future)
 - `implementations/generic/` — Plain markdown for any tool
 
+### Upgrading
+
+When a new version of agilar-coder is available, update your project:
+
+```bash
+agilar-coder upgrade /path/to/your/project
+```
+
+The upgrade command will:
+1. Update skills (with diff review for modified ones)
+2. Detect and offer to remove deprecated skills
+3. Show what changed between your installed version and the new one (from `CHANGELOG.md`)
+4. Print any manual migration steps required for breaking changes
+5. Bump your project's version marker
+
+Check what version you're on with `agilar-coder status`.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+
 ## Structure
 
 ```

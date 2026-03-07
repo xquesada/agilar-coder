@@ -6,6 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow 
 
 Breaking changes include a **Migration** section with required manual steps.
 
+## [1.5.1] - 2026-03-07
+
+### Fixed
+- `upgrade` CLAUDE.md prompt: skip sections whose generated content is only TODO stubs, preventing the same prompt from reappearing on every upgrade run
+
 ## [1.5.0] - 2026-03-07
 
 ### Fixed

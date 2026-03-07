@@ -1893,6 +1893,12 @@ cmd_upgrade() {
             local section
             section="$(echo "$line" | tr -d '\r' | sed 's/{{[^}]*}}//g' | sed 's/^## //' | xargs)"
             [[ -z "$section" ]] && continue
+            # Skip sections whose generated content is still a TODO stub
+            local generated
+            generated="$(generate_section_content "$section")"
+            local real_content
+            real_content="$(echo "$generated" | grep -v '^[[:space:]]*$' | grep -v '<!-- TODO')"
+            [[ -z "$real_content" ]] && continue
             if ! grep -q "^## .*${section}" CLAUDE.md 2>/dev/null; then
                 actionable_sections+=("$section|missing")
             elif section_is_empty "$section" CLAUDE.md; then

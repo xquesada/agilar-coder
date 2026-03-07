@@ -6,6 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow 
 
 Breaking changes include a **Migration** section with required manual steps.
 
+## [1.5.2] - 2026-03-07
+
+### Fixed
+- `upgrade` silently aborted before writing `.agilar-coder.version` when no skills changed — arithmetic `((0 += 0))` returned exit code 1 under `set -e`
+
 ## [1.5.1] - 2026-03-07
 
 ### Fixed

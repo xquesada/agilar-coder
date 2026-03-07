@@ -1864,10 +1864,10 @@ cmd_upgrade() {
             fi
         fi
 
-        ((total_updated += updated))
-        ((total_skipped += skipped))
-        ((total_added += added))
-        ((total_removed_candidates += ${#removed[@]}))
+        ((total_updated += updated)) || true
+        ((total_skipped += skipped)) || true
+        ((total_added += added)) || true
+        ((total_removed_candidates += ${#removed[@]})) || true
     done
 
     # 3. Update docs/skills/ (canonical copies)

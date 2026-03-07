@@ -62,8 +62,8 @@ All must pass before dispatching a review. If any fail, fix first.
 Use the Read tool to re-read the plan or PBI acceptance criteria. Do not quote from memory — paste the actual requirements.
 
 ```bash
-# If the plan is in a file:
-# Use Read tool: Read docs/plans/plan-name.md
+# Read the plan from the PBI file:
+# Use Read tool: Read backlog/ready/pbi-NNN-description.md
 
 # If the plan is a PBI, fetch it:
 # Use Bash: curl -s http://M3.local:8076/api/backlog/42 | jq '.notes, .checklist'

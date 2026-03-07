@@ -8,6 +8,12 @@ Breaking changes include a **Migration** section with required manual steps.
 
 ## [1.5.0] - 2026-03-07
 
+### Fixed
+- sprint-planning skill: removed `docs/plans/` references — plans go in PBI files as `## Plan` section (canonical + claude-code implementation)
+- requesting-code-review skill: updated examples to reference PBI files instead of `docs/plans/` (claude-code + codex)
+- git-worktrees skill: fixed front-matter `name: using-git-worktrees` → `name: git-worktrees` (claude-code + codex)
+- bdd skill: expanded from 68-line stub to full implementation covering Gherkin examples, Scenario Outline, Background, tags, common mistakes, red flags, verification checklist (claude-code + codex)
+
 ### Added
 - Smart CLAUDE.md section management: `ensure_section` handles missing headers, empty TODO stubs, and content under different headers
 - Content generation for all 15 CLAUDE.md sections — auto-detects stack, team mode, and code review settings

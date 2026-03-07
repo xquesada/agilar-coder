@@ -15,7 +15,7 @@ When the human asks you to plan (or when a PBI is complex enough to warrant a pl
 2. **Explore the codebase.** Use Read, Grep, and Glob to understand existing patterns, conventions, file structure, and test infrastructure. The plan must fit the codebase as it is, not as you imagine it.
 3. **PBI size check.** Before drafting the plan, estimate the number of tasks. If you can already see the PBI would need more than 5-7 tasks (10-15 minutes of agent execution), stop and suggest splitting. Present the split options to the human — they decide whether to split or proceed as-is.
 4. **Draft the plan.** Follow the structure from `skills/sprint-planning/SKILL.md` — header with Goal/Architecture/Tech Stack/Acceptance Criteria, then numbered tasks at 2-5 minute granularity.
-5. **Save the plan to a file.** Write it to `docs/plans/` or a location the human specifies. Plans are artifacts — they persist across sessions.
+5. **Save the plan in the PBI file.** Write it as a `## Plan` section inside the PBI file. Plans are artifacts — they persist across sessions.
 
 ## Plan File Convention
 
@@ -27,7 +27,7 @@ backlog/pbi-NNN-short-description.md
 
 Example: `backlog/pbi-042-email-validation.md` (or `backlog/ready/pbi-042-email-validation.md` if approved in the same session).
 
-Design docs (brainstorming output) still go to `docs/plans/YYYY-MM-DD-<topic>-design.md`. The PBI file references them in its Notes section.
+Design docs (brainstorming output) also go in the PBI file under a `## Design` section. If a design applies to multiple PBIs, write it in the first PBI and reference it from the others.
 
 ## Task Tracking
 

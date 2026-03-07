@@ -60,8 +60,8 @@ All must pass before requesting a review. If any fail, fix first.
 Read the plan or PBI acceptance criteria file. Do not quote from memory — paste the actual requirements.
 
 ```bash
-# If the plan is in a file, read it directly
-cat docs/plans/plan-name.md
+# Read the plan from the PBI file
+cat backlog/ready/pbi-NNN-description.md
 
 # If the plan is a PBI, fetch it
 curl -s http://M3.local:8076/api/backlog/42 | jq '.notes, .checklist'

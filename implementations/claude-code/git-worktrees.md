@@ -1,5 +1,5 @@
 ---
-name: using-git-worktrees
+name: git-worktrees
 description: Use when starting feature work that needs isolation or before executing implementation plans
 ---
 

@@ -58,7 +58,7 @@ The implementation plan is written as a `## Plan` section inside the PBI file at
 
 The PBI file header (title, description, acceptance criteria) replaces the standalone plan header — it is already in the file. Do not duplicate the Goal, Architecture, Tech Stack, and AC in a separate `## Plan` header. The `## Plan` section starts directly with task definitions.
 
-Design docs remain in `docs/plans/` as reference material (brainstorming output, cross-PBI architecture). PBI files reference them in their Notes section.
+Design docs (brainstorming output, cross-PBI architecture) also go in the PBI file under a `## Design` section. If a design applies to multiple PBIs, write it in the first PBI and reference it from the others.
 
 ## Task Structure
 

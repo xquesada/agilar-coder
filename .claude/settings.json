@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f .agilar-coder.version && printf '{\"systemMessage\":\"agilar-coder v%s activated\"}\\n' \"$(tr -d '\\r\\n' < .agilar-coder.version)\""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -552,8 +552,6 @@ normalize_agent_guidance() {
 # Merges with existing hooks without overwriting them.
 register_claude_hook() {
     local settings_file=".claude/settings.json"
-    local hook_cmd='test -f .agilar-coder.version && printf "{\"systemMessage\":\"agilar-coder v%s activated\"}\n" "$(tr -d \"\\r\\n\" < .agilar-coder.version)"'
-
     mkdir -p .claude
 
     # Install Entire wrapper if Entire is present and wrapper doesn't exist
@@ -576,11 +574,11 @@ ENTIRE_HOOK
         echo "  Created: .claude/hooks/entire-session-start.sh"
     fi
 
-    python3 -c "
+    python3 - "$settings_file" << 'PYEOF' 2>/dev/null || true
 import json, sys, os
 
-settings_file = '$settings_file'
-hook_cmd = '''$hook_cmd'''
+settings_file = sys.argv[1]
+hook_cmd = "test -f .agilar-coder.version && printf '{\"systemMessage\":\"agilar-coder v%s activated\"}\\n' \"$(tr -d '\\r\\n' < .agilar-coder.version)\""
 changed = False
 
 # Load existing or create empty
@@ -600,10 +598,13 @@ if os.path.exists('.claude/hooks/entire-session-start.sh'):
                 h['command'] = '.claude/hooks/entire-session-start.sh'
                 changed = True
 
-# Check if agilar-coder hook already registered
+# Check if agilar-coder hook already registered (update command if found)
 for group in session_hooks:
     for h in group.get('hooks', []):
         if 'agilar-coder' in h.get('command', ''):
+            if h['command'] != hook_cmd:
+                h['command'] = hook_cmd
+                changed = True
             if not changed:
                 sys.exit(0)  # already registered, nothing to do
             break
@@ -623,7 +624,7 @@ if changed:
         json.dump(settings, f, indent=2)
         f.write('\n')
     print('  Registered: SessionStart hook in .claude/settings.json')
-" 2>/dev/null || true
+PYEOF
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

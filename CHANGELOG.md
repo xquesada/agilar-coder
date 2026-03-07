@@ -70,10 +70,8 @@ Breaking changes include a **Migration** section with required manual steps.
 - SCRUM.md PBI file lifecycle updated with tool-first steps
 
 ### Migration
-1. Rename `docs/decisions/` to `docs/architecture/`
-2. Move any per-PBI designs from `docs/plans/` into their corresponding PBI files under a `## Design` section
-3. Install new skill: copy `using-agilar-coder.md` into `.claude/skills/`
-4. Update CLAUDE.md skills section to list `using-agilar-coder` as session bootstrapper
+1. Rename `docs/decisions/` to `docs/architecture/` (if it exists)
+2. Move any per-PBI designs from `docs/plans/` into their corresponding PBI files under a `## Design` section (if applicable)
 
 ## [1.2.0] - 2026-03-06
 

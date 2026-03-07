@@ -51,6 +51,7 @@ Skip any step = lying, not verifying
 | Regression test works | Red-green cycle verified | Test passes once |
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
+| PBI is done | Backlog tool status is `done` | File moved to `done/` without tool update |
 
 ## Red Flags - STOP
 

@@ -148,6 +148,7 @@ A PBI is done when ALL of these are true:
 - **Tests pass** — all tests green, including new tests written via TDD (working agreement: `skills/tdd/`)
 - **Code reviewed** — human has reviewed agent-written code (working agreement: `skills/code-review/`). *Optional for non-technical solo users — see scaffold onboarding.*
 - **Verified with evidence** — fresh test runs, screenshots, or logs proving it works. Not "I think it works" — evidence (working agreement: `skills/verification/`)
+- **Backlog tool updated** — PBI status set to `done` in the backlog tool (API, Jira, GitHub Issues, etc.). File archival is not a substitute for tool update.
 - **CHANGELOG updated** — entry added under current version or `[Unreleased]` section
 - **Deployed to staging** — if a staging environment exists, the change runs there before production
 - **Docs updated** — if the change affects APIs, configuration, or user-facing behavior, documentation reflects it
@@ -158,6 +159,7 @@ The DoD encodes the team's working agreements. Violating any one means the PBI i
 |-------------------|----------|-------|
 | No production code without a failing test first | Tests pass (TDD) | `skills/tdd/` |
 | No completion claim without fresh verification evidence | Verified with evidence | `skills/verification/` |
+| No done without backlog tool update | Backlog tool updated | `skills/verification/`, `skills/scrum-master/` |
 | No merge without code review | Code reviewed (optional for non-technical solo) | `skills/code-review/` |
 
 ### Sprint Backlog (multi-human only)
@@ -326,7 +328,9 @@ The PBI is the contract between the PO and the developer. No contract, no work.
 
 ## Filesystem Backlog
 
-Every project has a `backlog/` directory. Folders represent status columns. PBI files move through folders as they progress. This provides a filesystem-native backlog that works with or without external tools.
+Every project has a `backlog/` directory. When an external backlog tool is configured, the tool is the **single source of truth for PBI status** — folders are archival organization, not status tracking. When no external tool exists (standalone mode), folder position IS the status.
+
+**Key rule:** Update the tool first, then move the file. Never move a file to `done/` without updating the tool. If the tool is unreachable, add `## API Sync Needed` to the PBI file and reconcile next session.
 
 ### Folder Structure
 
@@ -469,6 +473,7 @@ Every PBI interaction follows this order:
 3. **Create the file.** Create `backlog/pbi-NNN-description.md` using the PBI number from the tool.
 4. **Reference the file from the tool.** Update the PBI in the tool with a reference to the file path (in the notes field).
 5. **The file links back automatically.** The filename contains the PBI number (`pbi-NNN-*`), so the link is always there.
+6. **Close in the tool first.** When a PBI is done, update the tool status to `done` BEFORE moving the file to `backlog/done/`. Tool update is part of the Definition of Done. If the tool is unreachable, do not move the file — add `## API Sync Needed` to the PBI file and reconcile when connectivity is restored.
 
 #### Conflict Resolution
 

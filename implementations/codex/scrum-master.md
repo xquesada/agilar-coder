@@ -21,6 +21,7 @@ Check these gates automatically:
 2. **PBI file exists?** Verify a PBI file exists in `backlog/` for the current work. If no file exists but an external tool has the PBI, create the file (`backlog/pbi-NNN-description.md` with title and description). If starting work, verify the file is in `backlog/in_progress/` (or move it there).
 3. **DoR met?** If a PBI is being started, read its acceptance criteria and checklist. If missing, flag it and offer to help refine.
 4. **WIP check?** If another PBI is already `in_progress`, mention it and ask which to focus on.
+5. **Tool status current?** If a PBI file is in `backlog/done/` but the backlog tool still shows it as `in_progress`, flag the mismatch and offer to update the tool.
 
 ### During Work
 
@@ -42,7 +43,10 @@ Before marking any PBI done:
 2. Verify each criterion is met with evidence
 3. Confirm tests pass (fresh run, not cached)
 4. Confirm the user has reviewed the work (when code review is enabled)
-5. Only then suggest marking the PBI as done
+5. Update the backlog tool status to `done` (`curl -X PATCH .../api/backlog/:id -d '{"status":"done"}'`)
+6. Only then move the PBI file to `backlog/done/`
+
+**Never move the file without updating the tool.** If the tool is unreachable, add `## API Sync Needed` to the PBI file instead of moving it.
 
 ## How to Nudge
 

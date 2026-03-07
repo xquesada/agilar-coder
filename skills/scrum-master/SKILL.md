@@ -94,7 +94,22 @@ Let me run the test suite and capture the output."
 or park it and switch to this?"
 ```
 
-### 6. Retrospective Nudge
+### 6. Close Enforcement
+
+> Update the backlog tool before archiving the file.
+
+**Trigger:** A PBI is about to be marked done — the agent is moving the file to `backlog/done/` or claiming completion.
+
+**Response:** Check that the backlog tool status has been updated to `done`. If not, update it first.
+
+```
+"Before archiving — the backlog tool still shows this PBI as in_progress.
+Let me update it to done before moving the file."
+```
+
+**Violation:** Moving a PBI file to `backlog/done/` or claiming completion without updating the backlog tool. This creates ghost PBIs — work that appears done locally but remains open on the board.
+
+### 7. Retrospective Nudge
 
 > Periodic reflection improves process.
 
@@ -146,6 +161,7 @@ The Scrum Master skill does not execute other skills — it triggers them:
 | Merge without review | "Code review working agreement" | `skills/code-review/` |
 | PBI not ready | "Definition of Ready" | Inline refinement |
 | PBI not done | "Definition of Done" | Relevant skill for missing gate |
+| File archived without tool update | "Close enforcement" | `skills/verification/` |
 
 ## Anti-Patterns
 

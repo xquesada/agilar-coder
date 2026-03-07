@@ -6,6 +6,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow 
 
 Breaking changes include a **Migration** section with required manual steps.
 
+## [1.6.0] - 2026-03-08
+
+### Added
+- Backlog tool close enforcement across methodology: tool status must be updated to `done` before archiving PBI files (PBI #282)
+- SCRUM.md: "Backlog tool updated" added to Definition of Done and DoD working agreements table
+- SCRUM.md: Filesystem Backlog section clarifies tool-first status tracking, standalone mode fallback, and close-in-tool-first rule in Sync Workflow
+- Verification skill: "PBI is done" row in Common Failures table, "Before Claiming PBI Done" sequence (canonical + claude-code + codex)
+- Scrum-master skill: "Close Enforcement" section (#6), "Tool status current?" session start check, Connection to Other Skills entry (canonical + claude-code + codex)
+- Executing-plans skill: completion section now requires tool update before file move, with API Sync Needed fallback (canonical + claude-code + codex)
+- Using-agilar-coder: Close step in lifecycle table updated to include mandatory tool status update (claude-code + codex)
+- CLAUDE.md template + scaffold + generate_section_content: Filesystem Backlog section includes tool-first rule and close rule
+
 ## [1.5.2] - 2026-03-07
 
 ### Fixed

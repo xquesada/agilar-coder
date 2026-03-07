@@ -26,7 +26,7 @@ Every piece of work follows this lifecycle (scale ceremony to complexity, but th
 6. **Verify** — Run full test suite, prove acceptance criteria met with fresh evidence
 7. **Finish** — Merge, clean up branches/worktrees
 8. **Deploy** — Ship to production, verify health
-9. **Close** — Mark done, update CHANGELOG, suggest version bump
+9. **Close** — Update backlog tool status to `done` (mandatory), archive PBI file, update CHANGELOG, suggest version bump
 
 Shortcuts exist for simple work (bug fixes, config changes, research) — the scrum-master skill guides when steps can be skipped.
 
@@ -148,7 +148,7 @@ The agent classifies version impact during PBI design, suggests a bump at comple
 
 ## Filesystem Backlog
 
-PBI files live in `backlog/` and move through folders as they progress:
+PBI files live in `backlog/` and move through folders as they progress. When a backlog tool is configured, the tool is the **single source of truth for PBI status** — folders are archival organization. Update the tool first, then move the file.
 
 | Folder | Status | Contains |
 |--------|--------|----------|
@@ -156,6 +156,8 @@ PBI files live in `backlog/` and move through folders as they progress:
 | `backlog/ready/` | Ready | Refined + planned PBIs, queued for execution |
 | `backlog/in_progress/` | In Progress | PBIs currently being worked on |
 | `backlog/done/` | Done | Completed PBIs (archive) |
+
+**Close rule:** Update the backlog tool status to `done` BEFORE moving the file to `backlog/done/`. If the tool is unreachable, do not move the file — add `## API Sync Needed` to the PBI file and reconcile next session.
 
 **Execute ready PBIs:**
 - "Build the next ready PBI" — picks oldest from ready/, executes, archives to done/

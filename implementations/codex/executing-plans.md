@@ -138,12 +138,20 @@ When something goes wrong during execution:
 
 After all tasks complete and the completion report is presented:
 
+1. **Update the backlog tool first** (if configured):
+```bash
+curl -X PATCH "$BACKLOG_API/api/backlog/$PBI_ID" \
+  -H 'Content-Type: application/json' \
+  -d '{"status": "done"}'
+```
+
+2. **Then archive the file:**
 ```bash
 mv backlog/in_progress/pbi-NNN-*.md backlog/done/
 git add backlog/ && git commit -m "backlog: complete pbi-NNN description"
 ```
 
-If an external tool is configured, sync the status to `done` via the appropriate adapter.
+If the backlog tool is unreachable, do **not** move the file. Add `## API Sync Needed` to the PBI file and tell the human partner.
 
 ## Example Session
 

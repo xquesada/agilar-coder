@@ -60,6 +60,7 @@ BEFORE claiming any status or expressing satisfaction:
 | "Bug is fixed" | Test output showing the reproduction test passes |
 | "No regressions" | Full test suite output showing all pass |
 | "Feature works" | Command output or test output demonstrating the behavior |
+| "PBI is done" | Backlog tool API response showing status `done` |
 
 ### What Does NOT Count as Evidence
 
@@ -68,6 +69,7 @@ BEFORE claiming any status or expressing satisfaction:
 - Partial test runs (running one test file when the claim is about the full suite)
 - Linter output when claiming build success
 - Delegated work reports without independent verification
+- Moving a PBI file to `backlog/done/` without updating the backlog tool status
 
 ## Common Verification Sequences
 
@@ -98,6 +100,17 @@ npm test && npm run lint && npm run build
 ```
 
 If any step fails, do not commit. Fix the issue first.
+
+## Before Claiming PBI Done
+
+This sequence must be followed in order:
+
+1. Run the full test suite — capture output, confirm all pass
+2. Verify each acceptance criterion with evidence
+3. Update the backlog tool status to `done` (e.g., `curl -X PATCH .../api/backlog/:id -d '{"status":"done"}'`)
+4. Only then move the PBI file to `backlog/done/`
+
+If step 3 fails (tool unreachable), do NOT move the file. Add `## API Sync Needed` to the PBI file and tell the human partner.
 
 ## Stale Evidence
 

@@ -151,7 +151,10 @@ Move the PBI file from `backlog/ready/` to `backlog/in_progress/`. If an externa
 
 ### On completion
 
-Move the PBI file from `backlog/in_progress/` to `backlog/done/`. If an external tool is configured, sync the status to `done`.
+1. Update the backlog tool status to `done` first (if an external tool is configured).
+2. Only then move the PBI file from `backlog/in_progress/` to `backlog/done/`.
+
+If the backlog tool is unreachable, do **not** move the file. Add `## API Sync Needed` to the PBI file and tell the human partner. Reconcile when connectivity is restored.
 
 The `backlog/done/` folder serves as an execution archive. The PBI still needs code review and human acceptance before it meets the Definition of Done — but the implementation work is complete and the file is archived.
 

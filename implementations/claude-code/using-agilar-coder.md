@@ -29,7 +29,7 @@ The canonical skill defines a 9-step default lifecycle. Here is how each step ma
 | 6. Verify | verification | Run test/lint/build via Bash, read full output |
 | 7. Finish | finishing-a-development-branch | Merge, clean up worktrees, post-merge test |
 | 8. Deploy | (project-specific) | Follow CLAUDE.md deploy workflow via Bash/SSH |
-| 9. Close | scrum-master | Move PBI to `backlog/done/`, update CHANGELOG.md, suggest version bump, update docs/CLAUDE.md/memory |
+| 9. Close | scrum-master | Update backlog tool status to `done` (mandatory), move PBI to `backlog/done/`, update CHANGELOG.md, suggest version bump, update docs/CLAUDE.md/memory |
 
 **When a user says "build this"**, the default path is: Step 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9. Scale ceremony to complexity — a bug fix skips Steps 2-3, a config change skips Steps 5-7. But the default is the full path.
 

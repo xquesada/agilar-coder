@@ -1,6 +1,8 @@
-# Agilar AI SDLC
+# Agilar Agentic Coding
 
-Agilar's methodology for AI-enabled Agile Software Development.
+The **Agilar Agentic Coding methodology** — Agilar's method for AI-enabled Agile Software Development.
+
+The terms "methodology", "method", and "framework" all refer to the same thing: the Agilar Agentic Coding methodology, implemented by the `agilar-coder` CLI.
 
 Humans design. AI executes. Quality is non-negotiable.
 

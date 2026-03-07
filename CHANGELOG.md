@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow 
 
 Breaking changes include a **Migration** section with required manual steps.
 
+## [1.4.1] - 2026-03-07
+
+### Changed
+- Named the methodology explicitly: "Agilar Agentic Coding methodology" throughout README, CLAUDE.md, templates, and agent definitions
+- Equated "methodology", "method", and "framework" as synonyms in all entry points
+- Added core principles and 9-step development lifecycle inline in CLAUDE.md template (no skill loading needed)
+- Added PBI creation workflow to PBI-First Rule section in scaffold output (API-first for external backlogs, filesystem for local)
+
 ## [1.4.0] - 2026-03-07
 
 ### Added

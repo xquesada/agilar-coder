@@ -686,6 +686,23 @@ elif [[ "$TEAM_MODE_CHOICE" == "3" ]]; then
   COORD_SKILLS="- \`git-worktrees\` — optional, for developer isolation"
 fi
 
+# Build PBI creation workflow
+if [[ "$BACKLOG_CHOICE" == "4" ]]; then
+  PBI_CREATION="### Creating a PBI
+
+1. **Check \`backlog/\`** — Search existing PBI files for a match
+2. **If none exists, create a new PBI file** — \`backlog/pbi-<NNN>-<short-description>.md\` (use the next available number)
+3. **Write acceptance criteria** before starting implementation"
+else
+  PBI_CREATION="### Creating a PBI
+
+1. **Check the backlog** — Search the API/tool for an existing PBI that matches the work
+2. **If none exists, create it in the API/tool first** — This assigns the canonical PBI ID
+3. **Use the returned ID for the local file** — \`backlog/pbi-<API_ID>-<short-description>.md\`
+
+The API is the source of truth for PBI identity and numbering. Never invent local PBI numbers — the API ID IS the PBI number. When splitting a PBI, create all child PBIs in the API first, collect their IDs, then create the local files."
+fi
+
 # Build code review line
 if [[ "$CODE_REVIEW" == "yes" ]]; then
   CR_AGREEMENT="- **No merge without code review** (Code Review)"
@@ -723,6 +740,32 @@ cat > "$CLAUDEMD" << CLAUDEMD_EOF
 ## Project
 
 $PROJECT_DESCRIPTION$(if [[ -n "$PROJECT_TYPE_DESC" ]]; then printf '\n\n**What we are building:** %s' "$PROJECT_TYPE_DESC"; fi)
+
+## Methodology
+
+This project follows the **Agilar Agentic Coding methodology** (\`agilar-coder\`). The terms "methodology", "method", and "framework" all refer to the same thing: the Agilar Agentic Coding methodology.
+
+### Core Principles
+
+1. **Human Designs, AI Executes** — The human is always the Product Owner. The AI is a skilled developer. Humans make decisions, AI follows process rigorously.
+2. **Working Agreements** — Non-negotiable quality gates (see below). Not guidelines — commitments the team enforces.
+3. **Opinionated by Default** — Concrete choices, not open-ended guidance. Start with defaults, adapt only when needed.
+
+### Development Lifecycle
+
+Every piece of work follows this lifecycle (scale ceremony to complexity, but the default is all steps):
+
+1. **Capture** — Create a PBI before starting any work (PBI-first rule)
+2. **Refine** — Write acceptance criteria, explore approaches, get design approval
+3. **Plan** — Break into ordered, testable implementation tasks
+4. **Implement** — Execute with TDD (red-green-refactor per task)
+5. **Review** — Code review for spec compliance and quality
+6. **Verify** — Run full test suite, prove acceptance criteria met with fresh evidence
+7. **Finish** — Merge, clean up branches/worktrees
+8. **Deploy** — Ship to production, verify health
+9. **Close** — Mark done, update CHANGELOG, suggest version bump
+
+Shortcuts exist for simple work (bug fixes, config changes, research) — the scrum-master skill guides when steps can be skipped.
 
 ## Team Mode
 
@@ -786,6 +829,8 @@ $BRANCH_SECTION$(if [[ -n "$ENTIRE_SECTION" ]]; then printf '\n\n%s' "$ENTIRE_SE
 ## PBI-First Rule
 
 Any new work gets a PBI before starting. No exceptions. If the human forgets, the agent suggests it.
+
+$PBI_CREATION
 
 ## Filesystem Backlog
 

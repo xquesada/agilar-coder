@@ -457,9 +457,9 @@ assess_framework_tracking() {
 
     if [[ -f .agilar-coder.version ]]; then
         local installed_version
-        installed_version="$(cat .agilar-coder.version)"
+        installed_version="$(tr -d '\r' < .agilar-coder.version)"
         local current_version
-        current_version="$(cat "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
+        current_version="$(tr -d '\r' < "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
         details+=".agilar-coder.version ✓"
         ((score++))
         if [[ "$installed_version" == "$current_version" ]]; then
@@ -1033,7 +1033,7 @@ run_full_scaffold() {
 cmd_status() {
     local repo_root="$1"
     local available_version
-    available_version="$(cat "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
+    available_version="$(tr -d '\r' < "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
 
     # Count skills
     local installed_count=0
@@ -1064,7 +1064,7 @@ cmd_status() {
 
     if [[ -f .agilar-coder.version ]]; then
         local installed_version
-        installed_version="$(cat .agilar-coder.version)"
+        installed_version="$(tr -d '\r' < .agilar-coder.version)"
         echo -e "  Installed: ${GREEN}$installed_version${NC}"
         echo "  Available: $available_version"
         if [[ "$installed_version" == "$available_version" ]]; then
@@ -1151,11 +1151,11 @@ show_changelog_diff() {
 cmd_upgrade() {
     local repo_root="$1"
     local available_version
-    available_version="$(cat "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
+    available_version="$(tr -d '\r' < "$repo_root/VERSION" 2>/dev/null || echo "unknown")"
 
     local installed_version
     if [[ -f .agilar-coder.version ]]; then
-        installed_version="$(cat .agilar-coder.version)"
+        installed_version="$(tr -d '\r' < .agilar-coder.version)"
     elif [[ -d .claude/skills ]]; then
         installed_version="unknown"
     else
@@ -1254,15 +1254,28 @@ cmd_upgrade() {
         echo "  Updated docs/skills/ (canonical references)"
     fi
 
-    # 4. CLAUDE.md diff — show what's new in the template
-    echo ""
+    # 4. CLAUDE.md — detect new template sections missing from project
     if [[ -f CLAUDE.md && -f "$repo_root/templates/CLAUDE.md.tmpl" ]]; then
-        echo "CLAUDE.md template changes:"
-        echo "  The CLAUDE.md template in agilar-coder may have new sections."
-        echo "  Your project's CLAUDE.md is customized and won't be overwritten."
-        echo "  Review the template at: $repo_root/templates/CLAUDE.md.tmpl"
-        echo ""
-        echo "  Tip: Run 'diff CLAUDE.md <(agilar-coder-scaffold-preview)' to see differences."
+        local missing_sections=()
+        while IFS= read -r section; do
+            # Strip template conditionals and normalize
+            section="$(echo "$section" | sed 's/{{[^}]*}}//g' | sed 's/^## //' | xargs)"
+            [[ -z "$section" ]] && continue
+            if ! grep -q "^## .*${section}" CLAUDE.md 2>/dev/null; then
+                missing_sections+=("$section")
+            fi
+        done < <(grep '^## ' "$repo_root/templates/CLAUDE.md.tmpl")
+
+        if [[ ${#missing_sections[@]} -gt 0 ]]; then
+            echo ""
+            echo "CLAUDE.md — new sections available:"
+            for s in "${missing_sections[@]}"; do
+                echo "  - $s"
+            done
+            echo ""
+            echo "  These sections exist in the latest template but not in your CLAUDE.md."
+            echo "  Add them manually or re-run 'agilar-coder install' to regenerate."
+        fi
     fi
 
     # 5. Show what changed (CHANGELOG diff between versions)
@@ -1584,7 +1597,7 @@ validate_project_context() {
 main() {
     # Resolve repo root for all subcommands
     REPO_ROOT="$(resolve_repo_root)"
-    VERSION="$(cat "$REPO_ROOT/VERSION" 2>/dev/null || echo "dev")"
+    VERSION="$(tr -d '\r' < "$REPO_ROOT/VERSION" 2>/dev/null || echo "dev")"
 
     # Check Claude CLI for operational subcommands
     case "${1:-}" in

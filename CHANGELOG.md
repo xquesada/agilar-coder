@@ -6,6 +6,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions follow 
 
 Breaking changes include a **Migration** section with required manual steps.
 
+## [1.4.0] - 2026-03-07
+
+### Added
+- OpenAI Codex support: 18 skill implementations under `implementations/codex/`
+- Multi-tool CLI: `install`, `upgrade`, `status`, and `assess` auto-detect Claude Code and Codex
+- Tool detection functions: `detect_tools()`, `detect_tools_from_project()`
+- Codex skills install to `~/.codex/skills/<name>/SKILL.md` (folder format)
+- Tier 2 skills adapted for Codex (subagent-driven, parallel-agents, git-worktrees, using-agilar-coder)
+- PBI creation workflow rule: API-first, API ID = local file name
+
 ## [1.3.4] - 2026-03-07
 
 ### Added

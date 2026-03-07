@@ -554,8 +554,8 @@ register_claude_hook() {
     local settings_file=".claude/settings.json"
     mkdir -p .claude
 
-    # Install Entire wrapper if Entire is present and wrapper doesn't exist
-    if command -v entire &>/dev/null && [[ ! -f .claude/hooks/entire-session-start.sh ]]; then
+    # Install Entire wrapper if Entire is enabled in this repo and wrapper doesn't exist
+    if command -v entire &>/dev/null && ! entire status 2>/dev/null | grep -q "not set up" && [[ ! -f .claude/hooks/entire-session-start.sh ]]; then
         mkdir -p .claude/hooks
         cat > .claude/hooks/entire-session-start.sh << 'ENTIRE_HOOK'
 #!/bin/sh

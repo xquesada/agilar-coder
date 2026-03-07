@@ -1395,7 +1395,7 @@ cmd_upgrade() {
     if [[ -f CLAUDE.md && -f "$repo_root/templates/CLAUDE.md.tmpl" ]]; then
         local missing_sections=()
         while IFS= read -r section; do
-            section="$(echo "$section" | sed 's/{{[^}]*}}//g' | sed 's/^## //' | xargs)"
+            section="$(echo "$section" | tr -d '\r' | sed 's/{{[^}]*}}//g' | sed 's/^## //' | xargs)"
             [[ -z "$section" ]] && continue
             if ! grep -q "^## .*${section}" CLAUDE.md 2>/dev/null; then
                 missing_sections+=("$section")
